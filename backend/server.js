@@ -2,14 +2,20 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = 5002;
 
-// Routes
-app.get("/api/contributions", (req, res) => {
-  res.json({ message: "Contribution data will go here" });
+app.use(cors());
+
+// Root route test
+app.get("/", (req, res) => {
+  res.send("Backend is working!");
 });
 
-// Server
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+// API route
+app.get("/api/hello", (req, res) => {
+  res.json({ message: "Hello from Node.js backend!" });
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
+});
