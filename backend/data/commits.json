@@ -1,26 +1,50 @@
 [
   {
+    "sha": "f397a20b64e186d2088ecb71efc3f45b0fbc65f5",
+    "author": "gitconzo",
+    "username": "gitconzo",
+    "date": "2025-09-27T01:03:10Z",
+    "message": "GitHub API / Score\n\nUsing GitHub API to pull data from the repo & trialing a simple point score system for each commit.",
+    "stats": {
+      "total": 8659,
+      "additions": 8644,
+      "deletions": 15
+    }
+  },
+  {
     "sha": "4ceb8cf47a7fe714f64541478d8392d963792c24",
-    "authorName": "gitconzo",
-    "authorEmail": "141690721+gitconzo@users.noreply.github.com",
-    "githubUser": "gitconzo",
+    "author": "gitconzo",
+    "username": "gitconzo",
+    "date": "2025-09-23T15:19:50Z",
     "message": "creation of data folder\n\ndata folder",
-    "date": "2025-09-23T15:19:50Z"
+    "stats": {
+      "total": 1,
+      "additions": 1,
+      "deletions": 0
+    }
   },
   {
     "sha": "a909faa3e36f27ceaad8121b1b967def01c29d83",
-    "authorName": "gitconzo",
-    "authorEmail": "141690721+gitconzo@users.noreply.github.com",
-    "githubUser": "gitconzo",
+    "author": "gitconzo",
+    "username": "gitconzo",
+    "date": "2025-09-23T14:57:59Z",
     "message": "commit\n\ncommit",
-    "date": "2025-09-23T14:57:59Z"
+    "stats": {
+      "total": 53001,
+      "additions": 41204,
+      "deletions": 11797
+    }
   },
   {
     "sha": "761b35d460963eb6c69a3aed0549cb3422eb5474",
-    "authorName": "gitconzo",
-    "authorEmail": "141690721+gitconzo@users.noreply.github.com",
-    "githubUser": "gitconzo",
+    "author": "gitconzo",
+    "username": "gitconzo",
+    "date": "2025-09-22T07:59:49Z",
     "message": "Initial project structure with frontend and backend",
-    "date": "2025-09-22T07:59:49Z"
+    "stats": {
+      "total": 114426,
+      "additions": 114426,
+      "deletions": 0
+    }
   }
 ]
