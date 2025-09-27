@@ -1,19 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 function App() {
-  const [backendMessage, setBackendMessage] = useState("Loading...");
+  const [scores, setScores] = useState(null);
 
-  useEffect(() => {
-    fetch("http://localhost:5002/api/hello")
+  const fetchScores = () => {
+    fetch("http://localhost:5002/api/scores")
       .then((res) => res.json())
-      .then((data) => setBackendMessage(data.message))
-      .catch((err) => setBackendMessage("Error connecting to backend"));
-  }, []);
+      .then((data) => setScores(data))
+      .catch((err) => console.error("Error fetching scores:", err));
+  };
 
   return (
     <div style={{ textAlign: "center", marginTop: "2rem" }}>
-      <h1>React + Node.js Test</h1>
-      <p>Backend says: {backendMessage}</p>
+      <h1>React + Node.js Contribution Scores</h1>
+      <button onClick={fetchScores}>Get Contribution Scores</button>
+
+      {scores && (
+        <div style={{ marginTop: "1rem" }}>
+          <h2>Scores:</h2>
+          <ul>
+            {Object.entries(scores).map(([author, score]) => (
+              <li key={author}>
+                {author}: {score}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

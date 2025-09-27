@@ -1,0 +1,26 @@
+[
+  {
+    "sha": "4ceb8cf47a7fe714f64541478d8392d963792c24",
+    "authorName": "gitconzo",
+    "authorEmail": "141690721+gitconzo@users.noreply.github.com",
+    "githubUser": "gitconzo",
+    "message": "creation of data folder\n\ndata folder",
+    "date": "2025-09-23T15:19:50Z"
+  },
+  {
+    "sha": "a909faa3e36f27ceaad8121b1b967def01c29d83",
+    "authorName": "gitconzo",
+    "authorEmail": "141690721+gitconzo@users.noreply.github.com",
+    "githubUser": "gitconzo",
+    "message": "commit\n\ncommit",
+    "date": "2025-09-23T14:57:59Z"
+  },
+  {
+    "sha": "761b35d460963eb6c69a3aed0549cb3422eb5474",
+    "authorName": "gitconzo",
+    "authorEmail": "141690721+gitconzo@users.noreply.github.com",
+    "githubUser": "gitconzo",
+    "message": "Initial project structure with frontend and backend",
+    "date": "2025-09-22T07:59:49Z"
+  }
+]
