@@ -3,10 +3,11 @@ import React, { useState } from "react";
 function App() {
   const [scores, setScores] = useState(null);
 
+  // call backend to fetch scores
   const fetchScores = () => {
     fetch("http://localhost:5002/api/scores")
       .then((res) => res.json())
-      .then((data) => setScores(data))
+      .then((data) => setScores(data)) // calls setScores which stores result in react state
       .catch((err) => console.error("Error fetching scores:", err));
   };
 

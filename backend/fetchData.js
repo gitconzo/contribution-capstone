@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const fetch = require("node-fetch"); // install: npm install node-fetch
+const fetch = require("node-fetch"); // install: npm install node-fetch - allows for API calls in Node
 
 // repo details
 const owner = "gitconzo";
@@ -9,6 +9,7 @@ const repo = "contribution-capstone";
 const token = process.env.GITHUB_TOKEN;
 
 async function fetchCommits() {
+    // ask GitHub for recent commits from repo
   const url = `https://api.github.com/repos/${owner}/${repo}/commits?per_page=10`; 
 
   try {
@@ -25,7 +26,7 @@ async function fetchCommits() {
 
     const commits = await res.json();
     const detailedCommits = [];
-
+    // loops over commits to grab data such as additions and deletions
     for (const commit of commits) {
       const sha = commit.sha;
       const detailUrl = `https://api.github.com/repos/${owner}/${repo}/commits/${sha}`;
@@ -43,7 +44,7 @@ async function fetchCommits() {
       }
 
       const detailData = await detailRes.json();
-
+      // storing and saving commit details
       detailedCommits.push({
         sha,
         author: detailData.commit.author.name,
@@ -53,7 +54,7 @@ async function fetchCommits() {
         stats: detailData.stats,
       });
     }
-
+    // saved locally
     const filePath = path.join(__dirname, "data", "commits.json");
     fs.writeFileSync(filePath, JSON.stringify(detailedCommits, null, 2));
 
