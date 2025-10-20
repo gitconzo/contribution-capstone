@@ -1,35 +1,18 @@
 import React, { useState } from "react";
+import "./App.css";
+import { Login } from "./components/login";
 
 function App() {
-  const [scores, setScores] = useState(null);
-
-  // call backend to fetch scores
-  const fetchScores = () => {
-    fetch("http://localhost:5002/api/scores")
-      .then((res) => res.json())
-      .then((data) => setScores(data)) // calls setScores which stores result in react state
-      .catch((err) => console.error("Error fetching scores:", err));
-  };
-
-  return (
-    <div style={{ textAlign: "center", marginTop: "2rem" }}>
-      <h1>React + Node.js Contribution Scores</h1>
-      <button onClick={fetchScores}>Get Contribution Scores</button>
-
-      {scores && (
-        <div style={{ marginTop: "1rem" }}>
-          <h2>Scores:</h2>
-          <ul>
-            {Object.entries(scores).map(([author, score]) => (
-              <li key={author}>
-                {author}: {score}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  return !isLoggedIn ? (
+    <Login onLogin={() => setIsLoggedIn(true)} />
+  ) : (
+    <div className="App">
+      <h1>Dashboard</h1>
+      <button onClick={() => setIsLoggedIn(false)}>Logout</button>
     </div>
   );
 }
 
 export default App;
+
