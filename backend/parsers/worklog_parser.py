@@ -99,7 +99,7 @@ if __name__ == "__main__":
         data = parse_worklog_docx(input_file)
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"✅ Saved JSON to {output_file}")
+        print(f"Saved JSON to {output_file}")
     except Exception as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         sys.exit(1)

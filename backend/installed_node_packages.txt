@@ -1,0 +1,8 @@
+backend@1.0.0 /Users/conzo/Desktop/contribution-capstone/backend
+├── cors@2.8.5
+├── express@4.21.2
+├── multer@2.0.2
+├── node-fetch@2.7.0
+├── nodemon@3.1.10
+└── python-shell@5.0.0
+
