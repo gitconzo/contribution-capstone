@@ -1,33 +1,52 @@
 import React, { useState } from "react";
+import UploadFiles from "./pages/UploadFiles";
 
 function App() {
-  const [scores, setScores] = useState(null);
-
-  // call backend to fetch scores
-  const fetchScores = () => {
-    fetch("http://localhost:5002/api/scores")
-      .then((res) => res.json())
-      .then((data) => setScores(data)) // calls setScores which stores result in react state
-      .catch((err) => console.error("Error fetching scores:", err));
-  };
+  const [activeTab, setActiveTab] = useState("upload");
 
   return (
-    <div style={{ textAlign: "center", marginTop: "2rem" }}>
-      <h1>React + Node.js Contribution Scores</h1>
-      <button onClick={fetchScores}>Get Contribution Scores</button>
+    <div className="App">
+      <header className="App-header">
+        <h1>Contribution Analysis Prototype</h1>
 
-      {scores && (
-        <div style={{ marginTop: "1rem" }}>
-          <h2>Scores:</h2>
-          <ul>
-            {Object.entries(scores).map(([author, score]) => (
-              <li key={author}>
-                {author}: {score}
-              </li>
-            ))}
-          </ul>
+        {/* Navigation Tabs */}
+        <div className="tabs">
+          <button
+            className={`tab ${activeTab === "upload" ? "active" : ""}`}
+            onClick={() => setActiveTab("upload")}
+          >
+            Upload Files
+          </button>
+          <button
+            className={`tab ${activeTab === "scores" ? "active" : ""}`}
+            onClick={() => setActiveTab("scores")}
+          >
+            Contribution Scores
+          </button>
         </div>
-      )}
+
+        <div className="tab-content">
+          {activeTab === "upload" && <UploadFiles />}
+
+          {activeTab === "scores" && (
+            <div style={{ marginTop: "2rem" }}>
+              <h2>Scores (API Connected)</h2>
+              <p>
+                This section will show contribution scores calculated from Git/
+                Docs/Attendance.
+              </p>
+              <button
+                onClick={() =>
+                  window.open("http://localhost:5002/api/scores", "_blank")
+                }
+                className="action-button"
+              >
+                View Live Scores JSON
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
     </div>
   );
 }

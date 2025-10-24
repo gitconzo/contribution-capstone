@@ -1,0 +1,169 @@
+[
+  {
+    "Week": 1,
+    "TotalHours": 1.0,
+    "TasksDone": [
+      "Brainstorming and initial research for project ideas with the team."
+    ],
+    "KeyLearned": [
+      "Important to have a realistic scope for the project",
+      "Read parts of a research paper “Assessing individual contribution in a team project using Learning Analytics”"
+    ],
+    "Literature": [],
+    "Issues": [
+      "A bit of a struggle with communication on my end due to chaotic schedule that will be resolved."
+    ]
+  },
+  {
+    "Week": 2,
+    "TotalHours": 2.0,
+    "TasksDone": [
+      "Attended team meeting – discussing roles and planning the best available timeslots for future discussions.",
+      "Researched frontend frameworks and helped draft group email to client."
+    ],
+    "KeyLearned": [
+      "Planning early is very important, allows for more flexibility and helps avoid delays later on in the project.",
+      "Near completion of watching and partaking in React JS crash course to gain a better idea of the framework https://www.youtube.com/watch?v=w7ejDZ8SWv8"
+    ],
+    "Literature": [],
+    "Issues": [
+      "Communication with a few team members that weren’t available for our team meeting to delegate roles."
+    ]
+  },
+  {
+    "Week": 3,
+    "TotalHours": 3.0,
+    "TasksDone": [
+      "The key tasks completed this week were organising and partaking in the meeting with our client and finally introducing ourselves to her. This was a very insightful meeting, as it gave the team a far better understanding and greater insight into what needs to be accomplished for this project to come to fruition. The project purpose, objectives and scope were made clear.",
+      "The client meeting allowed for the team to make a start on and eventually complete the Project and Team Plan for the project.",
+      "Creation of the Trello board should help our team further down the line with staying accountable and should help Jason (Scrum Master) keep an eye on the progress of everything."
+    ],
+    "KeyLearned": [
+      "Consistent Communication with both the team and client is vital. It is very easy to fall behind on tasks, falling into the trap where both myself and the team “can do it later” or “will do it later” – delaying completion when the task should realistically be started immediately.",
+      "Evaluating Source Code Quality with Large Language Models (Simões & Venson, 2024)",
+      "Discussed whether LLMs could evaluate source code quality, and clarity. Both aspects previously considered exclusive to human judgement. Through comparison of GPT 3.5, GPT 4-o, and SonarQube’s metrics, it was found that GPT-4o gave higher scores to code that SonarQube deemed not as pivotal, and GPT 3.5 showed correlation with SonarQube’s metrics with it’s ability to capture aspects like readability.",
+      "Main takeaway was that LLMs have a potential for analysing code quality, however reliability and consistency need more research.",
+      "Assessing Individual Contribution in a Team Project using Learning Analytics (Shettar et al., 2019)",
+      "This research paper shares the same problem we as a team are trying to tackle during our project “Assessing individual contributions in group projects is challenging. Traditional grading can be biased and may not fairly represent each student’s work.” They attempted to use Learning analytics within a Learning Management System to track discussions, engagement and student actions. They found that the analytics framework was able to identify individual contributions with decent accuracy.",
+      "This proves that a data-driven approach is possible using Learning Analytics to fairly evaluate students within teams."
+    ],
+    "Literature": [],
+    "Issues": [
+      "The team didn’t make as quick of a start to the document as I would have liked. W we originally planned to complete the document Saturday, giving ourselves a day of proof-reading. However, come to Sunday morning and the only person who has contributed to the document was me. I took it upon myself to complete the majority of the document, writing the Teamwork Roadmap, Shared Documentation, Risk Mitigation, Problem Statement and Scope."
+    ]
+  },
+  {
+    "Week": 4,
+    "TotalHours": null,
+    "TasksDone": [
+      "Completion of the Individual Report took a majority of my time this week outside of classes and work. The report admittedly was submitted late and will incur a penalty; this could have been avoided with proper planning and beginning the report at an earlier date. This research also helped me with contributing to the group research matrix, as the research for the report fell hand in hand with the goal of our first sprint – that being research and development."
+    ],
+    "KeyLearned": [
+      "Properly documenting and reading through journals and research papers takes time. Research matrixes are an excellent way for documenting your findings and sharing them with the team as they provide insightful information in a simple layout.",
+      "Below listed is the key literature I researched and studied in detail for the report. Other research papers were used but weren’t covered as in depth due to time constraints:",
+      "The impact of unequal contributions in student software engineering team projects' — Journal of Systems and Software\nhttps://www.sciencedirect.com/science/article/pii/S0164121223002340",
+      "Software engineering team project courses with industrial customers: Students’ insights on challenges and lessons learned\nhttps://www.sciencedirect.com/science/article/pii/S0164121225001098",
+      "Assessing individual contribution in a team project using Learning Analytics\nhttps://www.sciencedirect.com/science/article/pii/S1877050920314770",
+      "Code-quality evaluation scheme for assessment of student contributions to programming projects",
+      "https://www.sciencedirect.com/science/article/pii/S0164121222000358",
+      "Peer assessment of individual contributions to a group project: Student perceptions\nhttps://www.sciencedirect.com/science/article/pii/S1078817408000321"
+    ],
+    "Literature": [],
+    "Issues": []
+  },
+  {
+    "Week": 5,
+    "TotalHours": null,
+    "TasksDone": [
+      "Design of System Solution",
+      "A core task for this week was to create the architectural design of the project. The plan was to create a 3-Tier architecture design, with a data input layer, processing layer (backend), and output layer (frontend). The architecture design details how data will be collected and stored into datasets, before eventually being normalized and utilised for the student contribution score. The design also details the technological stack that will be utilised for frontend development.",
+      "Using an Internal Peer review would make it easier for the webapp to integrate the data.",
+      "Implementation of the idea of the team leader having a csv that he/she fills out with the attendance of all team members each week for meetings, and then at the end of the semester uploads to the webapp.",
+      "Development of a concept for the webapp",
+      "Using Adobe XD, I created a concept for what the webapp should look like. Did a bit of research on the internet for dashboards and designs I find really aesthetically pleasing. The webapp is also supposed to be a summary of all information but should also display intricate information when required. In this design, I think I perhaps went a little overboard on some of the statistics, as some of them aren’t very important. However, I do like the general concept, especially with the commits tab. I believe it provides a very good skeleton of what could be.",
+      "Learning python libraries for AI and ML",
+      "This week I undertook the task of learning popular and common python libraries for AI and ML purposes  I ended up focusing on pandas and NumPy for data cleaning and implementation, and matplotlib for data visualisation.",
+      "To incorporate some practical skills that may come in handy later in the project, I utilised a dataset that replicates what data may be pulled from the GitHub API when we progress past the manual upload of files in the alpha of the webapp, into the integration of APIs."
+    ],
+    "KeyLearned": [
+      "There is always more to learn. And when I think you’ve learnt a decent amount, I realise that it’s only a drop in the bucket. This is mostly in regard to AI and ML libraries, as there is so much to learn and experiment with, especially different models (linear regression, decision trees, random forests).",
+      "Learn Python for Data Science – Full Course",
+      "https://www.youtube.com/watch?v=CMEWVn1uZpQ&t=50147s",
+      "Very informative video. Watched up to 14ish hours, need to finish the video to cover the topic of ML in python and using scikit-learn for different models."
+    ],
+    "Literature": [],
+    "Issues": []
+  },
+  {
+    "Week": 6,
+    "TotalHours": null,
+    "TasksDone": [
+      "Client Demonstration",
+      "The team presented the Sprint 1 research and development to the client. This demonstration detailed the design of the architecture and the conceptual mock-ups for the web application. Methods for data extraction and analysis were detailed for different project artifacts.",
+      "Sprint Report",
+      "The team completed the sprint report, detailing what was achieved in Sprint 1 and the general thoughts and feelings about how we feel we performed as a group. I completed the Sprint Plan and the Sprint Progress sections of the report.",
+      "Planning Sprint 2",
+      "A planning document was created to plan Sprint 2 and assign tasks to each team member early on to ensure progress can begin as soon as possible in developing our relevant areas. For myself, this will be developing and experimenting with an algorithm that analyses all the project artifacts."
+    ],
+    "KeyLearned": [
+      "Rehearsals are very important when presenting information to clients. As a team we only rehearsed once prior to the presentation due to our lack of preparation. If we had completed the presentation earlier, we could’ve practiced verbalising our sections and timed our speaking segments more optimally to ensure that the pacing of the presentation allows for all team members to speak.",
+      "No new content was consumed this week."
+    ],
+    "Literature": [],
+    "Issues": [
+      "As written prior, the completion of the PowerPoint was very behind the expected finish date. This resulted in a presentation to the client that wasn’t very well rehearsed or practiced – causing some team members not to be able to speak their segments.",
+      "Team members didn’t get a start on the Sprint Report as early as I would’ve liked. The document hadn’t been contributed to by anyone except me until the day of submission. Due to this, I completed the first two segments of the document because I was unsure if the other team members would contribute to the document. They did end up completing the other parts later in the evening."
+    ]
+  },
+  {
+    "Week": 7,
+    "TotalHours": null,
+    "TasksDone": [
+      "Listed above are the tasks that were delegated to the team this week for Sprint 2. As stated, my tasks were to Prototype an algorithm for GitHub data, Create the Git Repository, and Import and clean GitHub data for the algorithm.",
+      "Setup GitHub Repo",
+      "The GitHub repo was established and set up, this required setting up the project to have all relevant dependencies installed, including npm, node, and react. I had to conduct research to achieve this, as this was the first time I was linking Node and React.JS together in a project. Express is used to create a server on port 5002. The reason that 5002 was selected was because I originally attempted port 5000, but I kept getting an error. After some headaches and research, it was detailed that apparently Apple reserve port 5000 for their MacBook and instantly claim the port whenever it gets reset. So, I switched to port 5002 and it fixed the issue. The frontend fetches the /api/scores using a HTTP GET request from React, Node receives the request and executes the route handler before sending a JSON payload over HTTP. Frontend receives this JSON.",
+      "Import and clean GitHub data",
+      "I created an algorithm fetchData() to fetch data from GitHub using the API and repo details of the project.",
+      "Creation of algorithm for giving normalized score based on contribution of individual using project artifacts from GitHub"
+    ],
+    "KeyLearned": [],
+    "Literature": [],
+    "Issues": [
+      "Any literature read and key things learned",
+      "N/A",
+      "Issues/problems/Challenges",
+      "Jen, Kae, and Hridoy were given the task to complete their figma designs by Friday so we could look at them together. For the team meeting on Saturday morning, it was only Jason, Kae and myself that attended. Jen had apparently put her unavailability in beforehand but not announced it and Hridoy didn’t mention he could attend till afterwards 10 hours later stating he was sick the last two days. Hridoy and Jen were given Monday till Saturday to complete their designs and they didn’t even send anything to the discord about what they’d worked on at all so as a team we have to assume they didn’t complete their tasks. Communication is key in the team and Jason and myself are going to take a more proactive role in cementing this ideal into the team as we don’t want to fail."
+    ]
+  },
+  {
+    "Week": 8,
+    "TotalHours": null,
+    "TasksDone": [
+      "This week my key task was designing and implementing a program that can parse the data of a word document and then summarise the information into a .json file that can be used to easily extract and display information on a web-app. This was implemented and designed so that the weekly worklog that is uploaded by students can be summarised and displayed on the web-app for the teacher / tutor to read the key information."
+    ],
+    "KeyLearned": [],
+    "Literature": [],
+    "Issues": [
+      "Issues/problems/Challenges",
+      "In terms of team synergy and overall effort, one of our team-members Hridoy isn’t doing the required amount of work that is expected of every team-member. He was assigned a Figma design and produced a single page that was originally a template from the internet. This would’ve likely been 30 minutes or less of work. He was instructed to redo it."
+    ]
+  },
+  {
+    "Week": 9,
+    "TotalHours": null,
+    "TasksDone": [
+      "I wrote a script using the python package ‘openpyxl’ that aims to extract all the key information from the attendance sheet so the data can be easily displayed on the front-end",
+      "The code works by reading each row of the Excel sheet and creating a dictionary for each week that stores the week number, date, absentees, and their reasons. It loops through each team member to check if they were present or absent, records absences, parses the “Name - Reason” text into a dictionary, and then at the end calculates each member’s overall attendance percentage across the semester by dividing the attended meetings by total meetings.",
+      "Client Demonstration was conducted on Thursday 9th of October for Sprint 2. We conducted multiple rehearsals beforehand and created the slideshow presentation to ensure that a helicopter overview was presented instead of a deep dive that could’ve potentially left the client feeling confused. The scripts developed for parsing information were demonstrated and the rule-based logic we’ve decided to move forward with was highlighted. Two conceptual web application designs were also presented.",
+      "I am currently in the midst of transcribing the clients feedback during the presentation to ensure that we are equipped for Sprint 3 and can complete the planning document as quickly as possible to ensure we can get started on development immediately."
+    ],
+    "KeyLearned": [
+      "Rehearsals make a big difference when presenting information. In sprint 1 as a team, we lacked the forethought to practice our presentation due to time constraints, and this left us in a position where the client wasn’t confident in our abilities due to lots of jargon being presented. This time around, we practiced, timed, and refined out presentation so that it would give a clear idea of what we had been working on and allow for the client to ask questions.",
+      "N/A"
+    ],
+    "Literature": [],
+    "Issues": [
+      "Hridoy was supposed to deliver a functioning high-level conceptual design of a web-application but ended up not delivering at all, instead using a template online for his work. Due to the low effort, as a team we came to the decision to remove his design from the client presentation to ensure that a professional standard is maintained to the client through presentation of high-quality work."
+    ]
+  }
+]

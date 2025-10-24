@@ -1,0 +1,124 @@
+[
+  {
+    "id": "COS4000 Worklog Week 6__1760925017013.docx",
+    "originalName": "COS4000 Worklog Week 6.docx",
+    "storedName": "COS4000 Worklog Week 6__1760925017013.docx",
+    "storedPath": "uploads/COS4000 Worklog Week 6__1760925017013.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3514181,
+    "uploadDate": "2025-10-20T01:50:17.027Z",
+    "detectedType": "worklog",
+    "userType": "worklog",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Worklog parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 8, in extract_text_docx\n    from docx import Document\nModuleNotFoundError: No module named 'docx'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 92, in <module>\n    lines = extract_text_docx(in_path)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 10, in extract_text_docx\n    raise RuntimeError(\"python-docx not installed. pip install python-docx\")\nRuntimeError: python-docx not installed. pip install python-docx\n"
+    }
+  },
+  {
+    "id": "COS4000 Worklog Week 6__1760925122301.docx",
+    "originalName": "COS4000 Worklog Week 6.docx",
+    "storedName": "COS4000 Worklog Week 6__1760925122301.docx",
+    "storedPath": "uploads/COS4000 Worklog Week 6__1760925122301.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3514181,
+    "uploadDate": "2025-10-20T01:52:02.318Z",
+    "detectedType": "worklog",
+    "userType": "worklog",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Worklog parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 8, in extract_text_docx\n    from docx import Document\nModuleNotFoundError: No module named 'docx'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 92, in <module>\n    lines = extract_text_docx(in_path)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 10, in extract_text_docx\n    raise RuntimeError(\"python-docx not installed. pip install python-docx\")\nRuntimeError: python-docx not installed. pip install python-docx\n"
+    }
+  },
+  {
+    "id": "COS4000 Worklog Week 6__1760925315876.docx",
+    "originalName": "COS4000 Worklog Week 6.docx",
+    "storedName": "COS4000 Worklog Week 6__1760925315876.docx",
+    "storedPath": "uploads/COS4000 Worklog Week 6__1760925315876.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3514181,
+    "uploadDate": "2025-10-20T01:55:15.893Z",
+    "detectedType": "worklog",
+    "userType": "worklog",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/COS4000 Worklog Week 6__1760925315876.json",
+      "message": "Worklog parsed"
+    }
+  },
+  {
+    "id": "COS4000 Worklog Week 6__1760925636272.docx",
+    "originalName": "COS4000 Worklog Week 6.docx",
+    "storedName": "COS4000 Worklog Week 6__1760925636272.docx",
+    "storedPath": "uploads/COS4000 Worklog Week 6__1760925636272.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3514181,
+    "uploadDate": "2025-10-20T02:00:36.282Z",
+    "detectedType": "worklog",
+    "userType": "worklog",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/COS4000 Worklog Week 6__1760925636272.json",
+      "message": "Worklog parsed"
+    }
+  },
+  {
+    "id": "COS4000 Worklog Week 6__1760936288082.docx",
+    "originalName": "COS4000 Worklog Week 6.docx",
+    "storedName": "COS4000 Worklog Week 6__1760936288082.docx",
+    "storedPath": "uploads/COS4000 Worklog Week 6__1760936288082.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3514181,
+    "uploadDate": "2025-10-20T04:58:08.097Z",
+    "detectedType": "worklog",
+    "userType": "worklog",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/COS4000 Worklog Week 6__1760936288082.json",
+      "message": "Worklog parsed"
+    }
+  },
+  {
+    "id": "COS4000 Worklog Week 6__1760937419032.docx",
+    "originalName": "COS4000 Worklog Week 6.docx",
+    "storedName": "COS4000 Worklog Week 6__1760937419032.docx",
+    "storedPath": "uploads/COS4000 Worklog Week 6__1760937419032.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3514181,
+    "uploadDate": "2025-10-20T05:16:59.048Z",
+    "detectedType": "worklog",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS4000 Worklog Week 9__1760938714775.pdf",
+    "originalName": "COS4000 Worklog Week 9.pdf",
+    "storedName": "COS4000 Worklog Week 9__1760938714775.pdf",
+    "storedPath": "uploads/COS4000 Worklog Week 9__1760938714775.pdf",
+    "mimetype": "application/pdf",
+    "size": 3078054,
+    "uploadDate": "2025-10-20T05:38:34.786Z",
+    "detectedType": "worklog",
+    "userType": "worklog",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Worklog parse failed: Error: Package not found at '/Users/conzo/Desktop/contribution-capstone/backend/uploads/COS4000 Worklog Week 9__1760938714775.pdf'\n"
+    }
+  },
+  {
+    "id": "COS4000 Worklog Week 6__1760938744911.docx",
+    "originalName": "COS4000 Worklog Week 6.docx",
+    "storedName": "COS4000 Worklog Week 6__1760938744911.docx",
+    "storedPath": "uploads/COS4000 Worklog Week 6__1760938744911.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3514181,
+    "uploadDate": "2025-10-20T05:39:04.925Z",
+    "detectedType": "worklog",
+    "userType": "worklog",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/COS4000 Worklog Week 6__1760938744911.json",
+      "message": "Worklog parsed"
+    }
+  }
+]
