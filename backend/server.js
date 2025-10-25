@@ -45,8 +45,10 @@ const upload = multer({ storage });
 function detectTypeFromName(filename, userGuess) {
   if (userGuess && userGuess !== "unknown") return userGuess;
   const lower = (filename || "").toLowerCase();
+
   if (lower.includes("attendance")) return "attendance";
-  if (lower.includes("worklog") || lower.includes("sprint") || lower.includes("weekly")) return "worklog";
+  if (lower.includes("worklog") || lower.includes("weekly")) return "worklog";
+  if (lower.includes("sprint") && lower.includes("report")) return "sprint_report"; // ✅ NEW
   if (lower.includes("peer")) return "peer_review";
   return "unknown";
 }
@@ -190,7 +192,7 @@ app.post("/api/uploads/confirm", (req, res) => {
     res.json(entry);
   }
 
-  // Attendance: .xlsx → parsers/attendance.py
+  // Attendance: .xlsx --> parsers/attendance.py
   if (finalType === "attendance" && (ext === ".xlsx" || ext === ".xls")) {
     const outJson = absPath.replace(ext, ".json");
     const py = path.join(__dirname, "parsers", "attendance.py");
@@ -208,7 +210,7 @@ app.post("/api/uploads/confirm", (req, res) => {
     return;
   }
 
-  // Worklog: .docx/.pdf → parsers/worklog_parser.py
+  // Worklog: .docx/.pdf --> parsers/worklog_parser.py
   if (finalType === "worklog" && (ext === ".docx" || ext === ".pdf")) {
     const outJson = absPath.replace(ext, ".json");
     const py = path.join(__dirname, "parsers", "worklog_parser.py");
@@ -220,6 +222,29 @@ app.post("/api/uploads/confirm", (req, res) => {
       } else {
         entry.status = "parsed";
         entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Worklog parsed" };
+      }
+      finish();
+    });
+    return;
+  }
+
+    // Sprint Report: .docx --> parsers/parse_sprint_report_docx.py
+  if (finalType === "sprint_report" && ext === ".docx") {
+    const outJson = absPath.replace(ext, ".json");
+    const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
+
+    execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
+      if (err) {
+        entry.status = "parse_failed";
+        entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
+      } else {
+        // The script already writes a .json automatically
+        const jsonFile = path.join(path.dirname(absPath), "sprint_report_summary.json");
+        entry.status = "parsed";
+        entry.parseInfo = {
+          jsonPath: path.relative(__dirname, jsonFile),
+          message: "Sprint report parsed successfully"
+        };
       }
       finish();
     });

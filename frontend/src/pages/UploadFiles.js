@@ -214,7 +214,7 @@ const styles = {
     table: {
     width: "100%",
     borderCollapse: "separate",
-    borderSpacing: "0 10px", // ✅ Spacing between rows
+    borderSpacing: "0 10px", // Spacing between rows
     marginTop: "10px"
   },
   tableRow: {
