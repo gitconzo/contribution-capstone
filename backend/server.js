@@ -48,7 +48,7 @@ function detectTypeFromName(filename, userGuess) {
 
   if (lower.includes("attendance")) return "attendance";
   if (lower.includes("worklog") || lower.includes("weekly")) return "worklog";
-  if (lower.includes("sprint") && lower.includes("report")) return "sprint_report"; // ✅ NEW
+  if (lower.includes("sprint") && lower.includes("report")) return "sprint_report";
   if (lower.includes("peer")) return "peer_review";
   return "unknown";
 }
@@ -233,21 +233,28 @@ app.post("/api/uploads/confirm", (req, res) => {
     const outJson = absPath.replace(ext, ".json");
     const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
 
-    execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
-      if (err) {
-        entry.status = "parse_failed";
-        entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
-      } else {
-        // The script already writes a .json automatically
-        const jsonFile = path.join(path.dirname(absPath), "sprint_report_summary.json");
-        entry.status = "parsed";
-        entry.parseInfo = {
-          jsonPath: path.relative(__dirname, jsonFile),
-          message: "Sprint report parsed successfully"
-        };
-      }
-      finish();
-    });
+    console.log(`Running sprint parser: python3 ${py} "${absPath}"`);
+
+  execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
+    console.log("=== PYTHON STDOUT ===");
+    console.log(stdout);
+    console.log("=== PYTHON STDERR ===");
+    console.error(stderr);
+
+    if (err) {
+      console.error("Sprint report parser error:", err);
+      entry.status = "parse_failed";
+      entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
+    } else {
+      const jsonFile = path.join(path.dirname(absPath), "sprint_report_summary.json");
+      entry.status = "parsed";
+      entry.parseInfo = {
+        jsonPath: path.relative(__dirname, jsonFile),
+        message: "Sprint report parsed successfully"
+      };
+    }
+    finish();
+});
     return;
   }
 

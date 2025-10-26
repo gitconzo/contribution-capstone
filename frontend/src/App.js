@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import UploadFiles from "./pages/UploadFiles";
+import UploadFile from "./pages/UploadFile";
 
 function App() {
   const [activeTab, setActiveTab] = useState("upload");
@@ -26,7 +26,7 @@ function App() {
         </div>
 
         <div className="tab-content">
-          {activeTab === "upload" && <UploadFiles />}
+          {activeTab === "upload" && <UploadFile />}
 
           {activeTab === "scores" && (
             <div style={{ marginTop: "2rem" }}>
