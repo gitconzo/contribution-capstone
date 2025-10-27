@@ -1,50 +1,122 @@
 [
   {
-    "sha": "f397a20b64e186d2088ecb71efc3f45b0fbc65f5",
-    "author": "gitconzo",
-    "username": "gitconzo",
-    "date": "2025-09-27T01:03:10Z",
-    "message": "GitHub API / Score\n\nUsing GitHub API to pull data from the repo & trialing a simple point score system for each commit.",
+    "sha": "c812563a9fdd7cc9a22d3037efdcac9617a5d7c0",
+    "author": "fourthedesign",
+    "username": "fourthedesign",
+    "date": "2023-03-03T10:30:05Z",
+    "message": "I_Activity and I_Usable interfaces, + changes to contributions.md (#28)\n\nCo-authored-by: Alex <alex@kaffetzakis.com>",
     "stats": {
-      "total": 8659,
-      "additions": 8644,
-      "deletions": 15
+      "total": 115,
+      "additions": 110,
+      "deletions": 5
     }
   },
   {
-    "sha": "4ceb8cf47a7fe714f64541478d8392d963792c24",
-    "author": "gitconzo",
-    "username": "gitconzo",
-    "date": "2025-09-23T15:19:50Z",
-    "message": "creation of data folder\n\ndata folder",
+    "sha": "88c2ea1d8d21e935382d9a0ed7f6d89f9f9247e3",
+    "author": "KAAzadi",
+    "username": "KAAzadi",
+    "date": "2023-03-03T09:41:49Z",
+    "message": "Attachments branch (#27)\n\n* Hardpoints added\r\n\r\nAddition of prototype hardpoints to the ship, as well as prefab to attach weapons too.\r\n\r\n* Visual Changes\r\n\r\nFound where to attach weapons/hardpoint to give them the same movement visuals as the rest of the ship.\r\n\r\n* Start\r\n\r\n* Update Game.unity\r\n\r\n* Refactor for Future Features\r\n\r\nChanged the way the ship communicates with weapons to be directly through the hardpoints, giving the hardpoints the ability to communicate to it's attachment. I created two enums (Size and Types) that can be used to determine how things can fit if needed, and the hardpoints can use the attachment through the inherited Use method (this is a rename of the FireWeapon method to allow for easier abstraction).\r\n\r\n* Adjusted to fit guidelines\r\n\r\nAdjusted syntax to fit the submission guidelines.",
     "stats": {
-      "total": 1,
-      "additions": 1,
-      "deletions": 0
+      "total": 709,
+      "additions": 661,
+      "deletions": 48
     }
   },
   {
-    "sha": "a909faa3e36f27ceaad8121b1b967def01c29d83",
-    "author": "gitconzo",
-    "username": "gitconzo",
-    "date": "2025-09-23T14:57:59Z",
-    "message": "commit\n\ncommit",
+    "sha": "eb9c316ad6564a8dbed1c1d979d12a76bafaca6d",
+    "author": "fourthedesign",
+    "username": "fourthedesign",
+    "date": "2023-02-24T14:17:28Z",
+    "message": "Refactored, organized and optimized initial weapon code (#24)\n\nCo-authored-by: Alex <alex@kaffetzakis.com>",
     "stats": {
-      "total": 53001,
-      "additions": 41204,
-      "deletions": 11797
+      "total": 164,
+      "additions": 108,
+      "deletions": 56
     }
   },
   {
-    "sha": "761b35d460963eb6c69a3aed0549cb3422eb5474",
-    "author": "gitconzo",
-    "username": "gitconzo",
-    "date": "2025-09-22T07:59:49Z",
-    "message": "Initial project structure with frontend and backend",
+    "sha": "779c4192167e07452fb4454c1b7cfd2829415717",
+    "author": "KAAzadi",
+    "username": "KAAzadi",
+    "date": "2023-02-24T13:29:57Z",
+    "message": "Weapon features branch (#23)\n\n* Refactoring and Weapon class/asset\r\n\r\nRefactored the following:\r\n-Organized directories to fit the unity UI a bit better\r\n-Organized the fields of a couple classes\r\n-Refactored GetInput() to update existing struct rather than recreate it\r\n-Added a new bool to the current ShipControllerInput struct to recognize when a weapon press is called (This may change to be more of an on-call event handler in the future)\r\n\r\nAdditionally, I added a ~very~ primitive weapon asset with crosshairs that attach to the player to show where their shots will be going. This particular portion is still WiP.\r\n\r\n* Refactor and Rename\r\n\r\nChanged the values of a few properties to be more uniform, and gave the base weapon the ability to always hit no matter what. This will obviously change next pass, but wanted to make sure all data was able to be passed through comfortably, allowing for quick fine tuning when I'm next free.\r\n\r\n* First Pass Weapon System\r\n\r\nAdded a crude base weapon that is able to shoot, deal damage, and ultimately destroy an enemy. It can check for range with a set blast radius area, as well as a max range outwards.",
     "stats": {
-      "total": 114426,
-      "additions": 114426,
-      "deletions": 0
+      "total": 571,
+      "additions": 536,
+      "deletions": 35
+    }
+  },
+  {
+    "sha": "51f5a86d75784953349220c1744ff374ac4ec898",
+    "author": "fourthedesign",
+    "username": "fourthedesign",
+    "date": "2023-02-20T14:13:54Z",
+    "message": "Dev local (#21)\n\n* Simple enemy movement\r\n\r\n---------\r\n\r\nCo-authored-by: Alex <alex@kaffetzakis.com>",
+    "stats": {
+      "total": 781,
+      "additions": 780,
+      "deletions": 1
+    }
+  },
+  {
+    "sha": "a861c9c841831b83e3662971a6c7c4ac883f4e0a",
+    "author": "Angel Bowers",
+    "username": "ANGELB3AR",
+    "date": "2023-02-16T09:34:32Z",
+    "message": "Feature: Main menu, cc issue#19 (#20)\n\n* Created main menu scene\r\n\r\n* Added title and Play button\r\n\r\n* Play button now starts the game in Game scene\r\n\r\n* Separated UI management scripts",
+    "stats": {
+      "total": 1042,
+      "additions": 998,
+      "deletions": 44
+    }
+  },
+  {
+    "sha": "c848b55ef91adea19239e182193a31add629dbd9",
+    "author": "fourthedesign",
+    "username": "fourthedesign",
+    "date": "2023-02-15T11:33:30Z",
+    "message": "Dev local (#18)\n\n\r\n* Update: Better camera gliding\r\n\r\n--------\r\n\r\nCo-authored-by: Alex <alex@kaffetzakis.com>",
+    "stats": {
+      "total": 17,
+      "additions": 16,
+      "deletions": 1
+    }
+  },
+  {
+    "sha": "3dac6a29004a3045690e179a1438aacbecae7a38",
+    "author": "fourthedesign",
+    "username": "fourthedesign",
+    "date": "2023-02-14T13:08:17Z",
+    "message": "Dev local (#17)\n\n\r\n* Update: Better camera gliding\r\n\r\n---------\r\n\r\nCo-authored-by: Alex <alex@kaffetzakis.com>",
+    "stats": {
+      "total": 20,
+      "additions": 14,
+      "deletions": 6
+    }
+  },
+  {
+    "sha": "bf7af51e009c1c76c456fe149849fc3069d8fdaa",
+    "author": "fourthedesign",
+    "username": "fourthedesign",
+    "date": "2023-02-13T12:41:35Z",
+    "message": "update CONTRIBUTIONS.md\n\nAdded some coding practices.",
+    "stats": {
+      "total": 18,
+      "additions": 17,
+      "deletions": 1
+    }
+  },
+  {
+    "sha": "cce8e9f0eb4fb3dfa4f0119e6f9fcb7b9f5548bc",
+    "author": "fourthedesign",
+    "username": "fourthedesign",
+    "date": "2023-02-13T12:36:04Z",
+    "message": "Camera smoother gliding, FOV at speed (#15)\n\nCo-authored-by: Alex <alex@kaffetzakis.com>",
+    "stats": {
+      "total": 52,
+      "additions": 46,
+      "deletions": 6
     }
   }
 ]

@@ -1,0 +1,44 @@
+{
+  "repo": "https://github.com/IsotopicIO/iso-space-game",
+  "authors": {
+    "fourthedesign": {
+      "average_complexity": 1.933,
+      "percentage_of_functions_written": 53.39,
+      "percentage_of_hotspots": 45.24
+    },
+    "KAAzadi": {
+      "average_complexity": 1.356,
+      "percentage_of_functions_written": 11.02,
+      "percentage_of_hotspots": 21.43
+    },
+    "Alex": {
+      "average_complexity": 1.269,
+      "percentage_of_functions_written": 16.95,
+      "percentage_of_hotspots": 23.81
+    },
+    "CyberDryad": {
+      "average_complexity": 0.875,
+      "percentage_of_functions_written": 13.56,
+      "percentage_of_hotspots": 9.52
+    },
+    "Shadow": {
+      "average_complexity": 0.453,
+      "percentage_of_functions_written": 3.39,
+      "percentage_of_hotspots": 0.0
+    },
+    "Angel Bowers": {
+      "average_complexity": 0.451,
+      "percentage_of_functions_written": 1.69,
+      "percentage_of_hotspots": 0.0
+    }
+  },
+  "%LOC": {
+    "Alex": 43.99,
+    "fourthedesign": 4.56,
+    "codesee-maps[bot]": 0.05,
+    "CyberDryad": 38.11,
+    "KAAzadi": 9.23,
+    "Shadow": 1.81,
+    "Angel Bowers": 2.24
+  }
+}

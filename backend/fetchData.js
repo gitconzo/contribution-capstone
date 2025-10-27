@@ -2,9 +2,28 @@ const fs = require("fs");
 const path = require("path");
 const fetch = require("node-fetch"); // install: npm install node-fetch - allows for API calls in Node
 
-// repo details
-const owner = "gitconzo";
-const repo = "contribution-capstone";
+// repo details (hard coded)
+const owner = "IsotopicIO";
+const repo = "iso-space-game";
+
+//check repo.json and use those values forr owner and repo
+try {
+  const repoFile = path.join(__dirname, "data", "repo.json");
+  if (fs.existsSync(repoFile)) {
+    const repoData = JSON.parse(fs.readFileSync(repoFile, "utf-8"));
+    if (repoData.owner && repoData.repo) {
+      owner = repoData.owner;
+      repo = repoData.repo;
+      console.log(`Using repo from: ${owner}/${repo}`);
+    } else {
+      console.log("Repo info incomplete in repo.json, using hard coded repo.");
+    }
+  }
+} catch (err) {
+  console.warn("Could not load repo.json, using defaults:", err.message);
+}
+
+
 // if private repo, add token here
 const token = process.env.GITHUB_TOKEN;
 
