@@ -18,7 +18,6 @@ const UPLOAD_DIR = path.join(__dirname, "uploads");
 const REGISTRY_PATH = path.join(__dirname, "fileRegistry.json");
 const REPO_JSON_PATH = path.join(DATA_DIR, "repo.json");
 
-
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!fs.existsSync(REGISTRY_PATH)) fs.writeFileSync(REGISTRY_PATH, JSON.stringify([], null, 2));
@@ -50,9 +49,10 @@ function detectTypeFromName(filename, userGuess) {
   const lower = (filename || "").toLowerCase();
 
   if (lower.includes("attendance")) return "attendance";
-  if (lower.includes("worklog") || lower.includes("weekly")) return "worklog";
-  if (lower.includes("sprint") && lower.includes("report")) return "sprint_report";
+  if (lower.includes("worklog")) return "worklog";
+  if (lower.includes("sprint")) return "sprint_report";
   if (lower.includes("peer")) return "peer_review";
+  if (lower.includes("project") && lower.includes("plan")) return "project_plan";
   return "unknown";
 }
 
@@ -154,11 +154,10 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
   const repoUrl = (req.body?.repoUrl).trim();
   const owner   = (req.body?.owner).trim();
   const repo    = (req.body?.repo).trim();
-
+  
   const registry = loadRegistry();
   const userGuess = req.body?.userType || null;
   const detectedType = detectTypeFromName(req.file.originalname, userGuess);
-  
 
   const entry = {
     id: path.basename(req.file.filename), // simple id = stored filename
@@ -176,7 +175,7 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
 
   registry.push(entry);
   saveRegistry(registry);
-
+  
   if(repoUrl){
     const repoInfo = { url: repoUrl, ...(owner && repo ? { owner, repo } : {}), savedAt: new Date().toISOString() };
     fs.writeFileSync(REPO_JSON_PATH, JSON.stringify(repoInfo, null, 2));
@@ -199,8 +198,6 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
     return; 
   }
   
-
-
   res.json(entry);
 });
 
@@ -268,30 +265,60 @@ app.post("/api/uploads/confirm", (req, res) => {
 
     console.log(`Running sprint parser: python3 ${py} "${absPath}"`);
 
-  execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
-    console.log("=== PYTHON STDOUT ===");
-    console.log(stdout);
-    console.log("=== PYTHON STDERR ===");
-    console.error(stderr);
+    execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
+      console.log("=== PYTHON STDOUT ===");
+      console.log(stdout);
+      console.log("=== PYTHON STDERR ===");
+      console.error(stderr);
 
-    if (err) {
-      console.error("Sprint report parser error:", err);
-      entry.status = "parse_failed";
-      entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
-    } else {
-      const jsonFile = path.join(path.dirname(absPath), "sprint_report_summary.json");
-      entry.status = "parsed";
-      entry.parseInfo = {
-        jsonPath: path.relative(__dirname, jsonFile),
-        message: "Sprint report parsed successfully"
-      };
-    }
-    finish();
-});
+      if (err) {
+        console.error("Sprint report parser error:", err);
+        entry.status = "parse_failed";
+        entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
+      } else {
+        const jsonFile = path.join(path.dirname(absPath), "sprint_report_summary.json");
+        entry.status = "parsed";
+        entry.parseInfo = {
+          jsonPath: path.relative(__dirname, jsonFile),
+          message: "Sprint report parsed successfully"
+        };
+      }
+      finish();
+    });
     return;
   }
 
-  // Peer review / unknown → no parser
+  // Project Plan: .docx --> parsers/parse_project_plan_docx.py
+  if (finalType === "project_plan" && ext === ".docx") {
+    const outJson = absPath.replace(ext, ".json");
+    const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
+
+    console.log(`Running project plan parser: python3 ${py} "${absPath}"`);
+
+    execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
+      console.log("=== PYTHON STDOUT ===");
+      console.log(stdout);
+      console.log("=== PYTHON STDERR ===");
+      console.error(stderr);
+
+      if (err) {
+        console.error("Project Plan parser error:", err);
+        entry.status = "parse_failed";
+        entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };
+      } else {
+        const jsonFile = path.join(path.dirname(absPath), "project_plan_summary.json");
+        entry.status = "parsed";
+        entry.parseInfo = {
+          jsonPath: path.relative(__dirname, jsonFile),
+          message: "Project Plan parsed successfully"
+        };
+      }
+      finish();
+    });
+    return;
+  }
+
+  // Peer review / unknown --> no parser
   entry.parseInfo = { message: "No parser run for this type." };
   finish();
 });
