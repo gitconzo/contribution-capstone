@@ -197,5 +197,244 @@
       "jsonPath": "uploads/sprint_report_summary.json",
       "message": "Sprint report parsed successfully"
     }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761559894004.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761559894004.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761559894004.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T10:11:34.010Z",
+    "detectedType": "project_plan",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761559915192.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761559915192.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761559915192.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T10:11:55.199Z",
+    "detectedType": "project_plan",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1761559929181.docx",
+    "originalName": "COS40005 Sprint 2 Report.docx",
+    "storedName": "COS40005 Sprint 2 Report__1761559929181.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report__1761559929181.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 6416054,
+    "uploadDate": "2025-10-27T10:12:09.198Z",
+    "detectedType": "sprint_report",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761560374327.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761560374327.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761560374327.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T10:19:34.333Z",
+    "detectedType": "project_plan",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761560402030.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761560402030.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761560402030.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T10:20:02.033Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761562363715.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761562363715.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761562363715.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T10:52:43.721Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761563185420.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761563185420.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761563185420.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T11:06:25.426Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761565108957.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761565108957.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761565108957.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T11:38:28.964Z",
+    "detectedType": "project_plan",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761565114202.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761565114202.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761565114202.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T11:38:34.212Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761565601781.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761565601781.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761565601781.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T11:46:41.785Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761567053436.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761567053436.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761567053436.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T12:10:53.446Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761568624520.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761568624520.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761568624520.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T12:37:04.526Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761568709727.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761568709727.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761568709727.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T12:38:29.737Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761569095702.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761569095702.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761569095702.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T12:44:55.710Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761572759106.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761572759106.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761572759106.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T13:45:59.116Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Project Plan parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 235, in <module>\n    parse_project_plan_docx(input_path, out_path)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 154, in parse_project_plan_docx\n    sections = extract_text_sections(doc)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 60, in extract_text_sections\n    numbered_heading = re.match(r\"^\\d+[\\.\\)]\\s*[A-Z]\", text)\n                                                       ^^^^\nUnboundLocalError: cannot access local variable 'text' where it is not associated with a value\n"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761572780318.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761572780318.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761572780318.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-27T13:46:20.326Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Project Plan parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 235, in <module>\n    parse_project_plan_docx(input_path, out_path)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 154, in parse_project_plan_docx\n    sections = extract_text_sections(doc)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 60, in extract_text_sections\n    numbered_heading = re.match(r\"^\\d+[\\.\\)]\\s*[A-Z]\", text)\n                                                       ^^^^\nUnboundLocalError: cannot access local variable 'text' where it is not associated with a value\n"
+    }
   }
 ]

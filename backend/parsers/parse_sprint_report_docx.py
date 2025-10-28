@@ -10,7 +10,7 @@ def parse_sprint_report(docx_path: str):
     result = parse_docx_with_metrics(docx_path, output_json_path=out_path)
 
     print(f"Sprint report parsed: {doc_path.name}")
-    print(f"➡  Metrics saved to {out_path}")
+    print(f"Metrics saved to {out_path}")
     return result
 
 
