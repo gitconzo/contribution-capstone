@@ -235,9 +235,50 @@ app.get("/api/uploads", (req, res) => {
   res.json(registry);
 });
 
-// Upload a single file (field name: "file")
+// Upload a single file (field name: "file") OR submit repo URL
 app.post("/api/uploads", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  const repoUrl = (req.body?.repoUrl || "").trim();
+  const owner = (req.body?.owner || "").trim();
+  const repo = (req.body?.repo || "").trim();
+
+  // NEW: Handle repo URL submission (Jason's feature)
+  if (repoUrl && !req.file) {
+    const repoInfo = { 
+      url: repoUrl, 
+      ...(owner && repo ? { owner, repo } : {}), 
+      savedAt: new Date().toISOString() 
+    };
+
+    // Update active team's repo if exists
+    const activeTeamId = getActiveTeamId();
+    if (activeTeamId) {
+      const teams = loadTeams();
+      const idx = teams.findIndex(t => t.id === activeTeamId);
+      if (idx !== -1) {
+        teams[idx].repo = repoInfo;
+        saveTeams(teams);
+      }
+    }
+
+    // Run main.py (Jason's Python analysis script)
+    const py = path.join(__dirname, "main.py");
+    const args = [py, "--repo-url", repoUrl];
+    
+    execFile("python3", args, { cwd: __dirname }, (err, stdout, stderr) => {
+      const mainPyResult = err
+        ? { status: "failed", message: stderr || err.message }
+        : { status: "ok", message: stdout || "main.py completed" };
+
+      return res.json({
+        repo: repoInfo,
+        mainPy: mainPyResult
+      });
+    });
+    return;
+  }
+
+  // Original file upload logic
+  if (!req.file) return res.status(400).json({ error: "No file or repo uploaded" });
 
   const registry = loadRegistry();
   const userGuess = req.body?.userType || null;
@@ -317,59 +358,56 @@ app.post("/api/uploads/confirm", (req, res) => {
     return;
   }
 
-// Sprint report (.docx)
-if (finalType === "sprint_report" && ext === ".docx") {
-  const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
-  // FIX: Use unique filename based on the uploaded file
-  const timestamp = Date.now();
-  const baseName = path.basename(absPath, ext);
-  const outJson = path.join(DATA_DIR, `sprint_report_${timestamp}.json`);
-  
-  execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
-    if (err) {
-      entry.status = "parse_failed";
-      entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
-    } else {
-      entry.status = "parsed";
-      entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Sprint report parsed successfully" };
+  // Sprint report (.docx)
+  if (finalType === "sprint_report" && ext === ".docx") {
+    const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
+    const timestamp = Date.now();
+    const baseName = path.basename(absPath, ext);
+    const outJson = path.join(DATA_DIR, `sprint_report_${timestamp}.json`);
+    
+    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+      if (err) {
+        entry.status = "parse_failed";
+        entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
+      } else {
+        entry.status = "parsed";
+        entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Sprint report parsed successfully" };
 
-      try {
-        combineDocumentationMetrics(__dirname);
-      } catch (err) {
-        console.error("Failed to combine documentation metrics:", err);
+        try {
+          combineDocumentationMetrics(__dirname);
+        } catch (err) {
+          console.error("Failed to combine documentation metrics:", err);
+        }
       }
-    }
-    finish();
-  });
-  return;
-}
+      finish();
+    });
+    return;
+  }
 
-// Project plan (.docx)
-if (finalType === "project_plan" && ext === ".docx") {
-  const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
-  // FIX: Use unique filename
-  const timestamp = Date.now();
-  const outJson = path.join(DATA_DIR, `project_plan_${timestamp}.json`);
-  
-  execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
-    if (err) {
-      entry.status = "parse_failed";
-      entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };
-    } else {
-      entry.status = "parsed";
-      entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Project Plan parsed successfully" };
+  // Project plan (.docx)
+  if (finalType === "project_plan" && ext === ".docx") {
+    const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
+    const timestamp = Date.now();
+    const outJson = path.join(DATA_DIR, `project_plan_${timestamp}.json`);
+    
+    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+      if (err) {
+        entry.status = "parse_failed";
+        entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };
+      } else {
+        entry.status = "parsed";
+        entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Project Plan parsed successfully" };
 
-      try {
-        combineDocumentationMetrics(__dirname);
-      } catch (err) {
-        console.error("Failed to combine documentation metrics:", err);
+        try {
+          combineDocumentationMetrics(__dirname);
+        } catch (err) {
+          console.error("Failed to combine documentation metrics:", err);
+        }
       }
-    }
-    finish();
-  });
-  return;
-}
-
+      finish();
+    });
+    return;
+  }
 
   // Unknown
   entry.parseInfo = { message: "No parser run for this type." };
@@ -403,15 +441,10 @@ app.get("/api/uploads/:id/json", (req, res) => {
   res.json(data);
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-});
-
-// Add this endpoint to clean up old parsed documentation files
+// Cleanup endpoint
 app.delete("/api/uploads/cleanup-docs", (req, res) => {
   try {
     const registry = loadRegistry();
-    const dataDir = path.join(__dirname, "data");
     
     // Find all doc-related JSON files
     const docFiles = registry.filter(r => 
@@ -435,7 +468,7 @@ app.delete("/api/uploads/cleanup-docs", (req, res) => {
     });
     
     // Delete combined metrics
-    const combinedPath = path.join(dataDir, "combined_documentation_metrics.json");
+    const combinedPath = path.join(DATA_DIR, "combined_documentation_metrics.json");
     if (fs.existsSync(combinedPath)) {
       fs.unlinkSync(combinedPath);
     }
@@ -449,4 +482,8 @@ app.delete("/api/uploads/cleanup-docs", (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
 });

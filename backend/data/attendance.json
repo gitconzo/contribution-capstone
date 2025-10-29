@@ -1,0 +1,119 @@
+{
+  "WeeklyAttendance": [
+    {
+      "Week": 1,
+      "Date": "2025-07-30",
+      "Absentees": [],
+      "Reasons": {}
+    },
+    {
+      "Week": 2,
+      "Date": "2025-08-07",
+      "Absentees": [
+        "Kavindu"
+      ],
+      "Reasons": {
+        "Kavindu": "Sick"
+      }
+    },
+    {
+      "Week": 3,
+      "Date": "2025-08-14",
+      "Absentees": [
+        "Hridoy"
+      ],
+      "Reasons": {
+        "Hridoy": "Work"
+      }
+    },
+    {
+      "Week": 4,
+      "Date": "2025-08-21",
+      "Absentees": [
+        "Jen",
+        "Jason"
+      ],
+      "Reasons": {
+        "Jen": "Car trouble",
+        "Jason": "Sick"
+      }
+    },
+    {
+      "Week": 5,
+      "Date": "2025-08-28",
+      "Absentees": [],
+      "Reasons": {}
+    },
+    {
+      "Week": 6,
+      "Date": "2025-09-04",
+      "Absentees": [
+        "Connor (Leader)"
+      ],
+      "Reasons": {
+        "Connor": "Sick"
+      }
+    },
+    {
+      "Week": 7,
+      "Date": "2025-09-11",
+      "Absentees": [
+        "Hridoy"
+      ],
+      "Reasons": {
+        "Hridoy": "Work"
+      }
+    },
+    {
+      "Week": 8,
+      "Date": "2025-09-25",
+      "Absentees": [
+        "Hridoy"
+      ],
+      "Reasons": {
+        "Hridoy": "Work"
+      }
+    },
+    {
+      "Week": 9,
+      "Date": "2025-10-01",
+      "Absentees": [],
+      "Reasons": {}
+    },
+    {
+      "Week": 10,
+      "Date": "2025-10-08",
+      "Absentees": [
+        "Kavindu",
+        "Hridoy"
+      ],
+      "Reasons": {
+        "Kavindu": "Sick",
+        "Hridoy": "Work"
+      }
+    },
+    {
+      "Week": 11,
+      "Date": "2025-10-15",
+      "Absentees": [
+        "Jen"
+      ],
+      "Reasons": {
+        "Jen": "Family event"
+      }
+    },
+    {
+      "Week": 12,
+      "Date": "2025-10-22",
+      "Absentees": [],
+      "Reasons": {}
+    }
+  ],
+  "AttendanceSummary": {
+    "Connor (Leader)": 0.92,
+    "Jen": 0.83,
+    "Jason": 0.92,
+    "Kavindu": 0.83,
+    "Hridoy": 0.67
+  }
+}

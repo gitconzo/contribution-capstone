@@ -1027,5 +1027,69 @@
       "jsonPath": "data/project_plan_1761764359093.json",
       "message": "Project Plan parsed successfully"
     }
+  },
+  {
+    "id": "team_attendance__1761768211014.xlsx",
+    "originalName": "team_attendance.xlsx",
+    "storedName": "team_attendance__1761768211014.xlsx",
+    "storedPath": "uploads/team_attendance__1761768211014.xlsx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 9657,
+    "uploadDate": "2025-10-29T20:03:31.020Z",
+    "detectedType": "attendance",
+    "userType": "attendance",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/attendance.json",
+      "message": "Attendance parsed"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761768803723.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761768803723.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761768803723.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T20:13:23.729Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/project_plan_1761768804640.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761768939499.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761768939499.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761768939499.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T20:15:39.506Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/project_plan_1761768941262.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761769102836.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761769102836.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761769102836.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 3200536,
+    "uploadDate": "2025-10-29T20:18:22.854Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/project_plan_1761769103581.json",
+      "message": "Project Plan parsed successfully"
+    }
   }
 ]

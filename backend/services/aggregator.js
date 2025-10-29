@@ -57,7 +57,14 @@ function buildAliasMap(team) {
 function matchStudentIndex(aliasMap, key) {
   if (!key) return -1;
   const k = String(key).toLowerCase().trim();
-  return aliasMap.has(k) ? aliasMap.get(k) : -1;
+  // Try direct match
+  if (aliasMap.has(k)) return aliasMap.get(k);
+  
+  // Try without (Leader) or other parenthetical
+  const cleaned = k.replace(/\s*\(.*?\)\s*/g, '').trim();
+  if (aliasMap.has(cleaned)) return aliasMap.get(cleaned);
+  
+  return -1;
 }
 
 // ---------- docs extractors (shape-aware but tolerant) ----------
@@ -71,19 +78,48 @@ function extractAttendanceMetrics(json) {
   const out = {};
   if (!json) return out;
 
-  if (Array.isArray(json.students)) {
-    json.students.forEach(s => {
-      const key = s.email || s.name;
-      if (!key) return;
-      out[key] = { hours: pickNumber(s.hours), meetings: pickNumber(s.meetings) };
-    });
-  } else {
-    Object.entries(json).forEach(([k, v]) => {
-      if (v && typeof v === "object") {
-        out[k] = { hours: pickNumber(v.hours), meetings: pickNumber(v.meetings) };
-      }
+  // Extract from AttendanceSummary (contains percentage like 0.92, 0.83, etc.)
+  if (json.AttendanceSummary && typeof json.AttendanceSummary === 'object') {
+    Object.entries(json.AttendanceSummary).forEach(([name, percentage]) => {
+      // Clean name (remove "(Leader)" etc)
+      const cleanName = name.replace(/\s*\(.*?\)\s*/g, '').trim();
+      out[cleanName] = { 
+        attendance: pickNumber(percentage), // This is the 0.92 value
+        hours: 0,
+        meetings: 0
+      };
     });
   }
+
+  // Count meetings from WeeklyAttendance
+  if (json.WeeklyAttendance && Array.isArray(json.WeeklyAttendance)) {
+    const totalWeeks = json.WeeklyAttendance.length;
+    const meetingCounts = {};
+    
+    json.WeeklyAttendance.forEach(week => {
+      const absentees = new Set(
+        (week.Absentees || []).map(n => n.replace(/\s*\(.*?\)\s*/g, '').trim())
+      );
+      
+      // For each person in AttendanceSummary, check if they were absent
+      if (json.AttendanceSummary) {
+        Object.keys(json.AttendanceSummary).forEach(name => {
+          const cleanName = name.replace(/\s*\(.*?\)\s*/g, '').trim();
+          if (!meetingCounts[cleanName]) meetingCounts[cleanName] = 0;
+          if (!absentees.has(cleanName) && !absentees.has(name)) {
+            meetingCounts[cleanName]++;
+          }
+        });
+      }
+    });
+    
+    // Merge meeting counts into out
+    Object.entries(meetingCounts).forEach(([name, count]) => {
+      if (!out[name]) out[name] = { attendance: 0, hours: 0, meetings: 0 };
+      out[name].meetings = count;
+    });
+  }
+
   return out;
 }
 
@@ -135,7 +171,7 @@ function aggregateForTeam(team, rootDir) {
     github: s.github || null,
     // raw aggregates:
     code: { avgComplexity: 0, pctFunctions: 0, pctHotspots: 0, pctLOC: 0, commitPct: 0, editPct: 0 },
-    attendance: { hours: 0, meetings: 0 },
+    attendance: { percentage: 0, meetings: 0, hours: 0 },
     docs: { docCount: 0, words: 0, sections: 0, avgSentenceLength: 0, sentenceComplexity: 0, readability: 0 },
     peer: { score: 0 },
   }));
@@ -173,8 +209,9 @@ function aggregateForTeam(team, rootDir) {
     Object.entries(byStudent).forEach(([key, a]) => {
       const idx = matchStudentIndex(aliasMap, key);
       if (idx !== -1) {
+        students[idx].attendance.percentage = pickNumber(a.attendance);
+        students[idx].attendance.meetings = pickNumber(a.meetings);
         students[idx].attendance.hours += pickNumber(a.hours);
-        students[idx].attendance.meetings += pickNumber(a.meetings);
       }
     });
   });
@@ -256,6 +293,12 @@ function scoreStudents(students, rules = null) {
         default: r[d] = 0;
       }
     });
+    
+    // Add attendance percentage to raw (for display)
+    r.attendance = pickNumber(s.attendance.percentage);
+    r.meetings = pickNumber(s.attendance.meetings);
+    r.hours = pickNumber(s.attendance.hours);
+    
     return r;
   });
 
