@@ -452,5 +452,346 @@
       "jsonPath": "uploads/sprint_report_summary.json",
       "message": "Sprint report parsed successfully"
     }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761741859574.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761741859574.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761741859574.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T12:44:19.582Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1761741895475.docx",
+    "originalName": "COS40005 Sprint 2 Report.docx",
+    "storedName": "COS40005 Sprint 2 Report__1761741895475.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report__1761741895475.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 6416054,
+    "uploadDate": "2025-10-29T12:44:55.491Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761750040497.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761750040497.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761750040497.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T15:00:40.525Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761754941471.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761754941471.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761754941471.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T16:22:21.501Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761755008836.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761755008836.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761755008836.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T16:23:28.843Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761756102219.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761756102219.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761756102219.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T16:41:42.241Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761756122985.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761756122985.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761756122985.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T16:42:02.988Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761757352230.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761757352230.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761757352230.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T17:02:32.259Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: python3: can't open file '/Users/conzo/Documents/GitHub/contribution-capstone/backend/data/parsers/parse_sprint_report_docx.py': [Errno 2] No such file or directory\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761757375948.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761757375948.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761757375948.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T17:02:55.973Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: python3: can't open file '/Users/conzo/Documents/GitHub/contribution-capstone/backend/data/parsers/parse_sprint_report_docx.py': [Errno 2] No such file or directory\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761757429171.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761757429171.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761757429171.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T17:03:49.194Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761757603852.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761757603852.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761757603852.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T17:06:43.859Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761757654926.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761757654926.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761757654926.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T17:07:34.950Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761758427352.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761758427352.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761758427352.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T17:20:27.385Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: usage: parse_sprint_report_docx.py [-h] [--students-json STUDENTS_JSON]\n                                   docx_path\nparse_sprint_report_docx.py: error: unrecognized arguments: /Users/conzo/Documents/GitHub/contribution-capstone/backend/data/sprint_report_summary.json\n"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761758482862.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761758482862.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761758482862.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T17:21:22.871Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Project Plan parse failed: usage: parse_project_plan_docx.py [-h] [--students-json STUDENTS_JSON]\n                                  input_path\nparse_project_plan_docx.py: error: unrecognized arguments: /Users/conzo/Documents/GitHub/contribution-capstone/backend/data/project_plan_summary.json\n"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761759788749.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761759788749.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761759788749.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T17:43:08.757Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761759822526.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761759822526.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761759822526.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T17:43:42.562Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Documents/GitHub/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 56, in <module>\n    parse_sprint_report(args.docx_path, out_path, args.students_json)\nTypeError: parse_sprint_report() takes from 1 to 2 positional arguments but 3 were given\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761760133377.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761760133377.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761760133377.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T17:48:53.413Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761761041566.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761761041566.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761761041566.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T18:04:01.597Z",
+    "detectedType": "sprint_report",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761761218231.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761761218231.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761761218231.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T18:06:58.259Z",
+    "detectedType": "sprint_report",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761761237236.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761761237236.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761761237236.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T18:07:17.242Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report(1)__1761761287381.docx",
+    "originalName": "COS40005 Sprint 2 Report(1).docx",
+    "storedName": "COS40005 Sprint 2 Report(1)__1761761287381.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report(1)__1761761287381.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2025-10-29T18:08:07.399Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan__1761761597920.docx",
+    "originalName": "COS40005 Team and Project Plan.docx",
+    "storedName": "COS40005 Team and Project Plan__1761761597920.docx",
+    "storedPath": "uploads/COS40005 Team and Project Plan__1761761597920.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 327208,
+    "uploadDate": "2025-10-29T18:13:17.926Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/project_plan_summary.json",
+      "message": "Project Plan parsed successfully"
+    }
   }
 ]

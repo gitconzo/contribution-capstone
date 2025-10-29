@@ -1,5 +1,6 @@
 from pathlib import Path
 from docx import Document
+import sys, os, json
 import json
 import re
 import textstat
@@ -8,6 +9,9 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk import download as nltk_download
 from difflib import SequenceMatcher, get_close_matches
 import argparse
+
+input_path = sys.argv[1]
+output_path = sys.argv[2] if len(sys.argv) > 2 else os.path.splitext(input_path)[0] + ".json"
 
 # Ensure models exist
 nltk_download("punkt", quiet=True)
@@ -211,10 +215,10 @@ def _filter_students_to_roster(res_obj, roster_names):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("input_path")
+    ap.add_argument("output_path", nargs="?")
     ap.add_argument("--students-json", default=None)
     args = ap.parse_args()
-
-    out_path = str(Path(args.input_path).with_name("project_plan_summary.json"))
+    out_path = args.output_path or str(Path(args.docx_path).with_name("sprint_report_summary.json"))
     res = parse_project_plan_docx(args.input_path, out_path)
 
     if args.students_json:
@@ -228,4 +232,4 @@ if __name__ == "__main__":
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(res, f, indent=2, ensure_ascii=False)
 
-    print(f"Project Plan parsed → {out_path}")
+    print(f"Project Plan parsed --> {out_path}")

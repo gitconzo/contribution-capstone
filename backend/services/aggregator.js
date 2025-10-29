@@ -1,7 +1,7 @@
 // Combines GitHub + docs + attendance (+ peer review later) into per-student scores for a selected team.
-
 const fs = require("fs");
 const path = require("path");
+const { combineDocumentationMetrics } = require("./combineDocumentationMetrics");
 
 // ---------- helpers ----------
 function safeReadJSON(p, fallback = null) {
@@ -184,6 +184,16 @@ function aggregateForTeam(team, rootDir) {
     c.editPct += m.editPct;
   });
 
+  const combinedDocsPath = path.join(rootDir, "data", "combined_documentation_metrics.json");
+  if (!fs.existsSync(combinedDocsPath)) {
+    console.log("no combined_documentation_metrics.json found");
+    try {
+        combineDocumentationMetrics(rootDir);
+    } catch (e) {
+        console.warn("failed to geenrate json", e.message);
+    }
+  }
+
   // ---------- Attendance / Docs
   const parsed = loadParsedArtifacts(rootDir);
 
@@ -199,18 +209,17 @@ function aggregateForTeam(team, rootDir) {
     });
   });
 
-  // Documents (worklogs + sprint + project)
-  [...parsed.worklog, ...parsed.sprint, ...parsed.project].forEach(js => {
-    const byStudent = extractDocsMetrics(js);
-    Object.entries(byStudent).forEach(([key, d]) => {
-      const idx = matchStudentIndex(aliasMap, key);
-      if (idx !== -1) {
-        students[idx].docs.docCount += pickNumber(d.docCount, 1); // default 1 doc if omitted
-        students[idx].docs.words += pickNumber(d.words);
-        students[idx].docs.sections += pickNumber(d.sections);
-      }
-    });
-  });
+    const combinedDocs = safeReadJSON(combinedDocsPath, null);
+    if (combinedDocs?.students) {
+        Object.entries(combinedDocs.students).forEach(([name, data]) => {
+            const idx = matchStudentIndex(aliasMap, name);
+            if (idx !== -1 && data.combined) {
+                students[idx].docs.docCount = data.combined.total_docs || students[idx].docs.docCount;
+                students[idx].docs.words = data.combined.total_word_count || students[idx].docs.words;
+                students[idx].docs.sections = data.combined.total_sections || students[idx].docs.sections;
+            }
+        });
+    }
 
   return students;
 }
@@ -272,7 +281,7 @@ function scoreStudents(students, rules = null) {
 
 function loadTeamRulesIfAny(team) {
   // team.rules may store the exact sliders from RuleSettings; translate to our keys.
-  // If you stored the same keys already, just return team.rules.
+  // If stored the same keys already, just return team.rules.
   return team.rules || null;
 }
 

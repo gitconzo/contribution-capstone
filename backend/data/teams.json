@@ -11,26 +11,83 @@
     "students": [
       {
         "name": "Connor Lack",
-        "email": "connor@dummy.com"
+        "email": "103992223@student.swin.edu.au",
+        "github": "gitconzo",
+        "aliases": [
+          "Connor",
+          "conzo"
+        ]
       },
       {
         "name": "Jason Vo",
-        "email": "jason@dummy.com"
+        "email": "103993653@student.swin.edu.au",
+        "github": "jasonv47",
+        "aliases": [
+          "Jason"
+        ]
       },
       {
         "name": "Jen Mao",
-        "email": "jen@dummy.com"
+        "email": "103821194@student.swin.edu.au",
+        "github": "urjenz",
+        "aliases": [
+          "Jen"
+        ]
       },
       {
         "name": "Md Hridoy Mia",
-        "email": "hridoy@dummy.com"
+        "email": "105077229@student.swin.edu.au",
+        "github": "Hridoy-23",
+        "aliases": [
+          "Hridoy"
+        ]
       },
       {
         "name": "Kavindu Bhanuka Weragoda",
-        "email": "kavindu@dummy.com"
+        "email": "104860525@student.swin.edu.au",
+        "github": "Kavinduwer11",
+        "aliases": [
+          "Kavindu"
+        ]
       }
     ],
-    "rules": null,
+    "rules": {
+      "rules": [
+        {
+          "name": "Code Commits",
+          "value": 35,
+          "desc": "Weight given to Git commits and code quality"
+        },
+        {
+          "name": "Work Log Hours",
+          "value": 20,
+          "desc": "Time spent on project tasks as logged"
+        },
+        {
+          "name": "Documentation",
+          "value": 25,
+          "desc": "Documents created and maintained"
+        },
+        {
+          "name": "Meeting Participation",
+          "value": 15,
+          "desc": "Attendance and participation in team meetings"
+        },
+        {
+          "name": "Code Review",
+          "value": 5,
+          "desc": "Participation in code reviews and peer feedback"
+        }
+      ],
+      "autoRecalc": true,
+      "crossVerify": true,
+      "triangulation": {
+        "codeWorklog": 80,
+        "meetingDoc": 70,
+        "activityDist": 60
+      },
+      "peerValidation": "Statistical analysis"
+    },
     "createdAt": "2025-10-29T08:00:15.106Z"
   }
 ]

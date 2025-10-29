@@ -62,7 +62,16 @@ export default function Dashboard({ onViewStudent }) {
 
         <select
           value={teamId}
-          onChange={(e) => setTeamId(e.target.value)}
+          onChange={async (e) => {
+            const newTeamId = e.target.value;
+            setTeamId(newTeamId);
+            await fetch(`${API}/api/teams/active`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ teamId: newTeamId }),
+            });
+          }}
+          
           style={selectBox()}
           title="select project / team"
         >

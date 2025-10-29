@@ -68,10 +68,29 @@ router.post("/active", (req, res) => {
   if (!id) return res.status(400).json({ error: "Missing id" });
 
   const teams = readJson(TEAMS_PATH);
+  const team = teams.find(t => t.id === id);
   if (!teams.find(t => t.id === id)) {
     return res.status(404).json({ error: "Team not found" });
   }
   writeActiveId(id);
+
+  if (team.repo?.url) {
+    const fetchScript = path.join(__dirname, "..", "fetchData.js");
+    const analyzeScript = path.join(__dirname, "..", "main.py");
+
+    // fetch commits
+    execFile("node", [fetchScript], { cwd: path.join(__dirname, "..") }, (err) => {
+      if (err) console.error("GitHub fetch failed:", err.message);
+      else {
+        // analyze repo once commits fetch
+        execFile("python3", [analyzeScript, "--repo-url", team.repo.url], {cwd: path.join(__dirname, "..") }, (err2) => {
+          if (err2) console.error("Python analysis failed:", err2.message);
+          else console.log(`Repo analysis complete for ${team.name}`)
+        });
+      }
+    });
+  }
+
   res.json({ ok: true, id });
 });
 

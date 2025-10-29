@@ -45,7 +45,7 @@ const DEFAULT_RULES = {
     { name: "Work Log Hours", value: 25, desc: "Time spent on project tasks as logged" },
     { name: "Documentation", value: 20, desc: "Documents created and maintained" },
     { name: "Meeting Participation", value: 15, desc: "Attendance and participation in team meetings" },
-    { name: "Code Review", value: 10, desc: "Participation in code reviews and peer feedback" },
+    { name: "Peer Review", value: 10, desc: "Participation in code reviews and peer feedback" },
   ],
   autoRecalc: true,
   crossVerify: true,

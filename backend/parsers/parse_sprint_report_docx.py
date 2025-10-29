@@ -1,9 +1,11 @@
-import sys
-import json
+import sys, os, json
 import difflib
 from pathlib import Path
 import argparse
 from parse_docx_with_metrics import parse_docx_with_metrics
+
+input_path = sys.argv[1]
+output_path = sys.argv[2] if len(sys.argv) > 2 else os.path.splitext(input_path)[0] + ".json"
 
 def _filter_to_roster(result, roster_names):
     keep_students = {}
@@ -20,12 +22,8 @@ def _filter_to_roster(result, roster_names):
         result["authorship_map"] = keep_auth
     return result
 
-def parse_sprint_report(docx_path: str, students_json_path: str | None = None):
-    # Parse a Sprint Report .docx and write sprint_report_summary.json next to the .docx (same folder).
-    doc_path = Path(docx_path)
-    out_path = doc_path.with_name("sprint_report_summary.json")
-
-    result = parse_docx_with_metrics(docx_path, output_json_path=str(out_path))
+def parse_sprint_report(docx_path, output_json_path=None, students_json_path=None):
+    result = parse_docx_with_metrics(docx_path, output_json_path=output_json_path)
 
     # Optional roster filter
     if students_json_path:
@@ -39,13 +37,15 @@ def parse_sprint_report(docx_path: str, students_json_path: str | None = None):
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=2, ensure_ascii=False)
 
-    print(f"Sprint report parsed: {doc_path.name}")
-    print(f"➡  Metrics saved to {out_path}")
+    print(f"Sprint report parsed: {docx_path}")
+    print(f"-->  Metrics saved to {output_json_path}")
     return result
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("docx_path")
+    ap.add_argument("output_path", nargs="?")
     ap.add_argument("--students-json", default=None)
     args = ap.parse_args()
-    parse_sprint_report(args.docx_path, args.students_json)
+    out_path = args.output_path or str(Path(args.docx_path).with_name("sprint_report_summary.json"))
+    parse_sprint_report(args.docx_path, out_path, args.students_json)

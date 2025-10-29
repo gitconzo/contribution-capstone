@@ -5,6 +5,8 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const { execFile } = require("child_process");
+const { aggregateTeamScores } = require("./services/aggregator");
+const { combineDocumentationMetrics } = require("./services/combineDocumentationMetrics");
 
 const app = express();
 const PORT = 5002;
@@ -194,67 +196,17 @@ app.get("/api/teams/:id/rules", (req, res) => {
 
 // Scores computed from data/commits.json (populated by fetch)
 app.get("/api/scores", (req, res) => {
-  const commitsPath = path.join(DATA_DIR, "commits.json");
-  if (!fs.existsSync(commitsPath)) {
-    return res.status(404).json({ error: "No commit data found. Run /api/github/fetch or fetchData.js." });
+  try {
+    const teamId = req.query.teamId || getActiveTeamId();
+    if (!teamId) return res.status(400).json({ error: "No active team." });
+
+    const payload = aggregateTeamScores({ teamId, rootDir: __dirname });
+    // payload = { team, ranking:[{name,email,github,score,breakdown,raw}], weights, ... }
+    res.json(payload);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message || "Failed to aggregate scores" });
   }
-
-  const commits = JSON.parse(fs.readFileSync(commitsPath, "utf-8"));
-  if (!Array.isArray(commits) || commits.length === 0) {
-    return res.json({ ranking: [], raw: {} });
-  }
-
-  const raw = {};
-  commits.forEach(c => {
-    const author = c.author || "Unknown";
-    if (!raw[author]) raw[author] = { commits: 0, additions: 0, deletions: 0 };
-    raw[author].commits += 1;
-    raw[author].additions += c.stats?.additions || 0;
-    raw[author].deletions += c.stats?.deletions || 0;
-  });
-
-  const authors = Object.keys(raw);
-  const commitsArr   = authors.map(a => raw[a].commits);
-  const additionsArr = authors.map(a => raw[a].additions);
-  const deletionsArr = authors.map(a => raw[a].deletions);
-
-  function normalizeMinMax(values) {
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    if (max === min) return values.map(() => 1);
-    return values.map(v => (v - min) / (max - min));
-  }
-
-  const commitsNorm   = normalizeMinMax(commitsArr);
-  const additionsNorm = normalizeMinMax(additionsArr);
-  const deletionsNorm = normalizeMinMax(deletionsArr);
-
-  const weights = { commits: 0.3, additions: 0.4, deletions: 0.3 };
-  const scored = authors.map((author, i) => ({
-    author,
-    commits: raw[author].commits,
-    additions: raw[author].additions,
-    deletions: raw[author].deletions,
-    score:
-      commitsNorm[i]   * weights.commits +
-      additionsNorm[i] * weights.additions +
-      deletionsNorm[i] * weights.deletions
-  }));
-
-  scored.sort((a, b) => b.score - a.score);
-  const totalScore = scored.reduce((s, r) => s + r.score, 0) || 1;
-
-  const ranking = scored.map((r, idx) => ({
-    rank: idx + 1,
-    author: r.author,
-    commits: r.commits,
-    additions: r.additions,
-    deletions: r.deletions,
-    score: Number(r.score.toFixed(6)),
-    percent: `${((r.score / totalScore) * 100).toFixed(1)}%`
-  }));
-
-  res.json({ ranking, raw });
 });
 
 // Trigger GitHub fetch (expects active team repo)
@@ -333,8 +285,8 @@ app.post("/api/uploads/confirm", (req, res) => {
 
   // Attendance (xlsx)
   if (finalType === "attendance" && (ext === ".xlsx" || ext === ".xls")) {
-    const outJson = absPath.replace(ext, ".json");
     const py = path.join(__dirname, "parsers", "attendance.py");
+    const outJson = path.join(DATA_DIR, "attendance.json");
     execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
@@ -350,8 +302,8 @@ app.post("/api/uploads/confirm", (req, res) => {
 
   // Worklog (.docx/.pdf)
   if (finalType === "worklog" && (ext === ".docx" || ext === ".pdf")) {
-    const outJson = absPath.replace(ext, ".json");
     const py = path.join(__dirname, "parsers", "worklog_parser.py");
+    const outJson = path.join(DATA_DIR, "worklog.json");
     execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
@@ -366,38 +318,51 @@ app.post("/api/uploads/confirm", (req, res) => {
   }
 
   // Sprint report (.docx)
-  if (finalType === "sprint_report" && ext === ".docx") {
-    const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
-    execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
-      if (err) {
-        entry.status = "parse_failed";
-        entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
-      } else {
-        const jsonFile = path.join(path.dirname(absPath), "sprint_report_summary.json");
-        entry.status = "parsed";
-        entry.parseInfo = { jsonPath: path.relative(__dirname, jsonFile), message: "Sprint report parsed successfully" };
-      }
-      finish();
-    });
-    return;
-  }
+if (finalType === "sprint_report" && ext === ".docx") {
+  const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
+  const outJson = path.join(DATA_DIR, "sprint_report_summary.json");
+  execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    if (err) {
+      entry.status = "parse_failed";
+      entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
+    } else {
+      entry.status = "parsed";
+      entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Sprint report parsed successfully" };
 
-  // Project plan (.docx)
-  if (finalType === "project_plan" && ext === ".docx") {
-    const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
-    execFile("python3", [py, absPath], { cwd: __dirname }, (err, stdout, stderr) => {
-      if (err) {
-        entry.status = "parse_failed";
-        entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };
-      } else {
-        const jsonFile = path.join(path.dirname(absPath), "project_plan_summary.json");
-        entry.status = "parsed";
-        entry.parseInfo = { jsonPath: path.relative(__dirname, jsonFile), message: "Project Plan parsed successfully" };
+      try {
+        combineDocumentationMetrics(__dirname);
+      } catch (err) {
+        console.error("Failed to combine documentation metrics:", err);
       }
-      finish();
-    });
-    return;
-  }
+    }
+    finish();
+  });
+  return;
+}
+
+// Project plan (.docx)
+if (finalType === "project_plan" && ext === ".docx") {
+  const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
+  const outJson = path.join(DATA_DIR, "project_plan_summary.json");
+  execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    if (err) {
+      entry.status = "parse_failed";
+      entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };
+    } else {
+      entry.status = "parsed";
+      entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Project Plan parsed successfully" };
+
+      try {
+        combineDocumentationMetrics(__dirname);
+      } catch (err) {
+        console.error("Failed to combine documentation metrics:", err);
+      }
+    }
+    finish();
+  });
+  return;
+}
+
 
   // Unknown
   entry.parseInfo = { message: "No parser run for this type." };
