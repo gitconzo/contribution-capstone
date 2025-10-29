@@ -6,11 +6,16 @@ const API = "http://localhost:5002";
 // Single source of truth for defaults (matches backend DEFAULT_RULES)
 const DEFAULT_RULES = {
   rules: [
-    { name: "Code Commits", value: 30, desc: "Weight given to Git commits and code quality" },
-    { name: "Work Log Hours", value: 25, desc: "Time spent on project tasks as logged" },
-    { name: "Documentation", value: 20, desc: "Documents created and maintained" },
-    { name: "Meeting Participation", value: 15, desc: "Attendance and participation in team meetings" },
-    { name: "Code Review", value: 10, desc: "Participation in code reviews and peer feedback" },
+    { name: "Total Lines of Code", value: 12, desc: "Percentage of code written in code base" },
+    { name: "Total Edited Code", value: 10, desc: "percentage of total edited code (additions and deletions)" },
+    { name: "Total Commits", value: 7, desc: "Percentage of commits made" },
+    { name: "Total Functions Written", value: 12, desc: "Percentage of functions written in codebase" },
+    { name: "Total Hotspot Contributed", value: 10, desc: "Percentage of hotspots written in codebase (hotspots = above average function complexity)" },
+    { name: "Code Complexity", value: 9, desc: "Average code complexity" },
+    { name: "Average Sentence Length", value: 5, desc: "Average sentence length" },
+    { name: "Sentence Complexity", value: 5, desc: "Sentence complexity" },
+    { name: "Word Count", value: 7, desc: "Word Count" },
+    { name: "Readability", value: 8, desc: "Readability" },
   ],
   autoRecalc: true,
   crossVerify: true,

@@ -13,18 +13,27 @@ function safeReadJSON(p, fallback = null) {
   }
 }
 
-function normalize(values) {
-  if (!values.length) return values;
-  // If all equal or std=0, return 1s so nobody gets nuked
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length;
-  const std = Math.sqrt(variance) || 1;
-  const z = values.map(v => (v - mean) / std);
-  const min = Math.min(...z);
-  const max = Math.max(...z);
-  if (max === min) return values.map(() => 1);
-  return z.map(v => (v - min) / (max - min));
-}
+function normalize(values){
+  const arr = Array.isArray(values) ? values : [];
+  if (arr.length === 0) return [];
+
+  const modifyStdDev = 2; // value used to multiply standard deviation
+
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  const variance = arr.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / arr.length;
+  const standardDeviation = Math.sqrt(variance);
+
+  if (!Number.isFinite(standardDeviation) || standardDeviation === 0) {
+    return arr.map(() => 0.5);
+  }
+
+  const zScores = arr.map(v => modifyStdDev * ((v - mean) / standardDeviation));
+  const min = Math.min(...zScores);
+  const max = Math.max(...zScores);
+  if (max === min) return zScores.map(() => 0.5);
+
+  return zScores.map(v => (v - min) / (max - min));
+  }
 
 // Try to match any author/email/alias to a student index
 function buildAliasMap(team) {
@@ -89,10 +98,15 @@ function extractDocsMetrics(json) {
 
   const push = (key, part) => {
     if (!key) return;
-    out[key] = out[key] || { docCount: 0, words: 0, sections: 0 };
+    out[key] = out[key] || { docCount: 0, words: 0, sections: 0, avgSentenceLength: 0, sentenceComplexity: 0, readability: 0, };
     if (part.docCount) out[key].docCount += pickNumber(part.docCount);
     if (part.words) out[key].words += pickNumber(part.words);
     if (part.sections) out[key].sections += pickNumber(part.sections);
+    
+    //NEW ** may have to change according to combined_documentation_metrics.json
+    if (part.avgSentenceLength) out[key].avgSentenceLength += pickNumber(part.avgSentenceLength);
+    if (part.sentenceComplexity) out[key].sentenceComplexity += pickNumber(part.sentenceComplexity);
+    if (part.readability) out[key].readability += pickNumber(part.readability);
   };
 
   if (Array.isArray(json.students)) {
@@ -161,7 +175,7 @@ function aggregateForTeam(team, rootDir) {
     // raw aggregates:
     code: { avgComplexity: 0, pctFunctions: 0, pctHotspots: 0, pctLOC: 0, commitPct: 0, editPct: 0 },
     attendance: { hours: 0, meetings: 0 },
-    docs: { docCount: 0, words: 0, sections: 0 },
+    docs: { docCount: 0, words: 0, sections: 0, avgSentenceLength: 0, sentenceComplexity: 0, readability: 0 }, // NEW *** may have to change according to combined_documentation_metrics.json
     // peer review placeholder:
     peer: { score: 0 },
   }));
@@ -176,7 +190,8 @@ function aggregateForTeam(team, rootDir) {
 
     const c = students[idx].code;
     // average values: for multiple aliases we average by taking mean of contributors
-    c.avgComplexity = (c.avgComplexity + m.avgComplexity) / (c.avgComplexity ? 2 : 1);
+    //c.avgComplexity = (c.avgComplexity + m.avgComplexity) / (c.avgComplexity ? 2 : 1);
+    c.avgComplexity = m.avgComplexity
     c.pctFunctions += m.pctFunctions;
     c.pctHotspots += m.pctHotspots;
     c.pctLOC += m.pctLOC;
@@ -208,6 +223,11 @@ function aggregateForTeam(team, rootDir) {
         students[idx].docs.docCount += pickNumber(d.docCount, 1); // default 1 doc if omitted
         students[idx].docs.words += pickNumber(d.words);
         students[idx].docs.sections += pickNumber(d.sections);
+
+        // NEW *** may have to change according to combined_documentation_metrics.json
+        students[idx].docs.avgSentenceLength += pickNumber(d.avgSentenceLength);
+        students[idx].docs.sentenceComplexity += pickNumber(d.sentenceComplexity);
+        students[idx].docs.readability += pickNumber(d.readability);
       }
     });
   });
@@ -215,36 +235,78 @@ function aggregateForTeam(team, rootDir) {
   return students;
 }
 
+function mapRulesIfArray(rulesObj) {
+  const arr = rulesObj && Array.isArray(rulesObj.rules) ? rulesObj.rules : null;
+  if (!arr) return null;
+
+  const byName = Object.fromEntries(
+    arr.map(r => [String(r.name || "").trim().toLowerCase(), Number(r.value || 0)])
+  );
+  const v = n => byName[n.toLowerCase()] || 0;
+
+  const mapped = {
+    loc: v("Total Lines of Code"),
+    editedCode: v("Total Edited Code"),
+    commits: v("Total Commits"),
+    functions: v("Total Functions Written"),
+    hotspots: v("Total Hotspot Contributed"),
+    codeComplexity: v("Code Complexity"),
+    avgSentenceLength: v("Average Sentence Length"),
+    sentenceComplexity: v("Sentence Complexity"),
+    wordCount: v("Word Count"),
+    readability: v("Readability"),
+  };
+}
+  
 // Compute normalized + weighted final
 function scoreStudents(students, rules = null) {
   // Default weights (can be overwritten by per-team rules later)
   // Keep these aligned with your RuleSettings sliders (total 100)
   const defaultWeights = {
-    codeCommits: 30,      // use commitPct + editPct
-    worklogHours: 25,     // attendance.hours
-    documentation: 20,    // docs.words + docs.docCount
-    meetings: 15,         // attendance.meetings
-    codeQuality: 10,      // avgComplexity + pctHotspots + pctFunctions + pctLOC
+    loc: 12,      
+    editedCode: 10,    
+    commits: 7,    
+    functions: 12,         
+    hotspots: 10,
+    codeComplexity: 9,
+    avgSentenceLength: 5,
+    sentenceComplexity: 5,
+    wordCount: 7,
+    readability: 11,      
   };
 
-  const w = rules || defaultWeights;
+  const w = mapRulesIfArray(rules) || rules || defaultWeights;
 
   // Build raw arrays for normalization
-  const raw = students.map(s => ({
-    codeCommits: pickNumber(s.code.commitPct) + pickNumber(s.code.editPct),
-    worklogHours: pickNumber(s.attendance.hours),
-    documentation: pickNumber(s.docs.words) + 200 * pickNumber(s.docs.docCount),
-    meetings: pickNumber(s.attendance.meetings),
-    codeQuality:
-      pickNumber(s.code.avgComplexity) +
-      pickNumber(s.code.pctHotspots) +
-      pickNumber(s.code.pctFunctions) +
-      pickNumber(s.code.pctLOC),
+    //OLD CODE (kept these metrics for potential later use):
+    //  worklogHours: pickNumber(s.attendance.hours),
+    //  documentation: pickNumber(s.docs.words) + 200 * pickNumber(s.docs.docCount),
+    //  meetings: pickNumber(s.attendance.meetings),   
     // peer: to be integrated later, e.g., s.peer.score
-  }));
+    
+    //Updated metric code
+  const dims = Object.keys(w);
+  const raw = students.map(s => {
+    const r = {};
+    dims.forEach(d => {
+      switch (d) {
+        case "loc": r[d] = pickNumber(s.code.pctLOC); break;
+        case "editedCode": r[d] = pickNumber(s.code.editPct); break;
+        case "commits": r[d] = pickNumber(s.code.commitPct); break;
+        case "functions": r[d] = pickNumber(s.code.pctFunctions); break;
+        case "hotspots": r[d] = pickNumber(s.code.pctHotspots); break;
+        case "codeComplexity": r[d] = pickNumber(s.code.avgComplexity); break; // invert here if lower is better
+        case "avgSentenceLength": r[d] = pickNumber(s.docs.avgSentenceLength); break;
+        case "sentenceComplexity": r[d] = pickNumber(s.docs.sentenceComplexity); break;
+        case "wordCount": r[d] = pickNumber(s.docs.words); break;
+        case "readability": r[d] = pickNumber(s.docs.readability); break;
+        default: r[d] = 0;
+      }
+  });
+    return r;
+  });
 
   // Normalize each dimension
-  const dims = Object.keys(raw[0] || {});
   const normVectors = {};
   dims.forEach(d => (normVectors[d] = normalize(raw.map(r => r[d]))));
 

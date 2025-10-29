@@ -41,17 +41,41 @@ function readActiveId() {
 // Default rule settings if none saved yet
 const DEFAULT_RULES = {
   rules: [
-    { name: "Code Commits", value: 30, desc: "Weight given to Git commits and code quality" },
-    { name: "Work Log Hours", value: 25, desc: "Time spent on project tasks as logged" },
-    { name: "Documentation", value: 20, desc: "Documents created and maintained" },
-    { name: "Meeting Participation", value: 15, desc: "Attendance and participation in team meetings" },
-    { name: "Code Review", value: 10, desc: "Participation in code reviews and peer feedback" },
+    { name: "Total Lines of Code", value: 12, desc: "Percentage of code written in code base" },
+    { name: "Total Edited Code", value: 10, desc: "percentage of total edited code (additions and deletions)" },
+    { name: "Total Commits", value: 7, desc: "Percentage of commits made" },
+    { name: "Total Functions Written", value: 12, desc: "Percentage of functions written in codebase" },
+    { name: "Total Hotspot Contributed", value: 10, desc: "Percentage of hotspots written in codebase (hotspots = above average function complexity)" },
+    { name: "Code Complexity", value: 9, desc: "Average code complexity" },
+    { name: "Average Sentence Length", value: 5, desc: "Average sentence length" },
+    { name: "Sentence Complexity", value: 5, desc: "Sentence complexity" },
+    { name: "Word Count", value: 7, desc: "Word Count" },
+    { name: "Readability", value: 8, desc: "Readability" },
   ],
   autoRecalc: true,
   crossVerify: true,
   triangulation: { codeWorklog: 80, meetingDoc: 70, activityDist: 60 },
   peerValidation: "Statistical analysis",
 };
+
+function weightsFromActiveTeam(ruleArr) {
+  if (!Array.isArray(ruleArr)) return null;
+
+  const weights = {};
+  let total = 0;
+
+  ruleArr.forEach(r => {
+    const key = r.name.trim().toLowerCase();
+    const value = Number(r.value || 0);
+    weights[key] = value;
+    total += value;
+  });
+
+  return weights;
+}
+
+
+
 
 // GET /api/rules?teamId=TEAM_ID
 // If teamId absent, uses active team.
@@ -64,6 +88,7 @@ router.get("/", (req, res) => {
   if (!team) return res.status(404).json({ error: "Team not found" });
 
   const payload = team.rules || DEFAULT_RULES;
+  const weights = weightsFromActiveTeam(payload.rules) || {};
   res.json({ teamId, ...payload });
 });
 
@@ -96,7 +121,9 @@ router.post("/", (req, res) => {
   };
 
   writeJson(TEAMS_PATH, teams);
-  res.json({ ok: true, teamId, rules: teams[idx].rules });
+  const saved = teams[idx].rules;
+  const weights = weightsFromRuleArray(saved.rules) || {};
+  res.json({ ok: true, teamId, rules: saved, weights });
 });
 
 module.exports = router;

@@ -133,9 +133,9 @@ export default function Dashboard({ onViewStudent }) {
               <div style={{ color: "#64748b", fontSize: 13 }}>{s.email}</div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 10, fontSize: 13 }}>
-                <Metric label="Code Commits" value={Math.round(s.raw?.codeCommits || 0)} />
+                <Metric label="Code Contribution" value={Math.round(s.raw?.codeCommits || 0)} />
                 <Metric label="Work Hours"   value={`${Math.round(s.raw?.worklogHours || 0)}h`} />
-                <Metric label="Documents"    value={Math.round((s.raw?.documents || 0))} />
+                <Metric label="Documentation contribution"    value={Math.round((s.raw?.documents || 0))} />
                 <Metric label="Meetings"     value={Math.round(s.raw?.meetings || 0)} />
               </div>
             </div>
