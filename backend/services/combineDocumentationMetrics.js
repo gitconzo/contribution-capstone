@@ -1,39 +1,76 @@
 const fs = require("fs");
 const path = require("path");
 
-function safeReadJSON(p, fallback = null){
-    try {
-        if (!fs.existsSync(p)) return fallback;
-        return JSON.parse(fs.readFileSync(p, "utf-8"));
-    } catch {
-        return fallback;
-    }
+function safeReadJSON(p, fallback = null) {
+  try {
+    if (!fs.existsSync(p)) return fallback;
+    return JSON.parse(fs.readFileSync(p, "utf-8"));
+  } catch (e) {
+    console.error(`Error reading JSON from ${p}:`, e.message);
+    return fallback;
+  }
 }
 
-function combineDocumentationMetrics(rootDir){
-    const dataDir = path.join(rootDir, "data");
-    const registryPath = path.join(rootDir, "fileRegistry.json");
+function combineDocumentationMetrics(rootDir) {
+  const dataDir = path.join(rootDir, "data");
+  const registryPath = path.join(rootDir, "fileRegistry.json");
+  
+  console.log(`Looking for registry at: ${registryPath}`);
+  const registry = safeReadJSON(registryPath, []);
+  
+  if (!registry.length) {
+    console.warn("No registry entries found - cannot combine doc metrics");
+    return null;
+  }
 
-    const registry = safeReadJSON(registryPath, []);
-    if (!registry.length) {
-        console.warn("No registry entity found - cannot combine doc mentrics");
-        return null;
+  console.log(`Found ${registry.length} registry entries`);
+
+  const combined = {};
+  const processedFiles = new Set(); // Track which JSON files we've already processed
+  
+  registry.forEach((entry, idx) => {
+    const type = entry.userType || entry.detectedType;
+    console.log(`Entry ${idx}: type=${type}, status=${entry.status}`);
+    
+    // Only process parsed documentation files
+    if (!["worklog", "sprint_report", "project_plan"].includes(type)) {
+      return;
+    }
+    
+    // Check if file was successfully parsed
+    if (entry.status !== "parsed") {
+      console.warn(`Skipping ${entry.originalName} - status is ${entry.status}`);
+      return;
     }
 
-    const combined = [];
-
-    registry.forEach(entry => {
-    const type = entry.userType || entry.detectedType;
-    if (!["worklog", "sprint_report", "project_plan"].includes(type)) return;
-
     const jsonPath = entry?.parseInfo?.jsonPath;
-    if (!jsonPath) return;
+    if (!jsonPath) {
+      console.warn(`No jsonPath for ${entry.originalName}`);
+      return;
+    }
+
+    // FIX: Skip if we've already processed this JSON file
+    // This handles cases where the same original file was uploaded multiple times
+    // We use the normalized jsonPath as the key (e.g., "data/sprint_report_summary.json")
+    const normalizedJsonPath = jsonPath.replace(/\\/g, '/');
+    if (processedFiles.has(normalizedJsonPath)) {
+      console.log(`Already processed ${normalizedJsonPath}, skipping duplicate`);
+      return;
+    }
+    processedFiles.add(normalizedJsonPath);
 
     const abs = path.join(rootDir, jsonPath);
+    console.log(`Reading parsed data from: ${abs}`);
+    
     const data = safeReadJSON(abs, null);
-    if (!data) return;
+    if (!data) {
+      console.warn(`Failed to read data from ${abs}`);
+      return;
+    }
 
     const students = data.students || data.contributors || {};
+    console.log(`Found ${Object.keys(students).length} students in ${entry.originalName}`);
+
     Object.entries(students).forEach(([studentName, details]) => {
       if (!combined[studentName]) {
         combined[studentName] = {
@@ -45,22 +82,29 @@ function combineDocumentationMetrics(rootDir){
         };
       }
 
-      // Merge metrics
+      // Use the original filename (without timestamp) as the doc key to avoid duplicates
       const docName = data.source_file || entry.originalName || entry.storedName;
       const metrics = details.metrics || details;
+      
+      // FIX: Only add if this specific document hasn't been added for this student yet
+      if (!combined[studentName].docs[docName]) {
+        combined[studentName].docs[docName] = {
+          sections_written: details.sections_written || [],
+          word_count: metrics.word_count || metrics.words || 0,
+          avg_sentence_length: metrics.avg_sentence_length || 0,
+          sentence_complexity: metrics.sentence_complexity || 0,
+          readability_score: metrics.readability_score || 0
+        };
 
-      combined[studentName].docs[docName] = {
-        sections_written: details.sections_written || [],
-        word_count: metrics.word_count || metrics.words || 0,
-        avg_sentence_length: metrics.avg_sentence_length || 0,
-        sentence_complexity: metrics.sentence_complexity || 0,
-        readability_score: metrics.readability_score || 0
-      };
-
-      combined[studentName].totalDocs += 1;
-      combined[studentName].totalWords += metrics.word_count || metrics.words || 0;
-      combined[studentName].totalSections += (details.sections_written || []).length || 0;
-      combined[studentName]._accum.push(metrics);
+        combined[studentName].totalDocs += 1;
+        combined[studentName].totalWords += metrics.word_count || metrics.words || 0;
+        combined[studentName].totalSections += (details.sections_written || []).length || 0;
+        combined[studentName]._accum.push(metrics);
+        
+        console.log(`Added ${docName} data for ${studentName}: ${metrics.word_count || 0} words`);
+      } else {
+        console.log(`Skipping duplicate document ${docName} for ${studentName}`);
+      }
     });
   });
 
@@ -83,14 +127,19 @@ function combineDocumentationMetrics(rootDir){
       readability_score: +avgReadability.toFixed(2)
     };
     delete obj._accum;
+    delete obj.totalWords;
+    delete obj.totalDocs;
+    delete obj.totalSections;
   });
 
   const result = { students: combined };
   const outputPath = path.join(dataDir, "combined_documentation_metrics.json");
-
+  
   fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
   console.log(`Combined documentation metrics written to ${outputPath}`);
-
+  console.log(`Total students: ${Object.keys(combined).length}`);
+  console.log(`Processed unique JSON files: ${processedFiles.size}`);
+  
   return result;
 }
 

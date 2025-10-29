@@ -317,10 +317,14 @@ app.post("/api/uploads/confirm", (req, res) => {
     return;
   }
 
-  // Sprint report (.docx)
+// Sprint report (.docx)
 if (finalType === "sprint_report" && ext === ".docx") {
   const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
-  const outJson = path.join(DATA_DIR, "sprint_report_summary.json");
+  // FIX: Use unique filename based on the uploaded file
+  const timestamp = Date.now();
+  const baseName = path.basename(absPath, ext);
+  const outJson = path.join(DATA_DIR, `sprint_report_${timestamp}.json`);
+  
   execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
     if (err) {
       entry.status = "parse_failed";
@@ -343,7 +347,10 @@ if (finalType === "sprint_report" && ext === ".docx") {
 // Project plan (.docx)
 if (finalType === "project_plan" && ext === ".docx") {
   const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
-  const outJson = path.join(DATA_DIR, "project_plan_summary.json");
+  // FIX: Use unique filename
+  const timestamp = Date.now();
+  const outJson = path.join(DATA_DIR, `project_plan_${timestamp}.json`);
+  
   execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
     if (err) {
       entry.status = "parse_failed";

@@ -1,3 +1,202 @@
 {
-  "students": []
+  "students": {
+    "Connor Lack": {
+      "docs": {
+        "COS40005 Sprint 2 Report(1)__1761757654926.docx": {
+          "sections_written": [
+            "Sprint Demonstration"
+          ],
+          "word_count": 512,
+          "avg_sentence_length": 23.27,
+          "sentence_complexity": 1.318,
+          "readability_score": 32.37
+        },
+        "COS40005 Team and Project Plan__1761757603852.docx": {
+          "sections_written": [
+            "Teamwork roadmap",
+            "Document management",
+            "Problem at hand",
+            "Scope"
+          ],
+          "word_count": 914,
+          "avg_sentence_length": 26.88,
+          "sentence_complexity": 1.853,
+          "readability_score": 39.61
+        },
+        "COS40005 Sprint 2 Report(1)__1761763467330.docx": {
+          "sections_written": [
+            "Sprint Demonstration"
+          ],
+          "word_count": 512,
+          "avg_sentence_length": 23.27,
+          "sentence_complexity": 1.318,
+          "readability_score": 32.37
+        }
+      },
+      "combined": {
+        "total_word_count": 1938,
+        "total_docs": 3,
+        "total_sections": 6,
+        "avg_sentence_length": 24.47,
+        "sentence_complexity": 1.496,
+        "readability_score": 34.78
+      }
+    },
+    "Jen Mao": {
+      "docs": {
+        "COS40005 Sprint 2 Report(1)__1761757654926.docx": {
+          "sections_written": [
+            "Lessons Learned"
+          ],
+          "word_count": 728,
+          "avg_sentence_length": 25.1,
+          "sentence_complexity": 2.069,
+          "readability_score": 42.76
+        },
+        "COS40005 Team and Project Plan__1761757603852.docx": {
+          "sections_written": [
+            "Quality plan"
+          ],
+          "word_count": 25,
+          "avg_sentence_length": 25,
+          "sentence_complexity": 2,
+          "readability_score": 17.97
+        },
+        "COS40005 Sprint 2 Report(1)__1761763467330.docx": {
+          "sections_written": [
+            "Lessons Learned"
+          ],
+          "word_count": 728,
+          "avg_sentence_length": 25.1,
+          "sentence_complexity": 2.069,
+          "readability_score": 42.76
+        }
+      },
+      "combined": {
+        "total_word_count": 1481,
+        "total_docs": 3,
+        "total_sections": 3,
+        "avg_sentence_length": 25.07,
+        "sentence_complexity": 2.046,
+        "readability_score": 34.5
+      }
+    },
+    "Jason Vo": {
+      "docs": {
+        "COS40005 Sprint 2 Report(1)__1761757654926.docx": {
+          "sections_written": [
+            "Sprint Review",
+            "Retrospective"
+          ],
+          "word_count": 739,
+          "avg_sentence_length": 27.37,
+          "sentence_complexity": 2.148,
+          "readability_score": 43.22
+        },
+        "COS40005 Team and Project Plan__1761757603852.docx": {
+          "sections_written": [],
+          "word_count": 0,
+          "avg_sentence_length": 0,
+          "sentence_complexity": 0,
+          "readability_score": 0
+        },
+        "COS40005 Sprint 2 Report(1)__1761763467330.docx": {
+          "sections_written": [
+            "Sprint Review",
+            "Retrospective"
+          ],
+          "word_count": 739,
+          "avg_sentence_length": 27.37,
+          "sentence_complexity": 2.148,
+          "readability_score": 43.22
+        }
+      },
+      "combined": {
+        "total_word_count": 1478,
+        "total_docs": 3,
+        "total_sections": 4,
+        "avg_sentence_length": 18.25,
+        "sentence_complexity": 1.432,
+        "readability_score": 28.81
+      }
+    },
+    "Kavindu Bhanuka Weragoda": {
+      "docs": {
+        "COS40005 Sprint 2 Report(1)__1761757654926.docx": {
+          "sections_written": [
+            "Sprint Progress"
+          ],
+          "word_count": 584,
+          "avg_sentence_length": 22.46,
+          "sentence_complexity": 1.385,
+          "readability_score": 28.64
+        },
+        "COS40005 Team and Project Plan__1761757603852.docx": {
+          "sections_written": [
+            "High-level requirements"
+          ],
+          "word_count": 119,
+          "avg_sentence_length": 23.8,
+          "sentence_complexity": 0.8,
+          "readability_score": 35.73
+        },
+        "COS40005 Sprint 2 Report(1)__1761763467330.docx": {
+          "sections_written": [
+            "Sprint Progress"
+          ],
+          "word_count": 584,
+          "avg_sentence_length": 22.46,
+          "sentence_complexity": 1.385,
+          "readability_score": 28.64
+        }
+      },
+      "combined": {
+        "total_word_count": 1287,
+        "total_docs": 3,
+        "total_sections": 3,
+        "avg_sentence_length": 22.91,
+        "sentence_complexity": 1.19,
+        "readability_score": 31
+      }
+    },
+    "Md Hridoy Mia": {
+      "docs": {
+        "COS40005 Sprint 2 Report(1)__1761757654926.docx": {
+          "sections_written": [
+            "Sprint Plan"
+          ],
+          "word_count": 226,
+          "avg_sentence_length": 45.2,
+          "sentence_complexity": 2.6,
+          "readability_score": -11.16
+        },
+        "COS40005 Team and Project Plan__1761757603852.docx": {
+          "sections_written": [
+            "Product backlog"
+          ],
+          "word_count": 78,
+          "avg_sentence_length": 26,
+          "sentence_complexity": 0.667,
+          "readability_score": 12.87
+        },
+        "COS40005 Sprint 2 Report(1)__1761763467330.docx": {
+          "sections_written": [
+            "Sprint Plan"
+          ],
+          "word_count": 226,
+          "avg_sentence_length": 45.2,
+          "sentence_complexity": 2.6,
+          "readability_score": -11.16
+        }
+      },
+      "combined": {
+        "total_word_count": 530,
+        "total_docs": 3,
+        "total_sections": 3,
+        "avg_sentence_length": 38.8,
+        "sentence_complexity": 1.956,
+        "readability_score": -3.15
+      }
+    }
+  }
 }
