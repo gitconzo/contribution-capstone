@@ -406,3 +406,47 @@ app.get("/api/uploads/:id/json", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
+
+// Add this endpoint to clean up old parsed documentation files
+app.delete("/api/uploads/cleanup-docs", (req, res) => {
+  try {
+    const registry = loadRegistry();
+    const dataDir = path.join(__dirname, "data");
+    
+    // Find all doc-related JSON files
+    const docFiles = registry.filter(r => 
+      ["sprint_report", "project_plan", "worklog"].includes(r.userType || r.detectedType) &&
+      r.status === "parsed"
+    );
+    
+    // Delete the parsed JSON files
+    let deleted = 0;
+    docFiles.forEach(entry => {
+      if (entry.parseInfo?.jsonPath) {
+        const fullPath = path.join(__dirname, entry.parseInfo.jsonPath);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+          deleted++;
+        }
+        // Mark as deleted in registry
+        entry.status = "deleted";
+        entry.parseInfo = null;
+      }
+    });
+    
+    // Delete combined metrics
+    const combinedPath = path.join(dataDir, "combined_documentation_metrics.json");
+    if (fs.existsSync(combinedPath)) {
+      fs.unlinkSync(combinedPath);
+    }
+    
+    saveRegistry(registry);
+    
+    res.json({ 
+      success: true, 
+      message: `Cleaned up ${deleted} documentation files` 
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});

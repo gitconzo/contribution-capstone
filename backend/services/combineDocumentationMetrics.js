@@ -49,9 +49,7 @@ function combineDocumentationMetrics(rootDir) {
       return;
     }
 
-    // FIX: Skip if we've already processed this JSON file
-    // This handles cases where the same original file was uploaded multiple times
-    // We use the normalized jsonPath as the key (e.g., "data/sprint_report_summary.json")
+    // Skip if we've already processed this JSON file
     const normalizedJsonPath = jsonPath.replace(/\\/g, '/');
     if (processedFiles.has(normalizedJsonPath)) {
       console.log(`Already processed ${normalizedJsonPath}, skipping duplicate`);
@@ -82,13 +80,26 @@ function combineDocumentationMetrics(rootDir) {
         };
       }
 
-      // Use the original filename (without timestamp) as the doc key to avoid duplicates
-      const docName = data.source_file || entry.originalName || entry.storedName;
+      // FIX: Strip timestamp from stored filename to get original filename
+      // Format: "filename__timestamp.ext" -> "filename.ext"
+      let docKey = data.source_file || entry.originalName || entry.storedName;
+      
+      // If using storedName (which has timestamp), strip it
+      if (entry.storedName && entry.storedName.includes('__')) {
+        const parts = entry.storedName.split('__');
+        if (parts.length === 2) {
+          const baseName = parts[0];
+          const ext = path.extname(parts[1]);
+          docKey = baseName + ext;
+        }
+      }
+      
       const metrics = details.metrics || details;
       
-      // FIX: Only add if this specific document hasn't been added for this student yet
-      if (!combined[studentName].docs[docName]) {
-        combined[studentName].docs[docName] = {
+      // Only add if this specific document hasn't been added for this student yet
+      // Use docKey (original filename without timestamp) to prevent duplicates
+      if (!combined[studentName].docs[docKey]) {
+        combined[studentName].docs[docKey] = {
           sections_written: details.sections_written || [],
           word_count: metrics.word_count || metrics.words || 0,
           avg_sentence_length: metrics.avg_sentence_length || 0,
@@ -101,9 +112,9 @@ function combineDocumentationMetrics(rootDir) {
         combined[studentName].totalSections += (details.sections_written || []).length || 0;
         combined[studentName]._accum.push(metrics);
         
-        console.log(`Added ${docName} data for ${studentName}: ${metrics.word_count || 0} words`);
+        console.log(`Added ${docKey} data for ${studentName}: ${metrics.word_count || 0} words`);
       } else {
-        console.log(`Skipping duplicate document ${docName} for ${studentName}`);
+        console.log(`Skipping duplicate document ${docKey} for ${studentName} (already processed)`);
       }
     });
   });
