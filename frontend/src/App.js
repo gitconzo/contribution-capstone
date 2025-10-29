@@ -1,15 +1,57 @@
 import React, { useState } from "react";
+import Login from "./components/login";
+import SetupTeam from "./components/setupteam";
+import Navigation from "./components/navigation";
+import ExportReport from "./components/exportreport";
+import StudentDetails from "./components/studentdetails";
+import Dashboard from "./components/dashboard";
 import "./App.css";
-import { Login } from "./components/login";
 
 function App() {
+  const [currentPage, setCurrentPage] = useState("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  return !isLoggedIn ? (
-    <Login onLogin={() => setIsLoggedIn(true)} />
-  ) : (
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    setCurrentPage("dashboard");
+  };
+
+  const handleNavigate = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentPage("login");
+  };
+
+  const renderPage = () => {
+    if (!isLoggedIn) return <Login onLogin={handleLogin} />;
+
+    switch (currentPage) {
+      case "dashboard":
+        return <Dashboard />;
+      case "setupteam":
+        return <SetupTeam />;
+      case "exportreport":
+        return <ExportReport />;
+      case "studentdetails":
+        return <StudentDetails />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  return (
     <div className="App">
-      <h1>Dashboard</h1>
-      <button onClick={() => setIsLoggedIn(false)}>Logout</button>
+      {isLoggedIn && (
+        <Navigation
+          currentPage={currentPage}
+          onNavigate={handleNavigate}
+          onLogout={handleLogout}
+        />
+      )}
+      <main>{renderPage()}</main>
     </div>
   );
 }
