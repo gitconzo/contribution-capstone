@@ -54,29 +54,54 @@
     "rules": {
       "rules": [
         {
-          "name": "Code Commits",
-          "value": 35,
-          "desc": "Weight given to Git commits and code quality"
+          "name": "Total Lines of Code",
+          "value": 12,
+          "desc": "Percentage of code written in code base"
         },
         {
-          "name": "Work Log Hours",
-          "value": 20,
-          "desc": "Time spent on project tasks as logged"
+          "name": "Total Edited Code",
+          "value": 10,
+          "desc": "Percentage of total edited code (additions and deletions)"
         },
         {
-          "name": "Documentation",
-          "value": 25,
-          "desc": "Documents created and maintained"
+          "name": "Total Commits",
+          "value": 7,
+          "desc": "Percentage of commits made"
         },
         {
-          "name": "Meeting Participation",
-          "value": 15,
-          "desc": "Attendance and participation in team meetings"
+          "name": "Total Functions Written",
+          "value": 12,
+          "desc": "Percentage of functions written in codebase"
         },
         {
-          "name": "Code Review",
+          "name": "Total Hotspot Contributed",
+          "value": 10,
+          "desc": "Percentage of hotspots written in codebase (hotspots = above average function complexity)"
+        },
+        {
+          "name": "Code Complexity",
+          "value": 9,
+          "desc": "Average code complexity"
+        },
+        {
+          "name": "Average Sentence Length",
           "value": 5,
-          "desc": "Participation in code reviews and peer feedback"
+          "desc": "Average sentence length"
+        },
+        {
+          "name": "Sentence Complexity",
+          "value": 5,
+          "desc": "Sentence complexity"
+        },
+        {
+          "name": "Word Count",
+          "value": 10,
+          "desc": "Word Count"
+        },
+        {
+          "name": "Readability",
+          "value": 11,
+          "desc": "Readability"
         }
       ],
       "autoRecalc": true,
@@ -86,7 +111,8 @@
         "meetingDoc": 70,
         "activityDist": 60
       },
-      "peerValidation": "Statistical analysis"
+      "peerValidation": "Statistical analysis",
+      "savedAt": "2025-10-29T08:00:15.106Z"
     },
     "createdAt": "2025-10-29T08:00:15.106Z"
   }

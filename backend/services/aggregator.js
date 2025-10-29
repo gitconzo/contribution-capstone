@@ -14,16 +14,25 @@ function safeReadJSON(p, fallback = null) {
 }
 
 function normalize(values) {
-  if (!values.length) return values;
-  // If all equal or std=0, return 1s so nobody gets nuked
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / values.length;
-  const std = Math.sqrt(variance) || 1;
-  const z = values.map(v => (v - mean) / std);
-  const min = Math.min(...z);
-  const max = Math.max(...z);
-  if (max === min) return values.map(() => 1);
-  return z.map(v => (v - min) / (max - min));
+  const arr = Array.isArray(values) ? values : [];
+  if (arr.length === 0) return [];
+
+  const modifyStdDev = 2; // value used to multiply standard deviation
+
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  const variance = arr.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / arr.length;
+  const standardDeviation = Math.sqrt(variance);
+
+  if (!Number.isFinite(standardDeviation) || standardDeviation === 0) {
+    return arr.map(() => 0.5);
+  }
+
+  const zScores = arr.map(v => modifyStdDev * ((v - mean) / standardDeviation));
+  const min = Math.min(...zScores);
+  const max = Math.max(...zScores);
+  if (max === min) return zScores.map(() => 0.5);
+
+  return zScores.map(v => (v - min) / (max - min));
 }
 
 // Try to match any author/email/alias to a student index
@@ -52,7 +61,6 @@ function matchStudentIndex(aliasMap, key) {
 }
 
 // ---------- docs extractors (shape-aware but tolerant) ----------
-// We expect your parsers to output a student keyed structure or an array with {name/email,...}.
 function pickNumber(n, def = 0) {
   if (n === null || n === undefined) return def;
   const v = Number(n);
@@ -60,8 +68,6 @@ function pickNumber(n, def = 0) {
 }
 
 function extractAttendanceMetrics(json) {
-  // Try common shapes:
-  // { students: [{name,email,hours: 12,...}, ...] }  OR  { "Connor Lack": {hours: 15}, ...}
   const out = {};
   if (!json) return out;
 
@@ -81,39 +87,9 @@ function extractAttendanceMetrics(json) {
   return out;
 }
 
-function extractDocsMetrics(json) {
-  // Intended for sprint_report_summary.json / project_plan_summary.json / worklog output
-  // We’ll look for per-student word counts, doc counts, etc.
-  const out = {};
-  if (!json) return out;
-
-  const push = (key, part) => {
-    if (!key) return;
-    out[key] = out[key] || { docCount: 0, words: 0, sections: 0 };
-    if (part.docCount) out[key].docCount += pickNumber(part.docCount);
-    if (part.words) out[key].words += pickNumber(part.words);
-    if (part.sections) out[key].sections += pickNumber(part.sections);
-  };
-
-  if (Array.isArray(json.students)) {
-    json.students.forEach(s => push(s.email || s.name, s));
-  } else if (json.contributors) {
-    // { contributors: { "Connor": {words:1234, docCount: 2, ...}, ... } }
-    Object.entries(json.contributors).forEach(([k, v]) => push(k, v));
-  } else {
-    // best effort: flatten top-level numbers if keyed by name
-    Object.entries(json).forEach(([k, v]) => {
-      if (v && typeof v === "object") push(k, v);
-    });
-  }
-  return out;
-}
-
 // ---------- main aggregation ----------
 function loadGitHubMetrics(dataDir) {
-  // finalStats.json keyed by author
   const finalStats = safeReadJSON(path.join(dataDir, "finalStats.json"), {});
-  // Normalize to a uniform author map
   const authors = {};
   Object.entries(finalStats).forEach(([author, s]) => {
     authors[author] = {
@@ -132,7 +108,6 @@ function loadGitHubMetrics(dataDir) {
 }
 
 function loadParsedArtifacts(rootDir) {
-  // Use registry to know what was parsed & where JSONs live
   const registry = safeReadJSON(path.join(rootDir, "fileRegistry.json"), []);
   const results = { attendance: [], worklog: [], sprint: [], project: [] };
   registry.forEach(r => {
@@ -161,22 +136,19 @@ function aggregateForTeam(team, rootDir) {
     // raw aggregates:
     code: { avgComplexity: 0, pctFunctions: 0, pctHotspots: 0, pctLOC: 0, commitPct: 0, editPct: 0 },
     attendance: { hours: 0, meetings: 0 },
-    docs: { docCount: 0, words: 0, sections: 0 },
-    // peer review placeholder:
+    docs: { docCount: 0, words: 0, sections: 0, avgSentenceLength: 0, sentenceComplexity: 0, readability: 0 },
     peer: { score: 0 },
   }));
 
   // ---------- GitHub
   const gh = loadGitHubMetrics(dataDir);
   Object.entries(gh).forEach(([author, m]) => {
-    // Try matching by author name, then by likely username (your parsers may store username elsewhere)
     let idx = matchStudentIndex(aliasMap, author);
     if (idx === -1) idx = matchStudentIndex(aliasMap, author.replace(/\s*\[bot\]\s*$/i, ""));
-    if (idx === -1) return; // ignore non-team authors
+    if (idx === -1) return;
 
     const c = students[idx].code;
-    // average values: for multiple aliases we average by taking mean of contributors
-    c.avgComplexity = (c.avgComplexity + m.avgComplexity) / (c.avgComplexity ? 2 : 1);
+    c.avgComplexity = m.avgComplexity;
     c.pctFunctions += m.pctFunctions;
     c.pctHotspots += m.pctHotspots;
     c.pctLOC += m.pctLOC;
@@ -188,16 +160,14 @@ function aggregateForTeam(team, rootDir) {
   if (!fs.existsSync(combinedDocsPath)) {
     console.log("no combined_documentation_metrics.json found");
     try {
-        combineDocumentationMetrics(rootDir);
+      combineDocumentationMetrics(rootDir);
     } catch (e) {
-        console.warn("failed to geenrate json", e.message);
+      console.warn("failed to generate json", e.message);
     }
   }
 
-  // ---------- Attendance / Docs
+  // ---------- Attendance
   const parsed = loadParsedArtifacts(rootDir);
-
-  // Attendance
   parsed.attendance.forEach(js => {
     const byStudent = extractAttendanceMetrics(js);
     Object.entries(byStudent).forEach(([key, a]) => {
@@ -209,55 +179,89 @@ function aggregateForTeam(team, rootDir) {
     });
   });
 
-    const combinedDocs = safeReadJSON(combinedDocsPath, null);
-    if (combinedDocs?.students) {
-        Object.entries(combinedDocs.students).forEach(([name, data]) => {
-            const idx = matchStudentIndex(aliasMap, name);
-            if (idx !== -1 && data.combined) {
-                students[idx].docs.docCount = data.combined.total_docs || students[idx].docs.docCount;
-                students[idx].docs.words = data.combined.total_word_count || students[idx].docs.words;
-                students[idx].docs.sections = data.combined.total_sections || students[idx].docs.sections;
-            }
-        });
-    }
+  // ---------- Documentation from combined metrics
+  const combinedDocs = safeReadJSON(combinedDocsPath, null);
+  if (combinedDocs?.students) {
+    Object.entries(combinedDocs.students).forEach(([name, data]) => {
+      const idx = matchStudentIndex(aliasMap, name);
+      if (idx !== -1 && data.combined) {
+        students[idx].docs.docCount = data.combined.total_docs || 0;
+        students[idx].docs.words = data.combined.total_word_count || 0;
+        students[idx].docs.sections = data.combined.total_sections || 0;
+        students[idx].docs.avgSentenceLength = data.combined.avg_sentence_length || 0;
+        students[idx].docs.sentenceComplexity = data.combined.sentence_complexity || 0;
+        students[idx].docs.readability = data.combined.readability_score || 0;
+      }
+    });
+  }
 
   return students;
 }
 
+function mapRulesIfArray(rulesObj) {
+  const arr = rulesObj && Array.isArray(rulesObj.rules) ? rulesObj.rules : null;
+  if (!arr) return null;
+
+  const byName = Object.fromEntries(
+    arr.map(r => [String(r.name || "").trim().toLowerCase(), Number(r.value || 0)])
+  );
+  const v = n => byName[n.toLowerCase()] || 0;
+
+  return {
+    loc: v("Total Lines of Code"),
+    editedCode: v("Total Edited Code"),
+    commits: v("Total Commits"),
+    functions: v("Total Functions Written"),
+    hotspots: v("Total Hotspot Contributed"),
+    codeComplexity: v("Code Complexity"),
+    avgSentenceLength: v("Average Sentence Length"),
+    sentenceComplexity: v("Sentence Complexity"),
+    wordCount: v("Word Count"),
+    readability: v("Readability"),
+  };
+}
+
 // Compute normalized + weighted final
 function scoreStudents(students, rules = null) {
-  // Default weights (can be overwritten by per-team rules later)
-  // Keep these aligned with your RuleSettings sliders (total 100)
   const defaultWeights = {
-    codeCommits: 30,      // use commitPct + editPct
-    worklogHours: 25,     // attendance.hours
-    documentation: 20,    // docs.words + docs.docCount
-    meetings: 15,         // attendance.meetings
-    codeQuality: 10,      // avgComplexity + pctHotspots + pctFunctions + pctLOC
+    loc: 12,
+    editedCode: 10,
+    commits: 7,
+    functions: 12,
+    hotspots: 10,
+    codeComplexity: 9,
+    avgSentenceLength: 5,
+    sentenceComplexity: 5,
+    wordCount: 7,
+    readability: 11,
   };
 
-  const w = rules || defaultWeights;
+  const w = mapRulesIfArray(rules) || rules || defaultWeights;
+  const dims = Object.keys(w);
 
-  // Build raw arrays for normalization
-  const raw = students.map(s => ({
-    codeCommits: pickNumber(s.code.commitPct) + pickNumber(s.code.editPct),
-    worklogHours: pickNumber(s.attendance.hours),
-    documentation: pickNumber(s.docs.words) + 200 * pickNumber(s.docs.docCount),
-    meetings: pickNumber(s.attendance.meetings),
-    codeQuality:
-      pickNumber(s.code.avgComplexity) +
-      pickNumber(s.code.pctHotspots) +
-      pickNumber(s.code.pctFunctions) +
-      pickNumber(s.code.pctLOC),
-    // peer: to be integrated later, e.g., s.peer.score
-  }));
+  const raw = students.map(s => {
+    const r = {};
+    dims.forEach(d => {
+      switch (d) {
+        case "loc": r[d] = pickNumber(s.code.pctLOC); break;
+        case "editedCode": r[d] = pickNumber(s.code.editPct); break;
+        case "commits": r[d] = pickNumber(s.code.commitPct); break;
+        case "functions": r[d] = pickNumber(s.code.pctFunctions); break;
+        case "hotspots": r[d] = pickNumber(s.code.pctHotspots); break;
+        case "codeComplexity": r[d] = pickNumber(s.code.avgComplexity); break;
+        case "avgSentenceLength": r[d] = pickNumber(s.docs.avgSentenceLength); break;
+        case "sentenceComplexity": r[d] = pickNumber(s.docs.sentenceComplexity); break;
+        case "wordCount": r[d] = pickNumber(s.docs.words); break;
+        case "readability": r[d] = pickNumber(s.docs.readability); break;
+        default: r[d] = 0;
+      }
+    });
+    return r;
+  });
 
-  // Normalize each dimension
-  const dims = Object.keys(raw[0] || {});
   const normVectors = {};
   dims.forEach(d => (normVectors[d] = normalize(raw.map(r => r[d]))));
 
-  // Weighted sum (weights in %)
   const totals = students.map((_, i) =>
     dims.reduce((sum, d) => sum + (normVectors[d][i] || 0) * (w[d] || 0), 0)
   );
@@ -280,8 +284,6 @@ function scoreStudents(students, rules = null) {
 }
 
 function loadTeamRulesIfAny(team) {
-  // team.rules may store the exact sliders from RuleSettings; translate to our keys.
-  // If stored the same keys already, just return team.rules.
   return team.rules || null;
 }
 

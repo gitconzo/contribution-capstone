@@ -6,11 +6,16 @@ const API = "http://localhost:5002";
 // Single source of truth for defaults (matches backend DEFAULT_RULES)
 const DEFAULT_RULES = {
   rules: [
-    { name: "Code Commits", value: 30, desc: "Weight given to Git commits and code quality" },
-    { name: "Work Log Hours", value: 25, desc: "Time spent on project tasks as logged" },
-    { name: "Documentation", value: 20, desc: "Documents created and maintained" },
-    { name: "Meeting Participation", value: 15, desc: "Attendance and participation in team meetings" },
-    { name: "Code Review", value: 10, desc: "Participation in code reviews and peer feedback" },
+    { name: "Total Lines of Code", value: 12, desc: "Percentage of code written in code base" },
+    { name: "Total Edited Code", value: 10, desc: "Percentage of total edited code (additions and deletions)" },
+    { name: "Total Commits", value: 7, desc: "Percentage of commits made" },
+    { name: "Total Functions Written", value: 12, desc: "Percentage of functions written in codebase" },
+    { name: "Total Hotspot Contributed", value: 10, desc: "Percentage of hotspots written in codebase (hotspots = above average function complexity)" },
+    { name: "Code Complexity", value: 9, desc: "Average code complexity" },
+    { name: "Average Sentence Length", value: 5, desc: "Average sentence length" },
+    { name: "Sentence Complexity", value: 5, desc: "Sentence complexity" },
+    { name: "Word Count", value: 7, desc: "Word Count" },
+    { name: "Readability", value: 11, desc: "Readability" },
   ],
   autoRecalc: true,
   crossVerify: true,
@@ -118,7 +123,7 @@ export default function RuleSettings() {
     }
   };
 
-  // Local “team preview” data left as-is but guarded
+  // Local "team preview" data left as-is but guarded
   const teamPreview = [
     { name: "Jason Vo", tag: "High Performer", tagClass: "high", score: 94, change: "+2%", plus: true },
     { name: "Jen Mao", tag: "High Performer", tagClass: "high", score: 92, change: "+1%", plus: true },
@@ -292,6 +297,7 @@ export default function RuleSettings() {
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .btn-black { background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
         .btn-black:hover { background: #333; }
+        .btn-black:disabled { background: #666; cursor: not-allowed; }
         .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
         .section-title { font-size: 1.1rem; font-weight: 600; }
         .section-desc { color: #777; font-size: 0.9rem; margin-bottom: 16px; }
@@ -301,7 +307,8 @@ export default function RuleSettings() {
         input[type=range] { width: 100%; accent-color: #000; }
         .switch-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
         select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-top: 6px; }
-        .total-weight { text-align: right; font-weight: 600; }
+        label { font-weight: 500; margin-top: 12px; display: block; }
+        .total-weight { text-align: right; font-weight: 600; margin-top: 16px; }
         .green { color: #16a34a; } .red { color: #dc2626; }
         .team-row { display: flex; justify-content: space-between; border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
         .tag { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; margin-bottom: 4px; }
