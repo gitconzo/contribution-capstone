@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import Login from "./components/login";
-import SetupTeam from "./components/setupteam";
-import Navigation from "./components/navigation";
-import ExportReport from "./components/exportreport";
-import StudentDetails from "./components/studentdetails";
-import Dashboard from "./components/dashboard";
+import {Login} from "./components/login";
+import {Setupteam} from "./components/setupteam";
+import {Navigation} from "./components/navigation";
+import {Exportreport} from "./components/exportreport";
+import {Studentdetail} from "./components/studentdetail";
+import {Dashboard} from "./components/dashboard";
 import "./App.css";
 
 function App() {
@@ -32,11 +32,11 @@ function App() {
       case "dashboard":
         return <Dashboard />;
       case "setupteam":
-        return <SetupTeam />;
+        return <Setupteam />;
       case "exportreport":
-        return <ExportReport />;
-      case "studentdetails":
-        return <StudentDetails />;
+        return <Exportreport />;
+      case "studentdetail":
+        return <Studentdetail />;
       default:
         return <Dashboard />;
     }
@@ -55,4 +55,7 @@ function App() {
     </div>
   );
 }
+
+export default App;
+
 
