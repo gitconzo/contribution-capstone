@@ -1,0 +1,36 @@
+[
+  {
+    "id": "team_1761724815106",
+    "name": "P17 Individual contribution assessment",
+    "code": "COS40005",
+    "repo": {
+      "url": "https://github.com/gitconzo/contribution-capstone",
+      "owner": "gitconzo",
+      "repo": "contribution-capstone"
+    },
+    "students": [
+      {
+        "name": "Connor Lack",
+        "email": "connor@dummy.com"
+      },
+      {
+        "name": "Jason Vo",
+        "email": "jason@dummy.com"
+      },
+      {
+        "name": "Jen Mao",
+        "email": "jen@dummy.com"
+      },
+      {
+        "name": "Md Hridoy Mia",
+        "email": "hridoy@dummy.com"
+      },
+      {
+        "name": "Kavindu Bhanuka Weragoda",
+        "email": "kavindu@dummy.com"
+      }
+    ],
+    "rules": null,
+    "createdAt": "2025-10-29T08:00:15.106Z"
+  }
+]

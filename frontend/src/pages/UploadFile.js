@@ -16,8 +16,6 @@ export default function UploadFile() {
   const [files, setFiles] = useState([]);
   const [overrideType, setOverrideType] = useState("unknown");
   const [confirming, setConfirming] = useState(false);
-  const [repoUrl, setRepoUrl] = useState("");
-  const [msg, setMsg] = useState("");
 
   const API = "http://localhost:5002";
 
@@ -43,51 +41,14 @@ export default function UploadFile() {
   };
 
   const handleUpload = async () => {
-    setMsg("");
-    let owner = "";
-    let repo = "";
-
-    if (repoUrl) {
-      const parts = repoUrl.split("/").filter(Boolean);
-      owner = parts[parts.length - 2] || "";
-      repo = parts[parts.length - 1]?.replace(".git", "") || "";
-    }
-
-    if (!file && !repoUrl) {
-      setMsg("Please upload a file or provide a GitHub repo URL.");
-      return;
-    }
-
+    if (!file) return;
     const formData = new FormData();
-    if (file) formData.append("file", file);
+    formData.append("file", file);
     formData.append("userType", overrideType);
-    formData.append("repoUrl", repoUrl);
-    formData.append("owner", owner);
-    formData.append("repo", repo);
 
-    try {
-      const res = await fetch(`${API}/api/uploads`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        setMsg(json.error || "Upload failed");
-        return;
-      }
-
-      setUploadResult(json);
-      const parts = [];
-      if (json.originalName) parts.push(`Uploaded ${json.originalName}`);
-      if (json.repo?.url) parts.push(`Repo: ${json.repo.url}`);
-      if (json.mainPy?.status) parts.push(`main.py: ${json.mainPy.status}`);
-      setMsg(parts.join(" • "));
-
-      fetchFiles();
-    } catch (e) {
-      setMsg(`Upload error: ${e.message}`);
-    }
+    const res = await fetch(`${API}/api/uploads`, { method: "POST", body: formData });
+    const json = await res.json();
+    setUploadResult(json);
   };
 
   const handleConfirm = async () => {
@@ -108,39 +69,12 @@ export default function UploadFile() {
 
   return (
     <div style={styles.pageContainer}>
-      {/* Repo Upload Section */}
-      <div style={styles.card}>
-        <h1>Upload GitHub Repository</h1>
-        <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-          <label htmlFor="repoUrl">GitHub repository link</label>
-          <input
-            id="repoUrl"
-            type="text"
-            placeholder="e.g. https://github.com/[user]/[repo]"
-            value={repoUrl}
-            onChange={(e) => setRepoUrl(e.target.value)}
-            style={{ padding: 8 }}
-          />
-        </div>
-        <button onClick={handleUpload} style={styles.uploadBtn}>
-          Analyze Repository
-        </button>
-        {msg && <div style={{ marginTop: 12 }}>{msg}</div>}
-      </div>
-
-      {/* Document Upload Section */}
       <div style={styles.card}>
         <h1>Upload Documents</h1>
 
         <label style={styles.label}>Select Document Type</label>
-        <select
-          value={overrideType}
-          onChange={e => setOverrideType(e.target.value)}
-          style={styles.select}
-        >
-          {TYPE_OPTIONS.map(opt =>
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          )}
+        <select value={overrideType} onChange={e => setOverrideType(e.target.value)} style={styles.select}>
+          {TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>
 
         <label style={styles.label}>Browse Files</label>
@@ -156,7 +90,7 @@ export default function UploadFile() {
           </div>
         )}
 
-        <button onClick={handleUpload} disabled={!file && !repoUrl} style={styles.uploadBtn}>
+        <button onClick={handleUpload} disabled={!file} style={styles.uploadBtn}>
           Upload
         </button>
 
@@ -171,9 +105,9 @@ export default function UploadFile() {
         )}
       </div>
 
-      {/* Uploaded Files Table */}
       <div style={styles.tableCard}>
         <h2>Uploaded Files</h2>
+
         <table style={styles.table}>
           <thead>
             <tr>
@@ -192,7 +126,11 @@ export default function UploadFile() {
                 <td style={styles.tableCell}>{new Date(file.uploadDate).toLocaleString()}</td>
                 <td style={styles.tableCell}>{file.status}</td>
                 <td style={styles.tableCell}>
-                  <a href={`http://localhost:5002/${file.storedPath}`} download style={styles.downloadBtn}>
+                  <a
+                    href={`http://localhost:5002/${file.storedPath}`}
+                    download
+                    style={styles.downloadBtn}
+                  >
                     Download
                   </a>
                 </td>
@@ -211,7 +149,6 @@ export default function UploadFile() {
   );
 }
 
-/* ------------------ STYLES ------------------ */
 const styles = {
   pageContainer: { maxWidth: "900px", margin: "auto", padding: "20px" },
   card: {
@@ -233,13 +170,20 @@ const styles = {
     background: "black", color: "white", cursor: "pointer", marginTop: "10px"
   },
   confirmBox: { background: "#f9f9f9", padding: "10px", marginTop: "10px", borderRadius: "5px" },
-  confirmBtn: { marginTop: "8px", width: "100%", padding: "8px", background: "#444", color: "white", border: "none", cursor: "pointer" },
-  tableCard: { background: "#fff", padding: "20px", borderRadius: "10px", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" },
+  confirmBtn: {
+    marginTop: "8px", width: "100%", padding: "8px", background: "#444",
+    color: "white", border: "none", cursor: "pointer"
+  },
+  tableCard: {
+    background: "#fff", padding: "20px", borderRadius: "10px",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.1)"
+  },
   table: { width: "100%", borderCollapse: "separate", borderSpacing: "0 10px", marginTop: "10px" },
   tableRow: { background: "#f9f9f9", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" },
   tableCell: { padding: "12px 15px", textAlign: "left" },
   downloadBtn: {
     background: "black", color: "white", padding: "8px 14px",
-    borderRadius: "6px", textDecoration: "none", cursor: "pointer", fontWeight: "bold"
+    borderRadius: "6px", textDecoration: "none", cursor: "pointer", fontWeight: "bold",
+    display: "inline-block"
   }
 };

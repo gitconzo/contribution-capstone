@@ -436,5 +436,21 @@
     "parseInfo": {
       "message": "Project Plan parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 235, in <module>\n    parse_project_plan_docx(input_path, out_path)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 154, in parse_project_plan_docx\n    sections = extract_text_sections(doc)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 60, in extract_text_sections\n    numbered_heading = re.match(r\"^\\d+[\\.\\)]\\s*[A-Z]\", text)\n                                                       ^^^^\nUnboundLocalError: cannot access local variable 'text' where it is not associated with a value\n"
     }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1761724881987.docx",
+    "originalName": "COS40005 Sprint 2 Report.docx",
+    "storedName": "COS40005 Sprint 2 Report__1761724881987.docx",
+    "storedPath": "uploads/COS40005 Sprint 2 Report__1761724881987.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 6416054,
+    "uploadDate": "2025-10-29T08:01:22.004Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "uploads/sprint_report_summary.json",
+      "message": "Sprint report parsed successfully"
+    }
   }
 ]

@@ -17,9 +17,9 @@
     "web-vitals": "^2.1.4"
   },
   "resolutions": {
-  "ajv": "6.12.6",
-  "ajv-keywords": "3.5.2",
-  "schema-utils": "2.7.1"
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2",
+    "schema-utils": "2.7.1"
   },
   "scripts": {
     "preinstall": "npx npm-force-resolutions",
