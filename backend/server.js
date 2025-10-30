@@ -20,6 +20,7 @@ const UPLOAD_DIR = path.join(__dirname, "uploads");
 const REGISTRY_PATH = path.join(__dirname, "fileRegistry.json");
 const TEAMS_PATH = path.join(DATA_DIR, "teams.json");
 const ACTIVE_TEAM_PATH = path.join(DATA_DIR, "activeTeam.json");
+const REPO_JSON_PATH = path.join(DATA_DIR, "repo.json");
 
 // Ensure dirs/files
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -27,6 +28,8 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!fs.existsSync(REGISTRY_PATH)) fs.writeFileSync(REGISTRY_PATH, JSON.stringify([], null, 2));
 if (!fs.existsSync(TEAMS_PATH)) fs.writeFileSync(TEAMS_PATH, JSON.stringify([], null, 2));
 if (!fs.existsSync(ACTIVE_TEAM_PATH)) fs.writeFileSync(ACTIVE_TEAM_PATH, JSON.stringify(null, null, 2));
+if (!fs.existsSync(REPO_JSON_PATH)) fs.writeFileSync(REPO_JSON_PATH, JSON.stringify(null, null, 2));
+
 
 // Registry helpers
 function loadRegistry() { return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf-8")); }
@@ -237,7 +240,11 @@ app.get("/api/uploads", (req, res) => {
 
 // Upload a single file (field name: "file")
 app.post("/api/uploads", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  if (!req.file && !repoUrl) return res.status(400).json({ error: "No file or repo uploaded" });
+
+  const repoUrl = (req.body?.repoUrl).trim();
+  const owner   = (req.body?.owner).trim();
+  const repo    = (req.body?.repo).trim();
 
   const registry = loadRegistry();
   const userGuess = req.body?.userType || null;
@@ -259,6 +266,28 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
 
   registry.push(entry);
   saveRegistry(registry);
+
+  if(repoUrl){
+    const repoInfo = { url: repoUrl, ...(owner && repo ? { owner, repo } : {}), savedAt: new Date().toISOString() };
+    fs.writeFileSync(REPO_JSON_PATH, JSON.stringify(repoInfo, null, 2));
+
+    const py = path.join(__dirname, "main.py");
+    const args = [py, "--repo-url", repoUrl];
+
+    execFile("python", args, { cwd: __dirname }, (err, stdout, stderr) => {
+      const mainPyResult = err
+        ? { status: "failed", message: stderr || err.message }
+        : { status: "ok", message: stdout || "main.py completed" };
+
+      return res.json({
+        ...entry,
+        repo: repoInfo,
+        mainPy: mainPyResult
+      });
+    });
+
+    return; 
+  }
   res.json(entry);
 });
 
