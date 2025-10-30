@@ -55,9 +55,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Multer for CSV in team creation (reuse same storage into uploads to keep simple)
-const teamUpload = multer({ storage });
-
 // Simple type detection by name
 function detectTypeFromName(filename, userGuess) {
   if (userGuess && userGuess !== "unknown") return userGuess;
@@ -69,128 +66,6 @@ function detectTypeFromName(filename, userGuess) {
   if (lower.includes("project") && lower.includes("plan")) return "project_plan";
   return "unknown";
 }
-
-// ---------------------- Teams API ----------------------
-
-// Create team (multipart: fields + optional studentsCsv)
-// fields: teamName, projectCode, repoUrl
-app.post("/api/teams", teamUpload.single("studentsCsv"), (req, res) => {
-  const name = (req.body?.teamName || "").trim();
-  const code = (req.body?.projectCode || "").trim();
-  const repoUrlRaw = (req.body?.repoUrl || "").trim();
-
-  if (!name || !code) {
-    return res.status(400).json({ error: "teamName and projectCode are required" });
-  }
-
-  // Basic repo parse (owner/repo) if provided
-  let repo = null;
-  if (repoUrlRaw) {
-    const parts = repoUrlRaw.split("/").filter(Boolean);
-    const owner = parts[parts.length - 2] || "";
-    const repoName = (parts[parts.length - 1] || "").replace(".git", "");
-    if (owner && repoName) {
-      repo = { url: repoUrlRaw, owner, repo: repoName };
-    } else {
-      repo = { url: repoUrlRaw };
-    }
-  }
-
-  // Parse CSV (very simple: name,email)
-  let students = [];
-  if (req.file) {
-    try {
-      const csvText = fs.readFileSync(path.join(UPLOAD_DIR, req.file.filename), "utf-8");
-      const lines = csvText.split(/\r?\n/).filter(Boolean);
-      for (let i = 0; i < lines.length; i++) {
-        const row = lines[i].trim();
-        if (!row) continue;
-        const cols = row.split(",").map(s => s.trim());
-        if (cols.length >= 2) {
-          // Skip header if matches
-          if (i === 0 && /name/i.test(cols[0]) && /email/i.test(cols[1])) continue;
-          students.push({ name: cols[0], email: cols[1] });
-        }
-      }
-    } catch (e) {
-      return res.status(400).json({ error: `Failed to parse CSV: ${e.message}` });
-    }
-  }
-
-  const id = `team_${Date.now()}`;
-  const team = {
-    id, name, code,
-    repo, // {url, owner, repo} or null
-    students, // [{name,email}]
-    rules: null, // will be saved via /rules
-    createdAt: new Date().toISOString()
-  };
-
-  const teams = loadTeams();
-  teams.push(team);
-  saveTeams(teams);
-
-  // Set active to this team if none
-  if (!getActiveTeamId()) setActiveTeamId(id);
-
-  res.json(team);
-});
-
-// List teams
-app.get("/api/teams", (req, res) => {
-  res.json(loadTeams());
-});
-
-// Get active team
-app.get("/api/teams/active", (req, res) => {
-  const team = getActiveTeam();
-  if (!team) return res.status(404).json(null);
-  res.json(team);
-});
-
-// Set active team
-app.post("/api/teams/active", (req, res) => {
-  const id = req.body?.id;
-  if (!id) return res.status(400).json({ error: "Missing team id" });
-  const team = findTeamById(id);
-  if (!team) return res.status(404).json({ error: "Team not found" });
-  setActiveTeamId(id);
-  res.json({ success: true });
-});
-
-// Get team by id
-app.get("/api/teams/:id", (req, res) => {
-  const t = findTeamById(req.params.id);
-  if (!t) return res.status(404).json({ error: "Team not found" });
-  res.json(t);
-});
-
-// Save rules for a team
-app.post("/api/teams/:id/rules", (req, res) => {
-  const id = req.params.id;
-  const teams = loadTeams();
-  const idx = teams.findIndex(t => t.id === id);
-  if (idx === -1) return res.status(404).json({ error: "Team not found" });
-
-  const { rules, autoRecalc, crossVerify, triangulation, peerValidation } = req.body || {};
-  teams[idx].rules = {
-    rules: Array.isArray(rules) ? rules : null,
-    autoRecalc: !!autoRecalc,
-    crossVerify: !!crossVerify,
-    triangulation: triangulation || { codeWorklog: 80, meetingDoc: 70, activityDist: 60 },
-    peerValidation: peerValidation || "Statistical analysis",
-    savedAt: new Date().toISOString()
-  };
-  saveTeams(teams);
-  res.json(teams[idx].rules);
-});
-
-// Get rules for a team
-app.get("/api/teams/:id/rules", (req, res) => {
-  const t = findTeamById(req.params.id);
-  if (!t) return res.status(404).json({ error: "Team not found" });
-  res.json(t.rules || null);
-});
 
 // ---------------------- Scores / GitHub ----------------------
 
@@ -235,50 +110,9 @@ app.get("/api/uploads", (req, res) => {
   res.json(registry);
 });
 
-// Upload a single file (field name: "file") OR submit repo URL
+// Upload a single file (field name: "file") - DOCUMENTS ONLY
 app.post("/api/uploads", upload.single("file"), (req, res) => {
-  const repoUrl = (req.body?.repoUrl || "").trim();
-  const owner = (req.body?.owner || "").trim();
-  const repo = (req.body?.repo || "").trim();
-
-  // NEW: Handle repo URL submission (Jason's feature)
-  if (repoUrl && !req.file) {
-    const repoInfo = { 
-      url: repoUrl, 
-      ...(owner && repo ? { owner, repo } : {}), 
-      savedAt: new Date().toISOString() 
-    };
-
-    // Update active team's repo if exists
-    const activeTeamId = getActiveTeamId();
-    if (activeTeamId) {
-      const teams = loadTeams();
-      const idx = teams.findIndex(t => t.id === activeTeamId);
-      if (idx !== -1) {
-        teams[idx].repo = repoInfo;
-        saveTeams(teams);
-      }
-    }
-
-    // Run main.py (Jason's Python analysis script)
-    const py = path.join(__dirname, "main.py");
-    const args = [py, "--repo-url", repoUrl];
-    
-    execFile("python3", args, { cwd: __dirname }, (err, stdout, stderr) => {
-      const mainPyResult = err
-        ? { status: "failed", message: stderr || err.message }
-        : { status: "ok", message: stdout || "main.py completed" };
-
-      return res.json({
-        repo: repoInfo,
-        mainPy: mainPyResult
-      });
-    });
-    return;
-  }
-
-  // Original file upload logic
-  if (!req.file) return res.status(400).json({ error: "No file or repo uploaded" });
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
   const registry = loadRegistry();
   const userGuess = req.body?.userType || null;
@@ -362,7 +196,6 @@ app.post("/api/uploads/confirm", (req, res) => {
   if (finalType === "sprint_report" && ext === ".docx") {
     const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
     const timestamp = Date.now();
-    const baseName = path.basename(absPath, ext);
     const outJson = path.join(DATA_DIR, `sprint_report_${timestamp}.json`);
     
     execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
@@ -417,9 +250,10 @@ app.post("/api/uploads/confirm", (req, res) => {
 // Serve uploaded files
 app.use("/uploads", express.static(UPLOAD_DIR));
 
+// Mount routers BEFORE any catch-all routes
 const teamsRouter = require("./routes/teams");
 const rulesRouter = require("./routes/rules");
-app.use("/api", teamsRouter);
+app.use("/api/teams", teamsRouter);
 app.use("/api/rules", rulesRouter);
 
 // Return parsed JSON for an upload

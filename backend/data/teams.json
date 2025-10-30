@@ -115,5 +115,45 @@
       "savedAt": "2025-10-29T08:00:15.106Z"
     },
     "createdAt": "2025-10-29T08:00:15.106Z"
+  },
+  {
+    "id": "team_1761789663190",
+    "name": "test",
+    "code": "test123",
+    "repo": {
+      "url": "https://github.com/gitconzo/contribution-capstone",
+      "owner": "gitconzo",
+      "repo": "contribution-capstone"
+    },
+    "students": [
+      {
+        "name": "connor lack",
+        "email": "test@gmail.com"
+      }
+    ],
+    "rules": null,
+    "createdAt": "2025-10-30T02:01:03.190Z"
+  },
+  {
+    "id": "team_1761790708969",
+    "name": "test1234",
+    "code": "COS300042",
+    "repo": {
+      "url": "https://github.com/gitconzo/contribution-capstone",
+      "owner": "gitconzo",
+      "repo": "contribution-capstone"
+    },
+    "students": [
+      {
+        "name": "Connor Lack",
+        "email": "lack@gmail.com"
+      },
+      {
+        "name": "jason vo",
+        "email": "jason@gmail.com"
+      }
+    ],
+    "rules": null,
+    "createdAt": "2025-10-30T02:18:28.969Z"
   }
 ]

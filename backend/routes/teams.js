@@ -2,26 +2,28 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-
 const router = express.Router();
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 const TEAMS_PATH = path.join(DATA_DIR, "teams.json");
-const ACTIVE_PATH = path.join(DATA_DIR, "activeTeam.json"); // may be string or {id: ...}
+const ACTIVE_PATH = path.join(DATA_DIR, "activeTeam.json");
 
 // Ensure data files exist
 function ensureFile(file, init) {
   if (!fs.existsSync(file)) fs.writeFileSync(file, JSON.stringify(init, null, 2));
 }
+
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 ensureFile(TEAMS_PATH, []);
-// If you already have an existing activeTeam file, leave it; otherwise create {id:null}
-if (!fs.existsSync(ACTIVE_PATH)) fs.writeFileSync(ACTIVE_PATH, JSON.stringify({ id: null }, null, 2));
+if (!fs.existsSync(ACTIVE_PATH)) {
+  fs.writeFileSync(ACTIVE_PATH, JSON.stringify({ id: null }, null, 2));
+}
 
 // Read helpers
 function readJson(p) {
   return JSON.parse(fs.readFileSync(p, "utf-8"));
 }
+
 function writeJson(p, v) {
   fs.writeFileSync(p, JSON.stringify(v, null, 2));
 }
@@ -59,42 +61,45 @@ router.get("/", (req, res) => {
 // GET /api/teams/active
 router.get("/active", (req, res) => {
   const id = readActiveId();
-  res.json({ id });
+  const teams = readJson(TEAMS_PATH);
+  const team = teams.find(t => t.id === id);
+  
+  if (!team) {
+    return res.json({ id: null });
+  }
+  
+  res.json(team);
 });
 
 // POST /api/teams/active  { id }
 router.post("/active", (req, res) => {
   const { id } = req.body || {};
   if (!id) return res.status(400).json({ error: "Missing id" });
-
+  
   const teams = readJson(TEAMS_PATH);
   const team = teams.find(t => t.id === id);
-  if (!teams.find(t => t.id === id)) {
+  
+  if (!team) {
     return res.status(404).json({ error: "Team not found" });
   }
+  
   writeActiveId(id);
-
-  if (team.repo?.url) {
-    const fetchScript = path.join(__dirname, "..", "fetchData.js");
-    const analyzeScript = path.join(__dirname, "..", "main.py");
-
-    // fetch commits
-    execFile("node", [fetchScript], { cwd: path.join(__dirname, "..") }, (err) => {
-      if (err) console.error("GitHub fetch failed:", err.message);
-      else {
-        // analyze repo once commits fetch
-        execFile("python3", [analyzeScript, "--repo-url", team.repo.url], {cwd: path.join(__dirname, "..") }, (err2) => {
-          if (err2) console.error("Python analysis failed:", err2.message);
-          else console.log(`Repo analysis complete for ${team.name}`)
-        });
-      }
-    });
-  }
-
-  res.json({ ok: true, id });
+  res.json({ success: true, id });
 });
 
-// POST /api/teams  -> create a team
+// GET /api/teams/:id
+router.get("/:id", (req, res) => {
+  const teams = readJson(TEAMS_PATH);
+  const team = teams.find(t => t.id === req.params.id);
+  
+  if (!team) {
+    return res.status(404).json({ error: "Team not found" });
+  }
+  
+  res.json(team);
+});
+
+// POST /api/teams -> create a team
 // Payload shape:
 // {
 //   "name": "Team Name",
@@ -104,12 +109,14 @@ router.post("/active", (req, res) => {
 // }
 router.post("/", (req, res) => {
   const { name, code, repo, students } = req.body || {};
+  
   if (!name || !code) {
     return res.status(400).json({ error: "Missing required fields: name, code" });
   }
+  
   const teams = readJson(TEAMS_PATH);
   const id = `team_${Date.now()}`;
-
+  
   const newTeam = {
     id,
     name,
@@ -119,13 +126,51 @@ router.post("/", (req, res) => {
     rules: null,
     createdAt: new Date().toISOString(),
   };
-
+  
   teams.push(newTeam);
   writeJson(TEAMS_PATH, teams);
-  // Make newly-created team active by default (optional)
+  
+  // Make newly-created team active by default
   writeActiveId(id);
-
+  
   res.status(201).json(newTeam);
+});
+
+// POST /api/teams/:id/rules
+router.post("/:id/rules", (req, res) => {
+  const id = req.params.id;
+  const teams = readJson(TEAMS_PATH);
+  const idx = teams.findIndex(t => t.id === id);
+  
+  if (idx === -1) {
+    return res.status(404).json({ error: "Team not found" });
+  }
+
+  const { rules, autoRecalc, crossVerify, triangulation, peerValidation } = req.body || {};
+  
+  teams[idx].rules = {
+    rules: Array.isArray(rules) ? rules : null,
+    autoRecalc: !!autoRecalc,
+    crossVerify: !!crossVerify,
+    triangulation: triangulation || { codeWorklog: 80, meetingDoc: 70, activityDist: 60 },
+    peerValidation: peerValidation || "Statistical analysis",
+    savedAt: new Date().toISOString()
+  };
+  
+  writeJson(TEAMS_PATH, teams);
+  res.json(teams[idx].rules);
+});
+
+// GET /api/teams/:id/rules
+router.get("/:id/rules", (req, res) => {
+  const teams = readJson(TEAMS_PATH);
+  const team = teams.find(t => t.id === req.params.id);
+  
+  if (!team) {
+    return res.status(404).json({ error: "Team not found" });
+  }
+  
+  res.json(team.rules || null);
 });
 
 module.exports = router;
