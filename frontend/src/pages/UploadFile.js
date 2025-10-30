@@ -16,6 +16,9 @@ export default function UploadFile() {
   const [files, setFiles] = useState([]);
   const [overrideType, setOverrideType] = useState("unknown");
   const [confirming, setConfirming] = useState(false);
+  const [repoUrl, setRepoUrl] = useState("");
+  const [msg, setMsg] = useState("");
+
 
   const API = "http://localhost:5002";
 
@@ -41,14 +44,47 @@ export default function UploadFile() {
   };
 
   const handleUpload = async () => {
+    setMsg("");
+    let owner = "";
+    let repo = "";
+
+    if (repoUrl) {
+    const parts = repoUrl.split("/").filter(Boolean);
+    owner = parts[parts.length - 2] || "";
+    repo = parts[parts.length - 1]?.replace(".git", "") || "";
+  }
+    
     if (!file) return;
     const formData = new FormData();
     formData.append("file", file);
     formData.append("userType", overrideType);
+    formData.append("repoUrl", repoUrl);
+    formData.append("owner", owner);
+    formData.append("repo", repo);
 
-    const res = await fetch(`${API}/api/uploads`, { method: "POST", body: formData });
+  try {
+    const res = await fetch(`${API}/api/uploads`, {
+      method: "POST",
+      body: formData,
+    });
+
     const json = await res.json();
+    if (!res.ok) {
+      setMsg(json.error || "Upload failed");
+      return;
+    }
     setUploadResult(json);
+
+    const parts = [];
+    if (json.originalName) parts.push(`Uploaded ${json.originalName}`);
+    if (json.repo?.url) parts.push(`Repo: ${json.repo.url}`);
+    if (json.mainPy?.status) parts.push(`main.py: ${json.mainPy.status}`);
+    setMsg(parts.join(" • "));
+
+    fetchFiles();
+  } catch (e) {
+    setMsg(`Upload error: ${e.message}`);
+  }
   };
 
   const handleConfirm = async () => {
@@ -71,7 +107,24 @@ export default function UploadFile() {
     <div style={styles.pageContainer}>
       <div style={styles.card}>
         <h1>Upload Documents</h1>
+        <div style={styles.card}>
+        <h1>Upload github repository</h1>
+        <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        <label htmlFor="repoUrl">GitHub repository link</label>
+        <input
+          id="repoUrl"
+          type="text"
+          placeholder="e.g. https://github.com/[user]/[repo_url]"
+          value={repoUrl}
+          onChange={(e) => setRepoUrl(e.target.value)}
+          style={{ padding: 8 }}
+        />
+      </div>
 
+  {msg && <div style={{ marginTop: 12 }}>{msg}</div>}
+
+
+      </div>
         <label style={styles.label}>Select Document Type</label>
         <select value={overrideType} onChange={e => setOverrideType(e.target.value)} style={styles.select}>
           {TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}

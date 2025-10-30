@@ -1,5 +1,11 @@
+// fetchData.js
 const fs = require("fs");
 const path = require("path");
+
+// ✅ Add optional fetch polyfill for Node < 18
+if (typeof fetch === "undefined") {
+  global.fetch = (...args) => import("node-fetch").then(({default: f}) => f(...args));
+}
 
 const GROUP_ID   = process.env.GROUP_ID || null;
 const GROUPS_DIR = process.env.GROUPS_DIR || null;
@@ -20,16 +26,46 @@ function ensureDirForFile(p) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+function parseOwnerRepoFromUrl(raw) {
+  if (!raw) return { owner: "", repo: "" };
+  try {
+    if (!raw.includes("://") && raw.split("/").length === 2) {
+      const [o, r] = raw.split("/");
+      return { owner: o, repo: r.replace(/\.git$/i, "") };
+    }
+    const u = new URL(raw);
+    const parts = u.pathname.split("/").filter(Boolean);
+    return { owner: parts[0] || "", repo: (parts[1] || "").replace(/\.git$/i, "") };
+  } catch {
+    return { owner: "", repo: "" };
+  }
+}
+
+// ✅ NEW: env-first source of truth; fallback to repo.json
 function readRepoInfo() {
+  const envUrl   = (process.env.REPO_URL   || "").trim();
+  const envOwner = (process.env.REPO_OWNER || "").trim();
+  const envRepo  = (process.env.REPO_NAME  || "").trim();
+
+  if (envUrl || (envOwner && envRepo)) {
+    const parsed = parseOwnerRepoFromUrl(envUrl);
+    const owner = envOwner || parsed.owner;
+    const repo  = envRepo  || parsed.repo;
+    if (!owner || !repo) {
+      throw new Error(`Invalid env repo info. Got owner="${owner}" repo="${repo}" from REPO_URL="${envUrl}"`);
+    }
+    return { url: envUrl || `https://github.com/${owner}/${repo}`, owner, repo };
+  }
+
+  // fallback to repo.json
   if (!fs.existsSync(repoPath)) {
-    throw new Error(`Repo info not found at ${repoPath}. Save a repository for this group first.`);
+    throw new Error(`Repo info not found at ${repoPath}. Save a repository first.`);
   }
   const r = JSON.parse(fs.readFileSync(repoPath, "utf-8"));
-  // support formats: {url, owner, repo}
   if ((!r.owner || !r.repo) && r.url) {
-    const parts = r.url.split("/").filter(Boolean);
-    r.owner = r.owner || parts[parts.length - 2];
-    r.repo  = r.repo  || (parts[parts.length - 1] || "").replace(".git", "");
+    const parsed = parseOwnerRepoFromUrl(r.url);
+    r.owner = r.owner || parsed.owner;
+    r.repo  = r.repo  || parsed.repo;
   }
   if (!r.owner || !r.repo) {
     throw new Error(`Invalid repo info: requires owner/repo. Got: ${JSON.stringify(r)}`);
@@ -54,7 +90,6 @@ async function ghFetch(url, token, init = {}) {
 }
 
 async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
-  // Page through the list (summaries), then fetch details (stats) for first N
   const base = `https://api.github.com/repos/${owner}/${repo}`;
   let page = 1;
   const per_page = 100;
@@ -68,10 +103,9 @@ async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
     summaries.push(...batch);
     if (batch.length < per_page) break;
     page += 1;
-    if (page > 10) break; // hard stop to avoid excessive pagination (1000 commits)
+    if (page > 10) break; // cap ~1000 commits
   }
 
-  // Fetch detailed stats for first N commits to match {stats:{additions,deletions}}
   const detailed = [];
   const limit = Math.min(summaries.length, maxDetailed);
   for (let i = 0; i < limit; i++) {
@@ -81,17 +115,15 @@ async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
       const r = await ghFetch(url, token);
       const j = await r.json();
       detailed.push({
-        sha: sha,
+        sha,
         author: (j.commit && j.commit.author && j.commit.author.name) || (j.author && j.author.login) || "Unknown",
         stats: j.stats || { additions: 0, deletions: 0 }
       });
-    } catch (e) {
-      // fall back with minimal info
+    } catch {
       detailed.push({ sha, author: "Unknown", stats: { additions: 0, deletions: 0 } });
     }
   }
 
-  // If there are more summaries than detailed, append stubs so counts still reflect activity
   for (let i = maxDetailed; i < summaries.length; i++) {
     const s = summaries[i];
     detailed.push({
@@ -108,7 +140,6 @@ async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
   try {
     const { owner, repo } = readRepoInfo();
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
-
     const commits = await fetchAllCommits(owner, repo, token, 200);
     ensureDirForFile(commitsOutPath);
     fs.writeFileSync(commitsOutPath, JSON.stringify(commits, null, 2));
