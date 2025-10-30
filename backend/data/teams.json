@@ -5,8 +5,7 @@
     "code": "COS40005",
     "repo": {
       "url": "https://github.com/gitconzo/contribution-capstone",
-      "owner": "gitconzo",
-      "repo": "contribution-capstone"
+      "savedAt": "2025-10-30T00:57:05.050Z"
     },
     "students": [
       {
@@ -95,7 +94,7 @@
         },
         {
           "name": "Word Count",
-          "value": 10,
+          "value": 14,
           "desc": "Word Count"
         },
         {
@@ -111,8 +110,7 @@
         "meetingDoc": 70,
         "activityDist": 60
       },
-      "peerValidation": "Statistical analysis",
-      "savedAt": "2025-10-29T08:00:15.106Z"
+      "peerValidation": "Statistical analysis"
     },
     "createdAt": "2025-10-29T08:00:15.106Z"
   }

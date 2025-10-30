@@ -40,10 +40,8 @@ export default function Dashboard({ onViewStudent }) {
   const kpis = useMemo(() => {
     const list = scores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
-    
     const avg = Math.round((list.reduce((s, r) => s + (r.score || 0), 0) / list.length) * 10) / 10;
     const high = `${list.filter(r => r.score >= 80).length}/${list.length}`;
-    
     return { avg, high, commits: 0 };
   }, [scores]);
 
@@ -139,41 +137,62 @@ export default function Dashboard({ onViewStudent }) {
         {students.map((s) => {
           const breakdown = s.breakdown || {};
           const raw = s.raw || {};
-          
-          // Get weights from scores response (dynamic from RuleSettings)
+
+          // ---------- DOC SCORE ----------
           const weights = scores?.weights || {};
-          
-          // Calculate weighted doc score using the rule weights
-          // Fallback to default weights if not loaded
           const docWeights = {
             avgSentenceLength: weights.avgSentenceLength ?? 5,
             sentenceComplexity: weights.sentenceComplexity ?? 5,
             wordCount: weights.wordCount ?? 7,
             readability: weights.readability ?? 11
           };
-          
           const docMetrics = {
-            avgSentenceLength: breakdown.avgSentenceLength || 0,
-            sentenceComplexity: breakdown.sentenceComplexity || 0,
-            wordCount: breakdown.wordCount || 0,
-            readability: breakdown.readability || 0
+            avgSentenceLength: toPct(breakdown.avgSentenceLength),
+            sentenceComplexity: toPct(breakdown.sentenceComplexity),
+            wordCount: toPct(breakdown.wordCount),
+            readability: toPct(breakdown.readability)
           };
-          
           const totalDocWeight = Object.values(docWeights).reduce((sum, w) => sum + w, 0);
           const weightedDocScore = totalDocWeight > 0
-            ? Object.entries(docMetrics).reduce((sum, [key, value]) => {
-                return sum + (value * docWeights[key]);
-              }, 0) / totalDocWeight
+            ? Object.entries(docMetrics).reduce((sum, [key, value]) => sum + (value * docWeights[key]), 0) / totalDocWeight
             : 0;
-          
-          const docScore = Math.round(weightedDocScore * 100);
-          
-          // Word count from raw data
+          const docScore = Math.round(weightedDocScore);
+
+          // ---------- CODE SCORE (complexity kept "as is") ----------
+          const codeWeights = {
+            totalLOC: weights.totalLOC ?? 12,
+            totalEditedCode: weights.totalEditedCode ?? 10,
+            totalCommits: weights.totalCommits ?? 7,
+            totalFunctionsWritten: weights.totalFunctionsWritten ?? 12,
+            totalHotspotContributed: weights.totalHotspotContributed ?? 10,
+            codeComplexity: weights.codeComplexity ?? 9
+          };
+
+          const get = (...ks) => getFirst(breakdown, raw, ...ks);
+
+          const locPct        = toPct(get("percentage_of_LOC", "pctLOC", "percentageOfLOC", "locPct"));
+          const editsPct      = toPct(get("edit_percentage", "edits_percentage", "percentage_of_edits", "editsPct"));
+          const commitsPct    = toPct(get("commit_percentage", "commits_percentage", "percentage_of_commits", "commitPct"));
+          const funcsPct      = toPct(get("percentage_of_functions_written", "functionsPct", "percentageOfFunctions"));
+          const hotspotsPct   = toPct(get("percentage_of_hotspots", "hotspotsPct", "percentageOfHotspots"));
+          const avgComplexity = num(get("average_complexity", "avgComplexity", "complexity"));
+          const complexityPct = complexityAsIsToPct(avgComplexity);
+
+          const codeTotalWeight = Object.values(codeWeights).reduce((a, b) => a + b, 0);
+          const codeWeighted =
+            (locPct * codeWeights.totalLOC) +
+            (editsPct * codeWeights.totalEditedCode) +
+            (commitsPct * codeWeights.totalCommits) +
+            (funcsPct * codeWeights.totalFunctionsWritten) +
+            (hotspotsPct * codeWeights.totalHotspotContributed) +
+            (complexityPct * codeWeights.codeComplexity);
+
+          const codeScore = codeTotalWeight > 0 ? Math.round(codeWeighted / codeTotalWeight) : 0;
+
+          // ---------- OTHER ----------
           const wordCount = raw.wordCount || 0;
-          
-          // Attendance percentage - use the pre-calculated percentage from AttendanceSummary
           const attendance = Math.round((raw.attendance || 0) * 100);
-          
+
           return (
             <div key={s.email || s.name} style={rowCard()}>
               <div>
@@ -184,7 +203,7 @@ export default function Dashboard({ onViewStudent }) {
                 <div style={{ color: "#64748b", fontSize: 13 }}>{s.email}</div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 10, fontSize: 13 }}>
-                  <Metric label="Code Score" value="—" />
+                  <Metric label="Code Score" value={codeScore > 0 ? `${codeScore}%` : '—'} />
                   <Metric label="Doc Score" value={docScore > 0 ? `${docScore}%` : '—'} />
                   <Metric label="Word Count" value={wordCount > 0 ? wordCount : '—'} />
                   <Metric label="Attendance" value={attendance > 0 ? `${attendance}%` : '—'} />
@@ -209,6 +228,30 @@ export default function Dashboard({ onViewStudent }) {
   );
 }
 
+/* ---------- helpers ---------- */
+function getFirst(...args) {
+  const [objA, objB, ...keys] = args;
+  for (const k of keys) {
+    if (objA && objA[k] != null) return objA[k];
+    if (objB && objB[k] != null) return objB[k];
+  }
+  return 0;
+}
+function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+function toPct(v) {
+  const n = num(v);
+  if (n <= 1 && n >= 0) return Math.round(n * 100);
+  if (n > 1 && n <= 100) return Math.round(n);
+  return 0;
+}
+function complexityAsIsToPct(avgComplexity) {
+  const ceiling = 10; // adjust to your repo norms
+  const ratio = clamp01(num(avgComplexity) / ceiling);
+  return Math.round(ratio * 100);
+}
+
+/* ---------- UI components ---------- */
 function KpiCard({ title, icon, children }) {
   return (
     <div style={card()}>
@@ -219,7 +262,6 @@ function KpiCard({ title, icon, children }) {
     </div>
   );
 }
-
 function Progress({ value }) {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
   return (
@@ -230,7 +272,6 @@ function Progress({ value }) {
     </div>
   );
 }
-
 function Metric({ label, value }) {
   return (
     <div>
@@ -239,7 +280,6 @@ function Metric({ label, value }) {
     </div>
   );
 }
-
 function Badge({ level }) {
   const base = { fontSize: 11, padding: "2px 8px", borderRadius: 999, border: "1px solid" };
   if (level === "high") return (
@@ -258,13 +298,11 @@ function Badge({ level }) {
     </span>
   );
 }
-
 function badgeFromScore(s = 0) {
   if (s >= 80) return "high";
   if (s >= 60) return "medium";
   return "low";
 }
-
 function scoreColor(s = 0) {
   if (s >= 90) return "#16a34a";
   if (s >= 80) return "#22c55e";
@@ -273,7 +311,6 @@ function scoreColor(s = 0) {
   if (s >= 50) return "#ea580c";
   return "#dc2626";
 }
-
 function card(extra = {}) {
   return {
     background: "#fff",
@@ -284,7 +321,6 @@ function card(extra = {}) {
     ...extra
   };
 }
-
 function rowCard() {
   return {
     ...card(),
@@ -294,7 +330,6 @@ function rowCard() {
     alignItems: "center"
   };
 }
-
 function inputBox() {
   return {
     padding: "8px 12px",
@@ -305,11 +340,7 @@ function inputBox() {
     minWidth: 240
   };
 }
-
-function selectBox() {
-  return { ...inputBox(), minWidth: 300 };
-}
-
+function selectBox() { return { ...inputBox(), minWidth: 300 }; }
 function linkBtn() {
   return {
     border: "1px solid #e5e7eb",
@@ -320,7 +351,6 @@ function linkBtn() {
     cursor: "pointer"
   };
 }
-
 function rowBetween(extra = {}) {
   return {
     display: "flex",

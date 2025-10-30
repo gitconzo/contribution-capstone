@@ -1,25 +1,19 @@
 {
   "repo": "https://github.com/gitconzo/contribution-capstone",
   "authors": {
-    "urjenz": {
-      "average_complexity": 3.058,
-      "percentage_of_functions_written": 88.38,
-      "percentage_of_hotspots": 88.27
-    },
     "gitconzo": {
-      "average_complexity": 2.883,
-      "percentage_of_functions_written": 11.56,
-      "percentage_of_hotspots": 11.64
+      "average_complexity": 3.425,
+      "percentage_of_functions_written": 91.39,
+      "percentage_of_hotspots": 88.39
     },
     "jasonv47": {
       "average_complexity": 2.627,
-      "percentage_of_functions_written": 0.06,
-      "percentage_of_hotspots": 0.09
+      "percentage_of_functions_written": 8.61,
+      "percentage_of_hotspots": 11.61
     }
   },
   "%LOC": {
-    "gitconzo": 31.46,
-    "urjenz": 68.48,
-    "jasonv47": 0.06
+    "gitconzo": 92.03,
+    "jasonv47": 7.97
   }
 }

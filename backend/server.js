@@ -7,6 +7,11 @@ const multer = require("multer");
 const { execFile } = require("child_process");
 const { aggregateTeamScores } = require("./services/aggregator");
 const { combineDocumentationMetrics } = require("./services/combineDocumentationMetrics");
+const PY = (() => {
+  if (process.platform === "win32") return "py"; // Windows launcher
+  return "python3"; // macOS/Linux
+})();
+
 
 const app = express();
 const PORT = 5002;
@@ -242,40 +247,37 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
   const repo = (req.body?.repo || "").trim();
 
   // NEW: Handle repo URL submission (Jason's feature)
-  if (repoUrl && !req.file) {
-    const repoInfo = { 
-      url: repoUrl, 
-      ...(owner && repo ? { owner, repo } : {}), 
-      savedAt: new Date().toISOString() 
-    };
+   if (repoUrl && !req.file) {
+  const repoInfo = { url: repoUrl, ...(owner && repo ? { owner, repo } : {}), savedAt: new Date().toISOString() };
 
-    // Update active team's repo if exists
-    const activeTeamId = getActiveTeamId();
-    if (activeTeamId) {
-      const teams = loadTeams();
-      const idx = teams.findIndex(t => t.id === activeTeamId);
-      if (idx !== -1) {
-        teams[idx].repo = repoInfo;
-        saveTeams(teams);
-      }
+  // Save to active team (optional)
+  const activeTeamId = getActiveTeamId();
+  if (activeTeamId) {
+    const teams = loadTeams();
+    const idx = teams.findIndex(t => t.id === activeTeamId);
+    if (idx !== -1) {
+      teams[idx].repo = repoInfo;
+      saveTeams(teams);
     }
-
-    // Run main.py (Jason's Python analysis script)
-    const py = path.join(__dirname, "main.py");
-    const args = [py, "--repo-url", repoUrl];
-    
-    execFile("python3", args, { cwd: __dirname }, (err, stdout, stderr) => {
-      const mainPyResult = err
-        ? { status: "failed", message: stderr || err.message }
-        : { status: "ok", message: stdout || "main.py completed" };
-
-      return res.json({
-        repo: repoInfo,
-        mainPy: mainPyResult
-      });
-    });
-    return;
   }
+
+  // Also save legacy data/repo.json for fetchData.js
+  const repoJsonPath = path.join(DATA_DIR, "repo.json");
+  try { fs.writeFileSync(repoJsonPath, JSON.stringify(repoInfo, null, 2)); } catch {}
+
+  // Run main.py
+  const py = path.join(__dirname, "main.py");
+  const args = [py, "--repo-url", repoUrl];
+
+  execFile(PY, args, { cwd: __dirname, maxBuffer: 1024 * 1024 * 20 }, (err, stdout, stderr) => {
+    const mainPyResult = err
+      ? { status: "failed", message: (stderr || err.message || "").toString() }
+      : { status: "ok", message: (stdout || "main.py completed").toString() };
+
+    return res.json({ repo: repoInfo, mainPy: mainPyResult });
+  });
+  return;
+}
 
   // Original file upload logic
   if (!req.file) return res.status(400).json({ error: "No file or repo uploaded" });
@@ -328,7 +330,7 @@ app.post("/api/uploads/confirm", (req, res) => {
   if (finalType === "attendance" && (ext === ".xlsx" || ext === ".xls")) {
     const py = path.join(__dirname, "parsers", "attendance.py");
     const outJson = path.join(DATA_DIR, "attendance.json");
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(PY, [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Attendance parse failed: ${stderr || err.message}` };
@@ -345,7 +347,7 @@ app.post("/api/uploads/confirm", (req, res) => {
   if (finalType === "worklog" && (ext === ".docx" || ext === ".pdf")) {
     const py = path.join(__dirname, "parsers", "worklog_parser.py");
     const outJson = path.join(DATA_DIR, "worklog.json");
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(PY, [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Worklog parse failed: ${stderr || err.message}` };
@@ -365,7 +367,7 @@ app.post("/api/uploads/confirm", (req, res) => {
     const baseName = path.basename(absPath, ext);
     const outJson = path.join(DATA_DIR, `sprint_report_${timestamp}.json`);
     
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(PY, [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
@@ -390,7 +392,7 @@ app.post("/api/uploads/confirm", (req, res) => {
     const timestamp = Date.now();
     const outJson = path.join(DATA_DIR, `project_plan_${timestamp}.json`);
     
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(PY, [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };

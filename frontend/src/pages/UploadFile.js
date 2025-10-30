@@ -17,6 +17,11 @@ export default function UploadFile() {
   const [overrideType, setOverrideType] = useState("unknown");
   const [confirming, setConfirming] = useState(false);
 
+  // NEW: repo url state + result
+  const [repoUrl, setRepoUrl] = useState("");
+  const [repoBusy, setRepoBusy] = useState(false);
+  const [repoResult, setRepoResult] = useState(null);
+
   const API = "http://localhost:5002";
 
   const detectedType = uploadResult?.detectedType || "unknown";
@@ -67,8 +72,72 @@ export default function UploadFile() {
     fetchFiles();
   };
 
+  // NEW: Submit repo URL (runs backend main.py)
+  const handleRepoAnalyze = async () => {
+  const url = repoUrl.trim();
+  if (!url) return;
+  setRepoBusy(true);
+  setRepoResult(null);
+  try {
+    const fd = new FormData();
+    fd.append("repoUrl", url);        // <-- text field, not a file
+
+    const res = await fetch(`${API}/api/uploads`, {
+      method: "POST",
+      body: fd,                       // <-- no headers => no preflight
+    });
+
+    // If server crashed, this can still throw here:
+    const json = await res.json();
+    setRepoResult(json);
+  } catch (e) {
+    setRepoResult({ error: e.message || "Failed to analyze repo." });
+  } finally {
+    setRepoBusy(false);
+  }
+};
+
   return (
     <div style={styles.pageContainer}>
+      {/* --- New Analyze GitHub Repo Card --- */}
+      <div style={styles.card}>
+        <h1>Analyze GitHub Repo</h1>
+        <label style={styles.label}>Paste Repo URL (e.g., https://github.com/owner/repo)</label>
+        <input
+          type="text"
+          placeholder="https://github.com/owner/repo"
+          value={repoUrl}
+          onChange={(e) => setRepoUrl(e.target.value)}
+          style={styles.textInput}
+        />
+        <button onClick={handleRepoAnalyze} disabled={!repoUrl.trim() || repoBusy} style={styles.uploadBtn}>
+          {repoBusy ? "Analyzing..." : "Analyze Repo"}
+        </button>
+
+        {repoResult && (
+          <div style={styles.confirmBox}>
+            <div><b>Repo:</b> {repoResult?.repo?.url || repoResult?.repoUrl || "—"}</div>
+            {repoResult?.mainPy ? (
+              <>
+                <div><b>main.py status:</b> {repoResult.mainPy.status}</div>
+                <pre style={styles.pre}>
+{(repoResult.mainPy.message || "").slice(0, 4000)}
+{(repoResult.mainPy.message || "").length > 4000 ? "\n...truncated..." : ""}
+                </pre>
+              </>
+            ) : repoResult?.error ? (
+              <div style={{ color: "red" }}>Error: {repoResult.error}</div>
+            ) : (
+              <div>Submitted.</div>
+            )}
+            <small>
+              Outputs: <code>/backend/data/output.json</code>, <code>/backend/data/finalStats.json</code>, <code>/backend/data/commits.json</code>
+            </small>
+          </div>
+        )}
+      </div>
+
+      {/* --- Existing Upload Documents Card --- */}
       <div style={styles.card}>
         <h1>Upload Documents</h1>
 
@@ -160,6 +229,9 @@ const styles = {
   uploadBox: {
     border: "2px dashed #ccc", padding: "15px", textAlign: "center", marginTop: "10px"
   },
+  textInput: {
+    width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", marginTop: "8px"
+  },
   filePreview: {
     marginTop: "10px", padding: "10px", background: "#f4f4f4",
     borderRadius: "8px", display: "flex", justifyContent: "space-between"
@@ -185,5 +257,8 @@ const styles = {
     background: "black", color: "white", padding: "8px 14px",
     borderRadius: "6px", textDecoration: "none", cursor: "pointer", fontWeight: "bold",
     display: "inline-block"
+  },
+  pre: {
+    marginTop: 8, padding: 10, background: "#eee", borderRadius: 6, maxHeight: 240, overflow: "auto"
   }
 };
