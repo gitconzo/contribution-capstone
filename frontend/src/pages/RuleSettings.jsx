@@ -1,36 +1,77 @@
-// frontend/src/pages/RuleSettings.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 
 const API = "http://localhost:5002";
 
-// Single source of truth for defaults (matches backend DEFAULT_RULES)
+// Enhanced descriptions for each metric
+const METRIC_DESCRIPTIONS = {
+  "Total Lines of Code": {
+    short: "Percentage of code written in code base",
+    detailed: "Measures the total lines of code (LOC) contributed by each student as a percentage of the entire codebase. This includes all additions to the repository, reflecting the volume of code work contributed."
+  },
+  "Total Edited Code": {
+    short: "Percentage of total edited code (additions and deletions)",
+    detailed: "Combines both code additions and deletions to measure overall code activity. This metric captures refactoring, bug fixes, and improvements, providing a more complete picture of code contribution beyond just new lines."
+  },
+  "Total Commits": {
+    short: "Percentage of commits made",
+    detailed: "Tracks the number of commits made by each student as a percentage of total team commits. Regular commits indicate consistent engagement with the project and good version control practices."
+  },
+  "Total Functions Written": {
+    short: "Percentage of functions written in codebase",
+    detailed: "Measures how many complete functions or methods each student has authored. This metric better captures structural contributions than raw line counts, as it focuses on discrete, functional units of code."
+  },
+  "Total Hotspot Contributed": {
+    short: "Percentage of hotspots written in codebase",
+    detailed: "Identifies complex, high-maintenance code sections ('hotspots') above average cyclomatic complexity. Students who work on hotspots are tackling challenging, critical parts of the codebase that require deeper understanding."
+  },
+  "Code Complexity": {
+    short: "Average code complexity",
+    detailed: "Measures the average cyclomatic complexity of contributed code, indicating how intricate and sophisticated the code is. Higher complexity may show advanced problem-solving but could also indicate code that needs refactoring."
+  },
+  "Average Sentence Length": {
+    short: "Average sentence length in documentation",
+    detailed: "Analyzes documentation writing style by measuring average sentence length. Moderate sentence lengths (15-20 words) typically indicate clear, professional technical writing."
+  },
+  "Sentence Complexity": {
+    short: "Complexity of written sentences",
+    detailed: "Measures grammatical complexity using subordinate clauses and embedded structures. Higher values indicate more sophisticated writing, though simpler structures often communicate more effectively in technical contexts."
+  },
+  "Word Count": {
+    short: "Total words contributed in documentation",
+    detailed: "Tracks the total volume of documentation written, including sprint reports, project plans, and other written deliverables. This measures the extent of written contribution to the project."
+  },
+  "Readability": {
+    short: "Flesch reading ease score",
+    detailed: "Uses the Flesch Reading Ease formula to assess how easy documentation is to understand (higher = easier). Scores of 60-70 are ideal for technical documentation, balancing accessibility with precision."
+  }
+};
+
 const DEFAULT_RULES = {
   rules: [
-    { name: "Total Lines of Code", value: 12, desc: "Percentage of code written in code base" },
-    { name: "Total Edited Code", value: 10, desc: "Percentage of total edited code (additions and deletions)" },
-    { name: "Total Commits", value: 7, desc: "Percentage of commits made" },
-    { name: "Total Functions Written", value: 12, desc: "Percentage of functions written in codebase" },
-    { name: "Total Hotspot Contributed", value: 10, desc: "Percentage of hotspots written in codebase (hotspots = above average function complexity)" },
-    { name: "Code Complexity", value: 9, desc: "Average code complexity" },
-    { name: "Average Sentence Length", value: 5, desc: "Average sentence length" },
-    { name: "Sentence Complexity", value: 5, desc: "Sentence complexity" },
-    { name: "Word Count", value: 7, desc: "Word Count" },
-    { name: "Readability", value: 11, desc: "Readability" },
+    { name: "Total Lines of Code", value: 12, desc: METRIC_DESCRIPTIONS["Total Lines of Code"].short },
+    { name: "Total Edited Code", value: 10, desc: METRIC_DESCRIPTIONS["Total Edited Code"].short },
+    { name: "Total Commits", value: 7, desc: METRIC_DESCRIPTIONS["Total Commits"].short },
+    { name: "Total Functions Written", value: 12, desc: METRIC_DESCRIPTIONS["Total Functions Written"].short },
+    { name: "Total Hotspot Contributed", value: 10, desc: METRIC_DESCRIPTIONS["Total Hotspot Contributed"].short },
+    { name: "Code Complexity", value: 9, desc: METRIC_DESCRIPTIONS["Code Complexity"].short },
+    { name: "Average Sentence Length", value: 5, desc: METRIC_DESCRIPTIONS["Average Sentence Length"].short },
+    { name: "Sentence Complexity", value: 5, desc: METRIC_DESCRIPTIONS["Sentence Complexity"].short },
+    { name: "Word Count", value: 7, desc: METRIC_DESCRIPTIONS["Word Count"].short },
+    { name: "Readability", value: 11, desc: METRIC_DESCRIPTIONS["Readability"].short },
   ],
   autoRecalc: true,
   crossVerify: true,
-  triangulation: { codeWorklog: 80, meetingDoc: 70, activityDist: 60 },
-  peerValidation: "Statistical analysis",
 };
 
 export default function RuleSettings() {
-  // Entire rules payload lives here; initialize as null to show loader → always render with effectiveRules
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [scores, setScores] = useState(null);
+  const [loadingScores, setLoadingScores] = useState(false);
+  const [expandedMetric, setExpandedMetric] = useState(null);
 
-  // derive effective (never null)
   const effectiveRules = payload ?? DEFAULT_RULES;
 
   const totalWeight = useMemo(
@@ -42,7 +83,6 @@ export default function RuleSettings() {
     try {
       setLoading(true);
       setError("");
-      // GET /api/rules returns: { teamId, rules, autoRecalc, crossVerify, triangulation, peerValidation }
       const res = await fetch(`${API}/api/rules`);
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -50,30 +90,40 @@ export default function RuleSettings() {
       }
       const data = await res.json();
 
-      // Normalize shape defensively
       const normalized = {
         rules: Array.isArray(data.rules) ? data.rules : DEFAULT_RULES.rules,
-        autoRecalc:
-          typeof data.autoRecalc === "boolean" ? data.autoRecalc : DEFAULT_RULES.autoRecalc,
-        crossVerify:
-          typeof data.crossVerify === "boolean" ? data.crossVerify : DEFAULT_RULES.crossVerify,
-        triangulation: data.triangulation || DEFAULT_RULES.triangulation,
-        peerValidation: data.peerValidation || DEFAULT_RULES.peerValidation,
+        autoRecalc: typeof data.autoRecalc === "boolean" ? data.autoRecalc : DEFAULT_RULES.autoRecalc,
+        crossVerify: typeof data.crossVerify === "boolean" ? data.crossVerify : DEFAULT_RULES.crossVerify,
         teamId: data.teamId || null,
       };
       setPayload(normalized);
     } catch (e) {
       setError(e.message || "Unable to load rules");
-      // Still show defaults so UI is usable
       setPayload(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const fetchScores = useCallback(async () => {
+    try {
+      setLoadingScores(true);
+      const res = await fetch(`${API}/api/scores`);
+      if (!res.ok) throw new Error("Failed to fetch scores");
+      const data = await res.json();
+      setScores(data);
+    } catch (e) {
+      console.error("Failed to load scores:", e);
+      setScores(null);
+    } finally {
+      setLoadingScores(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchRules();
-  }, [fetchRules]);
+    fetchScores();
+  }, [fetchRules, fetchScores]);
 
   const setRulesField = (updater) => {
     setPayload((prev) => {
@@ -90,9 +140,6 @@ export default function RuleSettings() {
         rules: effectiveRules.rules,
         autoRecalc: effectiveRules.autoRecalc,
         crossVerify: effectiveRules.crossVerify,
-        triangulation: effectiveRules.triangulation,
-        peerValidation: effectiveRules.peerValidation,
-        // teamId can be omitted to target the active team per backend contract
       };
       const res = await fetch(`${API}/api/rules`, {
         method: "POST",
@@ -104,16 +151,17 @@ export default function RuleSettings() {
         throw new Error(j.error || `Save failed (${res.status})`);
       }
       const saved = await res.json();
-      // Mirror back what server persisted (defensive)
       setPayload((prev) => ({
         ...(prev ?? {}),
-        ...(saved.rules ? saved : { ...prev }), // backend returns { ok, teamId, rules }
         rules: saved.rules?.rules ?? body.rules,
         autoRecalc: saved.rules?.autoRecalc ?? body.autoRecalc,
         crossVerify: saved.rules?.crossVerify ?? body.crossVerify,
-        triangulation: saved.rules?.triangulation ?? body.triangulation,
-        peerValidation: saved.rules?.peerValidation ?? body.peerValidation,
       }));
+      
+      if (effectiveRules.autoRecalc) {
+        await fetchScores();
+      }
+      
       alert("Settings saved successfully!");
     } catch (e) {
       setError(e.message || "Failed to save settings");
@@ -123,14 +171,30 @@ export default function RuleSettings() {
     }
   };
 
-  // Local "team preview" data left as-is but guarded
-  const teamPreview = [
-    { name: "Jason Vo", tag: "High Performer", tagClass: "high", score: 94, change: "+2%", plus: true },
-    { name: "Jen Mao", tag: "High Performer", tagClass: "high", score: 92, change: "+1%", plus: true },
-    { name: "Connor Lack", tag: "High Performer", tagClass: "high", score: 89, change: "+3%", plus: true },
-    { name: "Kavindu Bhanuka Weragoda", tag: "Medium Performer", tagClass: "medium", score: 73, change: "-1%", plus: false },
-    { name: "Md Hriday Mia", tag: "Low Performer", tagClass: "low", score: 42, change: "-5%", plus: false },
-  ];
+  const teamPreview = useMemo(() => {
+    if (!scores?.ranking) return [];
+    
+    return scores.ranking.map(student => {
+      const score = Math.round(student.score || 0);
+      let tag = "Low Performer";
+      let tagClass = "low";
+      
+      if (score >= 80) {
+        tag = "High Performer";
+        tagClass = "high";
+      } else if (score >= 60) {
+        tag = "Medium Performer";
+        tagClass = "medium";
+      }
+      
+      return {
+        name: student.name,
+        tag,
+        tagClass,
+        score,
+      };
+    }).sort((a, b) => b.score - a.score);
+  }, [scores]);
 
   return (
     <>
@@ -141,7 +205,7 @@ export default function RuleSettings() {
             <button className="btn-black" onClick={fetchRules} disabled={loading}>
               {loading ? "Loading..." : "Reload"}
             </button>
-            <button className="btn-black" onClick={saveSettings} disabled={saving || loading}>
+            <button className="btn-black" onClick={saveSettings} disabled={saving || loading || totalWeight !== 100}>
               {saving ? "Saving..." : "Save Settings"}
             </button>
           </div>
@@ -153,43 +217,79 @@ export default function RuleSettings() {
           </div>
         )}
 
-        {/* Assessment Rule Weights */}
+        {totalWeight !== 100 && (
+          <div style={{ background: "#fef3c7", color: "#92400e", padding: 10, borderRadius: 8, marginBottom: 16 }}>
+            ⚠️ Total weight must equal 100% before saving. Current: {totalWeight}%
+          </div>
+        )}
+
         <div className="card">
           <h2 className="section-title">Assessment Rule Weights</h2>
           <p className="section-desc">
-            Adjust the importance of each contribution metric. Total must equal 100%.
+            Adjust the importance of each contribution metric. Total must equal 100%. Click on any metric for a detailed explanation.
           </p>
 
-          {(effectiveRules.rules || []).map((r, i) => (
-            <div key={`${r.name}-${i}`} className="range-group">
-              <div className="range-header">
-                <span>{r.name}</span>
-                <span>{r.value}%</span>
+          {(effectiveRules.rules || []).map((r, i) => {
+            const isExpanded = expandedMetric === r.name;
+            const description = METRIC_DESCRIPTIONS[r.name];
+            
+            return (
+              <div key={`${r.name}-${i}`} className="range-group">
+                <div 
+                  className="range-header clickable"
+                  onClick={() => setExpandedMetric(isExpanded ? null : r.name)}
+                  style={{ cursor: "pointer", userSelect: "none" }}
+                >
+                  <span>
+                    {r.name} 
+                    <span style={{ marginLeft: 8, color: "#9ca3af", fontSize: "0.9em" }}>
+                      {isExpanded ? "▼" : "▶"}
+                    </span>
+                  </span>
+                  <span>{r.value}%</span>
+                </div>
+                
+                {isExpanded && description && (
+                  <div style={{ 
+                    background: "#f9fafb", 
+                    padding: "12px", 
+                    borderRadius: "6px", 
+                    marginBottom: "8px",
+                    fontSize: "0.85rem",
+                    color: "#374151",
+                    lineHeight: "1.6"
+                  }}>
+                    {description.detailed}
+                  </div>
+                )}
+                
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  value={r.value}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10) || 0;
+                    setRulesField((cur) => {
+                      const next = { ...cur, rules: [...(cur.rules || [])] };
+                      next.rules[i] = { ...next.rules[i], value: val };
+                      return next;
+                    });
+                  }}
+                />
+                
+                {!isExpanded && (
+                  <p className="range-desc">{description ? description.short : r.desc}</p>
+                )}
               </div>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                value={r.value}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10) || 0;
-                  setRulesField((cur) => {
-                    const next = { ...cur, rules: [...(cur.rules || [])] };
-                    next.rules[i] = { ...next.rules[i], value: val };
-                    return next;
-                  });
-                }}
-              />
-              <p className="range-desc">{r.desc}</p>
-            </div>
-          ))}
+            );
+          })}
 
           <p className={`total-weight ${totalWeight === 100 ? "green" : "red"}`}>
             Total Weight: {totalWeight}%
           </p>
         </div>
 
-        {/* System Settings */}
         <div className="card">
           <h2 className="section-title">System Settings</h2>
           <p className="section-desc">Configure automated behavior and validation options</p>
@@ -215,129 +315,60 @@ export default function RuleSettings() {
           </div>
         </div>
 
-        {/* Triangulation Rules */}
         <div className="card">
-          <h2 className="section-title">Triangulation Rules</h2>
-          <p className="section-desc">Configure how the system cross-checks different data sources</p>
-
-          <TriSlider
-            label="Code–Worklog Validation"
-            suffix=" % match required"
-            value={Number(effectiveRules.triangulation?.codeWorklog ?? 0)}
-            onChange={(v) =>
-              setRulesField((cur) => ({
-                ...cur,
-                triangulation: { ...(cur.triangulation || {}), codeWorklog: v },
-              }))
-            }
-          />
-          <TriSlider
-            label="Meeting–Document Correlation"
-            suffix=" % correlation required"
-            value={Number(effectiveRules.triangulation?.meetingDoc ?? 0)}
-            onChange={(v) =>
-              setRulesField((cur) => ({
-                ...cur,
-                triangulation: { ...(cur.triangulation || {}), meetingDoc: v },
-              }))
-            }
-          />
-          <TriSlider
-            label="Activity Distribution"
-            suffix=" % of project duration"
-            value={Number(effectiveRules.triangulation?.activityDist ?? 0)}
-            onChange={(v) =>
-              setRulesField((cur) => ({
-                ...cur,
-                triangulation: { ...(cur.triangulation || {}), activityDist: v },
-              }))
-            }
-          />
-
-          <label>Peer Validation Method</label>
-          <select
-            value={effectiveRules.peerValidation || "Statistical analysis"}
-            onChange={(e) =>
-              setRulesField((cur) => ({ ...cur, peerValidation: e.target.value }))
-            }
-          >
-            <option>Statistical analysis</option>
-            <option>Manual comparison</option>
-            <option>Hybrid check</option>
-          </select>
-        </div>
-
-        {/* Rule Impact Preview (sample data) */}
-        <div className="card">
-          <h2 className="section-title">Rule Impact Preview</h2>
+          <h2 className="section-title">Current Team Scores</h2>
           <p className="section-desc">
-            See how current rule weights would affect your teammates' scores
+            Live scores based on your current rule settings ({scores?.team?.name || "No team selected"})
           </p>
 
-          {teamPreview.map((m, i) => (
-            <div key={i} className="team-row">
-              <div>
-                <span className={`tag ${m.tagClass}`}>{m.tag}</span>
-                <div>{m.name}</div>
-              </div>
-              <div>
-                <div className="score">{m.score}%</div>
-                <div className={`score-change ${m.plus ? "plus" : "minus"}`}>
-                  {m.change} from current rules
+          {loadingScores ? (
+            <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>
+              Loading scores...
+            </div>
+          ) : teamPreview.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>
+              No team data available. Upload documents and configure team settings.
+            </div>
+          ) : (
+            teamPreview.map((m, i) => (
+              <div key={i} className="team-row">
+                <div>
+                  <span className={`tag ${m.tagClass}`}>{m.tag}</span>
+                  <div>{m.name}</div>
+                </div>
+                <div>
+                  <div className="score">{m.score}%</div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
-      {/* Inline Styling */}
       <style>{`
         .rule-settings-container { background: #f9fafb; padding: 40px; color: #333; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-black { background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
-        .btn-black:hover { background: #333; }
-        .btn-black:disabled { background: #666; cursor: not-allowed; }
+        .btn-black { background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .btn-black:hover:not(:disabled) { background: #333; }
+        .btn-black:disabled { background: #666; cursor: not-allowed; opacity: 0.6; }
         .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
-        .section-title { font-size: 1.1rem; font-weight: 600; }
+        .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
         .section-desc { color: #777; font-size: 0.9rem; margin-bottom: 16px; }
         .range-group { margin-bottom: 20px; }
         .range-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 500; }
-        .range-desc { font-size: 0.8rem; color: #666; }
+        .range-header.clickable:hover { color: #2563eb; }
+        .range-desc { font-size: 0.8rem; color: #666; margin-top: 6px; }
         input[type=range] { width: 100%; accent-color: #000; }
         .switch-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
-        select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-top: 6px; }
-        label { font-weight: 500; margin-top: 12px; display: block; }
-        .total-weight { text-align: right; font-weight: 600; margin-top: 16px; }
+        .total-weight { text-align: right; font-weight: 600; margin-top: 16px; font-size: 1.1rem; }
         .green { color: #16a34a; } .red { color: #dc2626; }
         .team-row { display: flex; justify-content: space-between; border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
         .tag { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; margin-bottom: 4px; }
         .tag.high { background: #dcfce7; color: #166534; }
         .tag.medium { background: #fef9c3; color: #854d0e; }
         .tag.low { background: #fee2e2; color: #b91c1c; }
-        .score { font-weight: 600; }
-        .score-change.plus { color: #16a34a; font-size: 0.8rem; }
-        .score-change.minus { color: #dc2626; font-size: 0.8rem; }
+        .score { font-weight: 600; font-size: 1.2rem; }
       `}</style>
     </>
-  );
-}
-
-function TriSlider({ label, value, onChange, suffix = "" }) {
-  const v = Number.isFinite(value) ? value : 0;
-  return (
-    <div className="range-group">
-      <div className="range-header">
-        <span>{label}</span>
-        <span>{v}%{suffix ? "" : ""}</span>
-      </div>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        value={v}
-        onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
-      />
-    </div>
   );
 }
