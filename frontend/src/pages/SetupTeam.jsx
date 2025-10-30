@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const API = "http://localhost:5002";
 
@@ -7,11 +7,10 @@ export default function SetupTeam() {
   const [code, setCode] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [csvText, setCsvText] = useState("");
+  const [students, setStudents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
-
-  const students = useMemo(() => parseCsv(csvText), [csvText]);
 
   const loadTeams = async () => {
     setError("");
@@ -29,6 +28,50 @@ export default function SetupTeam() {
     loadTeams();
   }, []);
 
+  // Parse CSV when text changes
+  useEffect(() => {
+    const parsed = parseCsv(csvText);
+    setStudents(parsed);
+  }, [csvText]);
+
+  // Update individual student field
+  const updateStudent = (index, field, value) => {
+    setStudents(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  // Add/remove aliases
+  const addAlias = (index) => {
+    setStudents(prev => {
+      const updated = [...prev];
+      updated[index].aliases = [...(updated[index].aliases || []), ""];
+      return updated;
+    });
+  };
+
+  const updateAlias = (studentIndex, aliasIndex, value) => {
+    setStudents(prev => {
+      const updated = [...prev];
+      const aliases = [...(updated[studentIndex].aliases || [])];
+      aliases[aliasIndex] = value;
+      updated[studentIndex].aliases = aliases;
+      return updated;
+    });
+  };
+
+  const removeAlias = (studentIndex, aliasIndex) => {
+    setStudents(prev => {
+      const updated = [...prev];
+      const aliases = [...(updated[studentIndex].aliases || [])];
+      aliases.splice(aliasIndex, 1);
+      updated[studentIndex].aliases = aliases;
+      return updated;
+    });
+  };
+
   const onCreate = async () => {
     setError("");
     if (!name.trim() || !code.trim() || !repoUrl.trim()) {
@@ -40,13 +83,26 @@ export default function SetupTeam() {
       return;
     }
 
+    // Validate students have required fields
+    for (const s of students) {
+      if (!s.name || !s.email) {
+        setError("All students must have a name and email.");
+        return;
+      }
+    }
+
     setCreating(true);
     try {
       const body = {
         name: name.trim(),
         code: code.trim(),
         repo: normalizeRepo(repoUrl.trim()),
-        students, // [{name,email}]
+        students: students.map(s => ({
+          name: s.name,
+          email: s.email,
+          github: s.github || null,
+          aliases: (s.aliases || []).filter(a => a.trim())
+        }))
       };
 
       const res = await fetch(`${API}/api/teams`, {
@@ -63,7 +119,8 @@ export default function SetupTeam() {
       setCode("");
       setRepoUrl("");
       setCsvText("");
-      alert("Team created.");
+      setStudents([]);
+      alert("Team created successfully!");
     } catch (e) {
       setError(e.message || "Create team failed");
     } finally {
@@ -72,10 +129,10 @@ export default function SetupTeam() {
   };
 
   return (
-    <div style={{ padding: "80px 16px", maxWidth: 1000, margin: "0 auto" }}>
+    <div style={{ padding: "80px 16px", maxWidth: 1200, margin: "0 auto" }}>
       <h1 style={{ margin: 0, fontSize: 22 }}>Setup Team</h1>
       <div style={{ color: "#64748b", marginBottom: 12 }}>
-        Create a new project team and provide the repo + students CSV.
+        Create a new project team and configure student details including GitHub usernames and aliases.
       </div>
 
       {error && (
@@ -106,26 +163,130 @@ export default function SetupTeam() {
         </div>
 
         <div style={{ marginTop: 10 }}>
-          <Field label="Students CSV (name,email per line)">
+          <Field label="Quick Import: Paste CSV (name, email per line)">
             <textarea
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
               placeholder={`Example:\nAlice Smith, alice@example.com\nBob Jones, bob@example.com`}
-              rows={8}
+              rows={4}
               style={inp({ fontFamily: "monospace" })}
             />
           </Field>
           <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
             Parsed {students.length} student{students.length !== 1 ? "s" : ""}.
+            {students.length > 0 && " Scroll down to add GitHub usernames and aliases."}
           </div>
         </div>
+      </div>
 
+      {/* Student Details Section */}
+      {students.length > 0 && (
+        <div style={card({ marginTop: 16 })}>
+          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 16 }}>
+            Student Details
+          </div>
+          
+          {students.map((student, idx) => (
+            <div key={idx} style={{ 
+              border: "1px solid #e5e7eb", 
+              borderRadius: 10, 
+              padding: 14, 
+              marginBottom: 12,
+              background: "#f9fafb"
+            }}>
+              <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr 1fr" }}>
+                <Field label="Name">
+                  <input 
+                    value={student.name} 
+                    onChange={(e) => updateStudent(idx, 'name', e.target.value)}
+                    style={inp({ fontSize: 13 })} 
+                  />
+                </Field>
+                <Field label="Email">
+                  <input 
+                    value={student.email} 
+                    onChange={(e) => updateStudent(idx, 'email', e.target.value)}
+                    style={inp({ fontSize: 13 })} 
+                  />
+                </Field>
+                <Field label="GitHub Username (optional)">
+                  <input 
+                    value={student.github || ""} 
+                    onChange={(e) => updateStudent(idx, 'github', e.target.value)}
+                    placeholder="e.g. johndoe123"
+                    style={inp({ fontSize: 13 })} 
+                  />
+                </Field>
+              </div>
+
+              {/* Aliases Section */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <label style={{ fontSize: 12, color: "#374151", fontWeight: 500 }}>
+                    Aliases (name variations used in documents)
+                  </label>
+                  <button 
+                    onClick={() => addAlias(idx)}
+                    style={{ 
+                      background: "#111", 
+                      color: "#fff", 
+                      border: "none", 
+                      padding: "4px 8px", 
+                      borderRadius: 6, 
+                      fontSize: 11,
+                      cursor: "pointer"
+                    }}
+                  >
+                    + Add Alias
+                  </button>
+                </div>
+                
+                {(student.aliases || []).length > 0 ? (
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {student.aliases.map((alias, aliasIdx) => (
+                      <div key={aliasIdx} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input
+                          value={alias}
+                          onChange={(e) => updateAlias(idx, aliasIdx, e.target.value)}
+                          placeholder="e.g. John, Johnny, J. Doe"
+                          style={{ ...inp({ fontSize: 12 }), flex: 1 }}
+                        />
+                        <button
+                          onClick={() => removeAlias(idx, aliasIdx)}
+                          style={{
+                            background: "#dc2626",
+                            color: "#fff",
+                            border: "none",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            fontSize: 11,
+                            cursor: "pointer"
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: "#9ca3af", fontStyle: "italic" }}>
+                    No aliases yet. Add aliases to help match names from documents.
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create Button */}
+      {students.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <button onClick={onCreate} disabled={creating} style={btn()}>
             {creating ? "Creating..." : "Create Team"}
           </button>
         </div>
-      </div>
+      )}
 
       {/* Teams list */}
       <div style={card({ marginTop: 16 })}>
@@ -153,7 +314,6 @@ export default function SetupTeam() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {/* Optional: make-active / delete buttons wired to /api/teams/active and DELETE /api/teams/:id */}
                   <button
                     onClick={async () => {
                       try {
@@ -189,7 +349,7 @@ function parseCsv(text) {
   const out = [];
   for (const r of rows) {
     const [name, email] = r.split(",").map((x) => (x || "").trim());
-    if (name && email) out.push({ name, email });
+    if (name && email) out.push({ name, email, github: "", aliases: [] });
   }
   return out;
 }

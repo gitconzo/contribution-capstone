@@ -29,6 +29,8 @@ export default function RuleSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [previewScores, setPreviewScores] = useState([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // derive effective (never null)
   const effectiveRules = payload ?? DEFAULT_RULES;
@@ -71,9 +73,46 @@ export default function RuleSettings() {
     }
   }, []);
 
+  // Fetch preview scores (current team's scores)
+  const fetchPreview = useCallback(async () => {
+    try {
+      setPreviewLoading(true);
+      const res = await fetch(`${API}/api/scores`);
+      if (!res.ok) throw new Error("Failed to fetch scores for preview");
+      
+      const data = await res.json();
+      if (data.ranking && Array.isArray(data.ranking)) {
+        // Take top 5 students and format for preview
+        const preview = data.ranking.slice(0, 5).map(s => ({
+          name: s.name,
+          tag: getPerformanceTag(s.score),
+          tagClass: getPerformanceClass(s.score),
+          score: Math.round(s.score),
+          change: "+0%", // Placeholder - would need historical data for real change
+          plus: true
+        }));
+        setPreviewScores(preview);
+      }
+    } catch (e) {
+      console.error("Failed to fetch preview:", e);
+      // Keep empty preview on error
+      setPreviewScores([]);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchRules();
-  }, [fetchRules]);
+    fetchPreview();
+  }, [fetchRules, fetchPreview]);
+
+  // Re-fetch preview when rules change (to show impact)
+  useEffect(() => {
+    if (!loading && payload) {
+      fetchPreview();
+    }
+  }, [payload, loading, fetchPreview]);
 
   const setRulesField = (updater) => {
     setPayload((prev) => {
@@ -114,6 +153,10 @@ export default function RuleSettings() {
         triangulation: saved.rules?.triangulation ?? body.triangulation,
         peerValidation: saved.rules?.peerValidation ?? body.peerValidation,
       }));
+      
+      // Refresh preview to show updated scores
+      fetchPreview();
+      
       alert("Settings saved successfully!");
     } catch (e) {
       setError(e.message || "Failed to save settings");
@@ -122,15 +165,6 @@ export default function RuleSettings() {
       setSaving(false);
     }
   };
-
-  // Local "team preview" data left as-is but guarded
-  const teamPreview = [
-    { name: "Jason Vo", tag: "High Performer", tagClass: "high", score: 94, change: "+2%", plus: true },
-    { name: "Jen Mao", tag: "High Performer", tagClass: "high", score: 92, change: "+1%", plus: true },
-    { name: "Connor Lack", tag: "High Performer", tagClass: "high", score: 89, change: "+3%", plus: true },
-    { name: "Kavindu Bhanuka Weragoda", tag: "Medium Performer", tagClass: "medium", score: 73, change: "-1%", plus: false },
-    { name: "Md Hriday Mia", tag: "Low Performer", tagClass: "low", score: 42, change: "-5%", plus: false },
-  ];
 
   return (
     <>
@@ -267,57 +301,68 @@ export default function RuleSettings() {
           </select>
         </div>
 
-        {/* Rule Impact Preview (sample data) */}
+        {/* Rule Impact Preview (now dynamic) */}
         <div className="card">
           <h2 className="section-title">Rule Impact Preview</h2>
           <p className="section-desc">
-            See how current rule weights would affect your teammates' scores
+            See how current rule weights affect your team members' scores
           </p>
 
-          {teamPreview.map((m, i) => (
-            <div key={i} className="team-row">
-              <div>
-                <span className={`tag ${m.tagClass}`}>{m.tag}</span>
-                <div>{m.name}</div>
-              </div>
-              <div>
-                <div className="score">{m.score}%</div>
-                <div className={`score-change ${m.plus ? "plus" : "minus"}`}>
-                  {m.change} from current rules
+          {previewLoading ? (
+            <div style={{ textAlign: "center", padding: "20px", color: "#6b7280" }}>
+              Loading preview...
+            </div>
+          ) : previewScores.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px", color: "#6b7280" }}>
+              No team data available. Upload documents and configure team settings to see preview.
+            </div>
+          ) : (
+            previewScores.map((m, i) => (
+              <div key={i} className="team-row">
+                <div>
+                  <span className={`tag ${m.tagClass}`}>{m.tag}</span>
+                  <div>{m.name}</div>
+                </div>
+                <div>
+                  <div className="score">{m.score}%</div>
+                  <div className={`score-change ${m.plus ? "plus" : "minus"}`}>
+                    {m.change} from current rules
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
       {/* Inline Styling */}
       <style>{`
-        .rule-settings-container { background: #f9fafb; padding: 40px; color: #333; }
+        .rule-settings-container { background: var(--bg-secondary); padding: 40px; color: var(--text-primary); }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-black { background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
-        .btn-black:hover { background: #333; }
-        .btn-black:disabled { background: #666; cursor: not-allowed; }
-        .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
-        .section-title { font-size: 1.1rem; font-weight: 600; }
-        .section-desc { color: #777; font-size: 0.9rem; margin-bottom: 16px; }
+        .btn-black { background: var(--btn-bg); color: var(--btn-text); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+        .btn-black:hover { background: var(--btn-hover); }
+        .btn-black:disabled { background: var(--text-disabled); cursor: not-allowed; }
+        .card { background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: var(--card-shadow); margin-bottom: 24px; border: 1px solid var(--border-primary); }
+        .section-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+        .section-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
         .range-group { margin-bottom: 20px; }
-        .range-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 500; }
-        .range-desc { font-size: 0.8rem; color: #666; }
-        input[type=range] { width: 100%; accent-color: #000; }
-        .switch-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
-        select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-top: 6px; }
-        label { font-weight: 500; margin-top: 12px; display: block; }
+        .range-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 500; color: var(--text-primary); }
+        .range-desc { font-size: 0.8rem; color: var(--text-muted); }
+        input[type=range] { width: 100%; accent-color: var(--accent-primary); }
+        .switch-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; color: var(--text-primary); }
+        select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--input-border); margin-top: 6px; background: var(--input-bg); color: var(--text-primary); }
+        label { font-weight: 500; margin-top: 12px; display: block; color: var(--text-primary); }
         .total-weight { text-align: right; font-weight: 600; margin-top: 16px; }
-        .green { color: #16a34a; } .red { color: #dc2626; }
-        .team-row { display: flex; justify-content: space-between; border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
+        .green { color: var(--success); } 
+        .red { color: var(--error); }
+        .team-row { display: flex; justify-content: space-between; border: 1px solid var(--border-primary); border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; background: var(--bg-tertiary); }
         .tag { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; margin-bottom: 4px; }
-        .tag.high { background: #dcfce7; color: #166534; }
-        .tag.medium { background: #fef9c3; color: #854d0e; }
-        .tag.low { background: #fee2e2; color: #b91c1c; }
-        .score { font-weight: 600; }
-        .score-change.plus { color: #16a34a; font-size: 0.8rem; }
-        .score-change.minus { color: #dc2626; font-size: 0.8rem; }
+        .tag.high { background: var(--badge-high-bg); color: var(--badge-high-text); border: 1px solid var(--badge-high-border); }
+        .tag.medium { background: var(--badge-medium-bg); color: var(--badge-medium-text); border: 1px solid var(--badge-medium-border); }
+        .tag.low { background: var(--badge-low-bg); color: var(--badge-low-text); border: 1px solid var(--badge-low-border); }
+        .score { font-weight: 600; color: var(--text-primary); }
+        .score-change.plus { color: var(--success); font-size: 0.8rem; }
+        .score-change.minus { color: var(--error); font-size: 0.8rem; }
       `}</style>
     </>
   );
@@ -340,4 +385,17 @@ function TriSlider({ label, value, onChange, suffix = "" }) {
       />
     </div>
   );
+}
+
+// Helper functions for performance classification
+function getPerformanceTag(score) {
+  if (score >= 80) return "High Performer";
+  if (score >= 60) return "Medium Performer";
+  return "Low Performer";
+}
+
+function getPerformanceClass(score) {
+  if (score >= 80) return "high";
+  if (score >= 60) return "medium";
+  return "low";
 }

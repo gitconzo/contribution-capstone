@@ -1,7 +1,6 @@
 // frontend/src/App.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
-
 import Navigation from "./components/Navigation";
 import Dashboard from "./pages/Dashboard";
 import UploadFile from "./pages/UploadFile";
@@ -16,8 +15,12 @@ function Shell() {
     // persist login across refreshes (optional)
     return localStorage.getItem("p17_authed") === "1";
   });
-  const [dark, setDark] = useState(false);
-
+  
+  // Initialize dark mode from localStorage
+  const [dark, setDark] = useState(() => {
+    return localStorage.getItem("p17_dark") === "1";
+  });
+  
   const nav = useNavigate();
   const { pathname } = useLocation();
 
@@ -39,11 +42,18 @@ function Shell() {
     else if (key === "export") nav("/export");
   };
 
-  // Apply dark mode class (you can extend with CSS variables)
+  // Apply dark mode class and persist
   useEffect(() => {
     const cl = document.body.classList;
-    if (dark) cl.add("p17-dark");
-    else cl.remove("p17-dark");
+    if (dark) {
+      cl.add("p17-dark");
+      localStorage.setItem("p17_dark", "1");
+      console.log("Dark mode enabled"); // Debug
+    } else {
+      cl.remove("p17-dark");
+      localStorage.removeItem("p17_dark");
+      console.log("Dark mode disabled"); // Debug
+    }
   }, [dark]);
 
   // auth helpers
@@ -52,6 +62,7 @@ function Shell() {
     localStorage.setItem("p17_authed", "1");
     nav("/");
   };
+
   const handleLogout = () => {
     setAuthed(false);
     localStorage.removeItem("p17_authed");
@@ -72,6 +83,7 @@ function Shell() {
           onNavigate={goto}
           onLogout={handleLogout}
           onToggleDark={() => setDark((d) => !d)}
+          isDark={dark}
         />
         {/* push below fixed nav */}
         <div style={{ paddingTop: 64 }}>

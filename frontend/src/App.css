@@ -1,23 +1,238 @@
+/* app.css - Complete Dark Mode System + Existing Styles */
+
+/* ==================== CSS VARIABLES ==================== */
+
+/* Light Mode Variables (default) */
+:root {
+  /* Backgrounds */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-hover: #f3f4f6;
+  
+  /* Text Colors */
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #64748b;
+  --text-disabled: #9ca3af;
+  
+  /* Borders */
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --border-focus: #111827;
+  
+  /* Accent Colors */
+  --accent-primary: #111827;
+  --accent-secondary: #374151;
+  --accent-hover: #1f2937;
+  
+  /* Buttons */
+  --btn-bg: #000000;
+  --btn-text: #ffffff;
+  --btn-hover: #333333;
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-text: #374151;
+  --btn-secondary-border: #e5e7eb;
+  
+  /* Cards */
+  --card-bg: #ffffff;
+  --card-shadow: 0 6px 14px rgba(0,0,0,0.04);
+  --card-shadow-hover: 0 8px 20px rgba(0,0,0,0.08);
+  
+  /* Status Colors */
+  --success: #16a34a;
+  --success-light: #dcfce7;
+  --success-dark: #166534;
+  --warning: #ca8a04;
+  --warning-light: #fef9c3;
+  --warning-dark: #854d0e;
+  --error: #dc2626;
+  --error-light: #fee2e2;
+  --error-dark: #991b1b;
+  --info: #2563eb;
+  
+  /* Score Colors */
+  --score-excellent: #16a34a;
+  --score-good: #22c55e;
+  --score-average: #2563eb;
+  --score-below: #ca8a04;
+  --score-poor: #ea580c;
+  --score-fail: #dc2626;
+  
+  /* Inputs */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus: #111827;
+  --input-placeholder: #9ca3af;
+  
+  /* Badge Colors */
+  --badge-high-bg: #ecfdf5;
+  --badge-high-text: #065f46;
+  --badge-high-border: #a7f3d0;
+  --badge-medium-bg: #fffbeb;
+  --badge-medium-text: #92400e;
+  --badge-medium-border: #fde68a;
+  --badge-low-bg: #fef2f2;
+  --badge-low-text: #991b1b;
+  --badge-low-border: #fecaca;
+}
+
+/* Dark Mode Variables */
+body.p17-dark {
+  /* Backgrounds */
+  --bg-primary: #111827;
+  --bg-secondary: #1f2937;
+  --bg-tertiary: #374151;
+  --bg-hover: #374151;
+  
+  /* Text Colors */
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-muted: #9ca3af;
+  --text-disabled: #6b7280;
+  
+  /* Borders */
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+  --border-focus: #60a5fa;
+  
+  /* Accent Colors */
+  --accent-primary: #f9fafb;
+  --accent-secondary: #e5e7eb;
+  --accent-hover: #d1d5db;
+  
+  /* Buttons */
+  --btn-bg: #f9fafb;
+  --btn-text: #111827;
+  --btn-hover: #e5e7eb;
+  --btn-secondary-bg: #374151;
+  --btn-secondary-text: #e5e7eb;
+  --btn-secondary-border: #4b5563;
+  
+  /* Cards */
+  --card-bg: #1f2937;
+  --card-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  --card-shadow-hover: 0 8px 20px rgba(0,0,0,0.4);
+  
+  /* Status Colors (adjusted for dark mode) */
+  --success: #22c55e;
+  --success-light: #064e3b;
+  --success-dark: #86efac;
+  --warning: #eab308;
+  --warning-light: #713f12;
+  --warning-dark: #fde047;
+  --error: #ef4444;
+  --error-light: #7f1d1d;
+  --error-dark: #fca5a5;
+  --info: #3b82f6;
+  
+  /* Score Colors (brighter for dark mode) */
+  --score-excellent: #22c55e;
+  --score-good: #4ade80;
+  --score-average: #3b82f6;
+  --score-below: #eab308;
+  --score-poor: #f97316;
+  --score-fail: #ef4444;
+  
+  /* Inputs */
+  --input-bg: #374151;
+  --input-border: #4b5563;
+  --input-focus: #60a5fa;
+  --input-placeholder: #6b7280;
+  
+  /* Badge Colors */
+  --badge-high-bg: #064e3b;
+  --badge-high-text: #86efac;
+  --badge-high-border: #065f46;
+  --badge-medium-bg: #713f12;
+  --badge-medium-text: #fde047;
+  --badge-medium-border: #854d0e;
+  --badge-low-bg: #7f1d1d;
+  --badge-low-text: #fca5a5;
+  --badge-low-border: #991b1b;
+}
+
+/* ==================== GLOBAL STYLES ==================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for dark mode */
+body.p17-dark * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+button {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+input, select, textarea {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--input-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--input-focus);
+  outline: none;
+}
+
+a {
+  color: var(--info);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ==================== EXISTING APP STYLES (with dark mode support) ==================== */
+
 .App {
   text-align: center;
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: var(--bg-primary);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: var(--text-primary);
 }
 
 /* Tabs Navigation */
 .tabs {
   display: flex;
   margin-bottom: 2rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-tertiary);
   border-radius: 8px;
   padding: 4px;
 }
@@ -28,19 +243,19 @@
   padding: 12px 24px;
   margin: 0 2px;
   border-radius: 6px;
-  color: white;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 16px;
   transition: all 0.3s ease;
 }
 
 .tab.active {
-  background: #61dafb;
-  color: #282c34;
+  background: var(--info);
+  color: #ffffff;
 }
 
 .tab:hover:not(.active) {
-  background: rgba(97, 218, 251, 0.2);
+  background: var(--bg-hover);
 }
 
 .tab-content {
@@ -50,38 +265,38 @@
 
 /* Common Components */
 .action-button {
-  background-color: #61dafb;
+  background-color: var(--info);
   border: none;
   padding: 12px 24px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
-  color: #282c34;
+  color: #ffffff;
   font-weight: bold;
   transition: background-color 0.3s ease;
   margin: 10px;
 }
 
 .action-button:hover:not(:disabled) {
-  background-color: #4fa8c5;
+  background-color: #1d4ed8;
 }
 
 .action-button:disabled {
-  background-color: #ccc;
+  background-color: var(--text-disabled);
   cursor: not-allowed;
 }
 
 .error {
-  color: #ff6b6b;
+  color: var(--error);
   margin: 15px 0;
   padding: 12px;
-  background-color: rgba(255, 107, 107, 0.1);
+  background-color: var(--error-light);
   border-radius: 6px;
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  border: 1px solid var(--error);
 }
 
 .no-data {
-  color: #888;
+  color: var(--text-muted);
   font-style: italic;
   margin: 20px 0;
 }
@@ -90,7 +305,7 @@
 .upload-section {
   margin: 20px 0;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-tertiary);
   border-radius: 8px;
 }
 
@@ -100,8 +315,8 @@
 
 .file-label {
   display: inline-block;
-  background: #61dafb;
-  color: #282c34;
+  background: var(--info);
+  color: #ffffff;
   padding: 12px 24px;
   border-radius: 6px;
   cursor: pointer;
@@ -111,12 +326,12 @@
 }
 
 .file-label:hover {
-  background: #4fa8c5;
+  background: #1d4ed8;
 }
 
 .file-info {
   margin: 10px 0;
-  color: #61dafb;
+  color: var(--info);
   font-weight: bold;
 }
 
@@ -137,24 +352,25 @@
 }
 
 .week-card {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--card-bg);
+  color: var(--text-primary);
   padding: 20px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--card-shadow);
 }
 
 .week-card h3 {
-  color: #61dafb;
+  color: var(--info);
   margin-bottom: 15px;
-  border-bottom: 2px solid #61dafb;
+  border-bottom: 2px solid var(--info);
   padding-bottom: 8px;
 }
 
 .hours {
   font-size: 1.1em;
   margin-bottom: 15px;
-  color: #a3e6ff;
+  color: var(--info);
 }
 
 .section {
@@ -162,7 +378,7 @@
 }
 
 .section h4 {
-  color: #61dafb;
+  color: var(--info);
   margin-bottom: 10px;
   font-size: 1.1em;
 }
@@ -175,7 +391,7 @@
 .section li {
   margin: 8px 0;
   line-height: 1.5;
-  color: #e0e0e0;
+  color: var(--text-secondary);
 }
 
 /* Scores Display */
@@ -188,7 +404,7 @@
 }
 
 .scores-section h3 {
-  color: #61dafb;
+  color: var(--info);
   margin-bottom: 20px;
 }
 
@@ -200,16 +416,17 @@
 }
 
 .score-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--card-bg);
   padding: 20px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-primary);
   text-align: center;
+  box-shadow: var(--card-shadow);
 }
 
 .author {
   font-weight: bold;
-  color: #61dafb;
+  color: var(--info);
   margin-bottom: 8px;
   font-size: 1.1em;
 }
@@ -217,7 +434,7 @@
 .score {
   font-size: 1.3em;
   font-weight: bold;
-  color: #a3e6ff;
+  color: var(--success);
 }
 
 .raw-metrics {
@@ -227,14 +444,15 @@
 }
 
 .metric-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--card-bg);
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--card-shadow);
 }
 
 .metric-card h4 {
-  color: #61dafb;
+  color: var(--info);
   margin-bottom: 10px;
   text-align: center;
 }
@@ -246,11 +464,117 @@
 }
 
 .metric-details span {
-  color: #e0e0e0;
+  color: var(--text-secondary);
   font-size: 0.9em;
 }
 
-/* Responsive Design */
+/* File Upload CSS */
+.upload-container {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+}
+
+.label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  display: block;
+  color: var(--text-primary);
+}
+
+.input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+}
+
+.upload-box {
+  border: 2px dashed var(--border-secondary);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 15px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.browse-btn {
+  background: var(--info);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  font-weight: 500;
+}
+
+.browse-btn:hover {
+  background: #1d4ed8;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+.file-preview {
+  background: var(--bg-tertiary);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.remove-btn {
+  background: var(--error);
+  color: white;
+  border: none;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.remove-btn:hover {
+  background: #b91c1c;
+}
+
+.upload-btn {
+  background: var(--success);
+  color: white;
+  padding: 10px;
+  width: 100%;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.upload-btn:hover {
+  background: #15803d;
+}
+
+.upload-btn:disabled {
+  background: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.upload-status {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
 @media (max-width: 768px) {
   .tabs {
     flex-direction: column;
@@ -271,8 +595,230 @@
   }
 }
 
+/* ==================== DARK MODE OVERRIDES ==================== */
+
+/* Card styles */
+.card,
+[style*="background: #fff"],
+[style*="background:#fff"] {
+  background: var(--card-bg) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary);
+}
+
+/* Text color overrides */
+[style*="color: #64748b"],
+[style*="color:#64748b"],
+[style*="color: #6b7280"],
+[style*="color:#6b7280"] {
+  color: var(--text-muted) !important;
+}
+
+[style*="color: #374151"],
+[style*="color:#374151"] {
+  color: var(--text-secondary) !important;
+}
+
+/* Border overrides */
+[style*="border: 1px solid #e5e7eb"],
+[style*="border:1px solid #e5e7eb"],
+[style*="border: 1px solid #d1d5db"],
+[style*="border:1px solid #d1d5db"] {
+  border-color: var(--border-primary) !important;
+}
+
+/* Button overrides for dark mode */
+body.p17-dark button[style*="background: #000"],
+body.p17-dark button[style*="background:#000"],
+body.p17-dark button[style*="background: black"] {
+  background: var(--btn-bg) !important;
+  color: var(--btn-text) !important;
+}
+
+body.p17-dark button[style*="background: #fff"],
+body.p17-dark button[style*="background:#fff"] {
+  background: var(--btn-secondary-bg) !important;
+  color: var(--btn-secondary-text) !important;
+  border-color: var(--btn-secondary-border) !important;
+}
+
+/* Progress bars */
+body.p17-dark [style*="background: #e5e7eb"] {
+  background: var(--bg-tertiary) !important;
+}
+
+body.p17-dark [style*="background: #16a34a"] {
+  background: var(--success) !important;
+}
+
+body.p17-dark [style*="background: #2563eb"] {
+  background: var(--info) !important;
+}
+
+/* Score colors */
+body.p17-dark [style*="color: #16a34a"] {
+  color: var(--score-excellent) !important;
+}
+
+body.p17-dark [style*="color: #22c55e"] {
+  color: var(--score-good) !important;
+}
+
+body.p17-dark [style*="color: #2563eb"] {
+  color: var(--score-average) !important;
+}
+
+body.p17-dark [style*="color: #ca8a04"] {
+  color: var(--score-below) !important;
+}
+
+body.p17-dark [style*="color: #ea580c"] {
+  color: var(--score-poor) !important;
+}
+
+body.p17-dark [style*="color: #dc2626"] {
+  color: var(--score-fail) !important;
+}
+
+/* RuleSettings specific dark mode */
+body.p17-dark .rule-settings-container {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+body.p17-dark .card {
+  background: var(--card-bg) !important;
+  border-color: var(--border-primary) !important;
+}
+
+body.p17-dark .section-desc,
+body.p17-dark .range-desc {
+  color: var(--text-muted) !important;
+}
+
+body.p17-dark input[type="range"] {
+  accent-color: var(--accent-primary);
+}
+
+body.p17-dark select {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+body.p17-dark .btn-black {
+  background: var(--btn-bg) !important;
+  color: var(--btn-text) !important;
+}
+
+body.p17-dark .btn-black:hover {
+  background: var(--btn-hover) !important;
+}
+
+body.p17-dark .btn-black:disabled {
+  background: var(--text-disabled) !important;
+}
+
+/* Badge overrides for dark mode */
+body.p17-dark .tag.high {
+  background: var(--badge-high-bg) !important;
+  color: var(--badge-high-text) !important;
+  border-color: var(--badge-high-border) !important;
+}
+
+body.p17-dark .tag.medium {
+  background: var(--badge-medium-bg) !important;
+  color: var(--badge-medium-text) !important;
+  border-color: var(--badge-medium-border) !important;
+}
+
+body.p17-dark .tag.low {
+  background: var(--badge-low-bg) !important;
+  color: var(--badge-low-text) !important;
+  border-color: var(--badge-low-border) !important;
+}
+
+/* Login page dark mode */
+body.p17-dark .p17-page {
+  background: var(--bg-secondary);
+}
+
+body.p17-dark .p17-logo {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+}
+
+body.p17-dark .p17-subtitle,
+body.p17-dark .p17-card-sub,
+body.p17-dark .p17-hint {
+  color: var(--text-muted) !important;
+}
+
+body.p17-dark .p17-card {
+  background: var(--card-bg) !important;
+  border-color: var(--border-primary) !important;
+  box-shadow: var(--card-shadow);
+}
+
+body.p17-dark .p17-input-wrap {
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+}
+
+body.p17-dark .p17-input-wrap:focus-within {
+  border-color: var(--input-focus) !important;
+}
+
+body.p17-dark .p17-input-wrap input {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+body.p17-dark .p17-left-icon {
+  color: var(--text-muted);
+}
+
+body.p17-dark .p17-eye {
+  background: var(--btn-secondary-bg) !important;
+  border-color: var(--btn-secondary-border) !important;
+  color: var(--btn-secondary-text) !important;
+}
+
+body.p17-dark .p17-eye:hover {
+  background: var(--bg-hover) !important;
+}
+
+body.p17-dark .p17-cta {
+  background: var(--btn-bg) !important;
+  color: var(--btn-text) !important;
+}
+
+/* Navigation dark mode fix */
+body.p17-dark > div > div:first-child {
+  background: var(--card-bg) !important;
+  border-color: var(--border-primary) !important;
+}
+
+/* Scrollbar dark mode */
+body.p17-dark::-webkit-scrollbar {
+  width: 12px;
+}
+
+body.p17-dark::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+body.p17-dark::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+body.p17-dark::-webkit-scrollbar-thumb:hover {
+  background: var(--text-disabled);
+}
+
 .App-link {
-  color: #61dafb;
+  color: var(--info);
 }
 
 @keyframes App-logo-spin {
@@ -283,17 +829,3 @@
     transform: rotate(360deg);
   }
 }
-
-/* File Upload CSS */
-
-.upload-container { max-width: 480px; margin: 2rem auto; padding: 1rem; }
-.label { font-weight: bold; margin-bottom: 5px; display: block; }
-.input { width: 100%; padding: 8px; margin-bottom: 15px; }
-.upload-box { border: 1px dashed #999; padding: 20px; text-align: center; margin-bottom: 15px; }
-.browse-btn { background: #1976d2; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
-.hint { font-size: 12px; color: gray; margin-top: 5px; }
-.file-preview { background: #f1f1f1; padding: 10px; display: flex; justify-content: space-between; border-radius: 5px; margin-bottom: 10px; }
-.remove-btn { background: red; color: white; border: none; padding: 5px 8px; cursor: pointer; border-radius: 3px; }
-.upload-btn { background: green; color: white; padding: 10px; width: 100%; cursor: pointer; border: none; border-radius: 5px; }
-.upload-btn:disabled { background: gray; cursor: not-allowed; }
-.upload-status { margin-top: 10px; font-size: 14px; }

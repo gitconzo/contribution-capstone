@@ -1,7 +1,7 @@
 // frontend/src/components/Navigation.jsx
 import React from "react";
 
-export default function Navigation({ currentPage, onNavigate, onLogout, onToggleDark }) {
+export default function Navigation({ currentPage, onNavigate, onLogout, onToggleDark, isDark }) {
   const menuItems = [
     { key: "dashboard", label: "Dashboard" },
     { key: "rules", label: "Rule Settings" },
@@ -101,17 +101,17 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           <button
             onClick={onToggleDark}
             style={{
-              border: "1px solid #e5e7eb",
-              background: "#fff",
+              border: `1px solid var(--border-primary)`,
+              background: "var(--card-bg)",
               fontSize: 13,
-              color: "#374151",
+              color: "var(--text-secondary)",
               cursor: "pointer",
               borderRadius: 8,
               padding: "6px 10px",
             }}
             title="Toggle dark mode"
           >
-            Dark Mode
+            {isDark ? "Dark" : "Light"}
           </button>
           <button
             onClick={onLogout}
