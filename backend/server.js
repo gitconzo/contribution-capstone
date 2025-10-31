@@ -43,6 +43,32 @@ function getActiveTeam() {
   return id ? findTeamById(id) : null;
 }
 
+// ---------- small utils ----------
+function parseRepoFromUrl(url) {
+  let owner = "", repo = "";
+  try {
+    if (url.includes("github.com")) {
+      const cleaned = url.replace(/\.git$/i, "");
+      const parts = cleaned.split(/github\.com[/:]/).pop().split("/");
+      owner = (parts[0] || "").trim();
+      repo  = (parts[1] || "").trim();
+    } else if (/^[^/]+\/[^/]+$/.test(url)) {
+      // owner/repo form
+      [owner, repo] = url.split("/");
+    }
+  } catch {}
+  return { url, owner, repo };
+}
+function pyBin() { return process.platform === "win32" ? "python" : "python3"; }
+function runFile(cmd, args, opts = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, opts, (err, stdout, stderr) => {
+      if (err) return reject(new Error((stderr && stderr.trim()) || err.message));
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
 // Multer storage for uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -69,14 +95,12 @@ function detectTypeFromName(filename, userGuess) {
 
 // ---------------------- Scores / GitHub ----------------------
 
-// Scores computed from data/commits.json (populated by fetch)
 app.get("/api/scores", (req, res) => {
   try {
     const teamId = req.query.teamId || getActiveTeamId();
     if (!teamId) return res.status(400).json({ error: "No active team." });
 
     const payload = aggregateTeamScores({ teamId, rootDir: __dirname });
-    // payload = { team, ranking:[{name,email,github,score,breakdown,raw}], weights, ... }
     res.json(payload);
   } catch (e) {
     console.error(e);
@@ -91,7 +115,6 @@ app.post("/api/github/fetch", (req, res) => {
     return res.status(400).json({ error: "Active team has no repository URL configured." });
   }
   const script = path.join(__dirname, "fetchData.js");
-  // Pass repo info via env to the script (script should read process.env.REPO_URL etc.)
   const env = { ...process.env, REPO_URL: active.repo.url, REPO_OWNER: active.repo.owner || "", REPO_NAME: active.repo.repo || "" };
 
   execFile("node", [script], { cwd: __dirname, env }, (err, stdout, stderr) => {
@@ -102,15 +125,48 @@ app.post("/api/github/fetch", (req, res) => {
   });
 });
 
+
+
+app.post("/api/github/analyze", async (req, res) => {
+  try {
+    const rawUrl = String(req.body?.url || "").trim();
+    if (!rawUrl) return res.status(400).json({ error: "Missing 'url' in body." });
+
+    const { url, owner, repo } = parseRepoFromUrl(rawUrl);
+    if (!owner || !repo) return res.status(400).json({ error: "Could not parse owner/repo from URL." });
+
+    // Ensure data dir & write repo.json (used by fetchData.js)
+    const DATA_DIR = path.join(__dirname, "data");
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(path.join(DATA_DIR, "repo.json"), JSON.stringify({ url, owner, repo }, null, 2));
+
+    // fetch commits from commits.json
+    await runFile("node", [path.join(__dirname, "fetchData.js")], { cwd: __dirname });
+
+    // run main.py
+    const py = process.platform === "win32" ? "python" : "python3";
+    await runFile(py, [path.join(__dirname, "main.py"), "--repo-url", url], { cwd: __dirname });
+
+    // small summary
+    let commits = [];
+    const commitsPath = path.join(DATA_DIR, "commits.json");
+    if (fs.existsSync(commitsPath)) {
+      commits = JSON.parse(fs.readFileSync(commitsPath, "utf-8"));
+    }
+
+    res.json({ success: true, repo: { owner, repo, url }, summary: { commits: commits.length } });
+  } catch (e) {
+    console.error("analyze error:", e);
+    res.status(500).json({ error: e.message || "Failed to analyze GitHub repo" });
+  }
+});
 // ---------------------- Uploads API ----------------------
 
-// List uploads (latest first)
 app.get("/api/uploads", (req, res) => {
   const registry = loadRegistry().sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
   res.json(registry);
 });
 
-// Upload a single file (field name: "file") - DOCUMENTS ONLY
 app.post("/api/uploads", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
@@ -137,7 +193,6 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
   res.json(entry);
 });
 
-// Confirm & parse
 app.post("/api/uploads/confirm", (req, res) => {
   const { id, type } = req.body || {};
   if (!id) return res.status(400).json({ error: "Missing id" });
@@ -158,11 +213,10 @@ app.post("/api/uploads/confirm", (req, res) => {
     res.json(entry);
   };
 
-  // Attendance (xlsx)
   if (finalType === "attendance" && (ext === ".xlsx" || ext === ".xls")) {
     const py = path.join(__dirname, "parsers", "attendance.py");
     const outJson = path.join(DATA_DIR, "attendance.json");
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(pyBin(), [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Attendance parse failed: ${stderr || err.message}` };
@@ -175,11 +229,10 @@ app.post("/api/uploads/confirm", (req, res) => {
     return;
   }
 
-  // Worklog (.docx/.pdf)
   if (finalType === "worklog" && (ext === ".docx" || ext === ".pdf")) {
     const py = path.join(__dirname, "parsers", "worklog_parser.py");
     const outJson = path.join(DATA_DIR, "worklog.json");
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(pyBin(), [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Worklog parse failed: ${stderr || err.message}` };
@@ -192,13 +245,12 @@ app.post("/api/uploads/confirm", (req, res) => {
     return;
   }
 
-  // Sprint report (.docx)
   if (finalType === "sprint_report" && ext === ".docx") {
     const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
     const timestamp = Date.now();
     const outJson = path.join(DATA_DIR, `sprint_report_${timestamp}.json`);
     
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(pyBin(), [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
@@ -217,13 +269,12 @@ app.post("/api/uploads/confirm", (req, res) => {
     return;
   }
 
-  // Project plan (.docx)
   if (finalType === "project_plan" && ext === ".docx") {
     const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
     const timestamp = Date.now();
     const outJson = path.join(DATA_DIR, `project_plan_${timestamp}.json`);
     
-    execFile("python3", [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
+    execFile(pyBin(), [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };
@@ -242,15 +293,13 @@ app.post("/api/uploads/confirm", (req, res) => {
     return;
   }
 
-  // Unknown
   entry.parseInfo = { message: "No parser run for this type." };
   finish();
 });
 
-// Serve uploaded files
 app.use("/uploads", express.static(UPLOAD_DIR));
 
-// Mount routers BEFORE any catch-all routes
+// Routers
 const teamsRouter = require("./routes/teams");
 const rulesRouter = require("./routes/rules");
 app.use("/api/teams", teamsRouter);
@@ -279,14 +328,10 @@ app.get("/api/uploads/:id/json", (req, res) => {
 app.delete("/api/uploads/cleanup-docs", (req, res) => {
   try {
     const registry = loadRegistry();
-    
-    // Find all doc-related JSON files
     const docFiles = registry.filter(r => 
       ["sprint_report", "project_plan", "worklog"].includes(r.userType || r.detectedType) &&
       r.status === "parsed"
     );
-    
-    // Delete the parsed JSON files
     let deleted = 0;
     docFiles.forEach(entry => {
       if (entry.parseInfo?.jsonPath) {
@@ -295,27 +340,37 @@ app.delete("/api/uploads/cleanup-docs", (req, res) => {
           fs.unlinkSync(fullPath);
           deleted++;
         }
-        // Mark as deleted in registry
         entry.status = "deleted";
         entry.parseInfo = null;
       }
     });
-    
-    // Delete combined metrics
     const combinedPath = path.join(DATA_DIR, "combined_documentation_metrics.json");
-    if (fs.existsSync(combinedPath)) {
-      fs.unlinkSync(combinedPath);
-    }
-    
+    if (fs.existsSync(combinedPath)) fs.unlinkSync(combinedPath);
     saveRegistry(registry);
-    
-    res.json({ 
-      success: true, 
-      message: `Cleaned up ${deleted} documentation files` 
-    });
+    res.json({ success: true, message: `Cleaned up ${deleted} documentation files` });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+app.get("/api/github/status", (_req, res) => {
+  const dataDir = path.join(__dirname, "data");
+  const commits = path.join(dataDir, "commits.json");
+  const finalStats = path.join(dataDir, "finalStats.json");
+
+  const out = {
+    commitsExists: fs.existsSync(commits),
+    finalStatsExists: fs.existsSync(finalStats),
+    commitsMtime: null,
+    finalStatsMtime: null,
+  };
+
+  try {
+    if (out.commitsExists) out.commitsMtime = fs.statSync(commits).mtimeMs;
+    if (out.finalStatsExists) out.finalStatsMtime = fs.statSync(finalStats).mtimeMs;
+  } catch (_) {}
+
+  res.json(out);
 });
 
 app.listen(PORT, () => {

@@ -55,37 +55,37 @@
       "rules": [
         {
           "name": "Total Lines of Code",
-          "value": 12,
+          "value": 24,
           "desc": "Percentage of code written in code base"
         },
         {
           "name": "Total Edited Code",
-          "value": 10,
+          "value": 2,
           "desc": "Percentage of total edited code (additions and deletions)"
         },
         {
           "name": "Total Commits",
-          "value": 7,
+          "value": 9,
           "desc": "Percentage of commits made"
         },
         {
           "name": "Total Functions Written",
-          "value": 12,
+          "value": 15,
           "desc": "Percentage of functions written in codebase"
         },
         {
           "name": "Total Hotspot Contributed",
-          "value": 10,
+          "value": 11,
           "desc": "Percentage of hotspots written in codebase (hotspots = above average function complexity)"
         },
         {
           "name": "Code Complexity",
-          "value": 9,
+          "value": 12,
           "desc": "Average code complexity"
         },
         {
           "name": "Average Sentence Length",
-          "value": 5,
+          "value": 2,
           "desc": "Average sentence length"
         },
         {
@@ -95,12 +95,12 @@
         },
         {
           "name": "Word Count",
-          "value": 10,
+          "value": 15,
           "desc": "Word Count"
         },
         {
           "name": "Readability",
-          "value": 11,
+          "value": 5,
           "desc": "Readability"
         }
       ],
@@ -111,8 +111,7 @@
         "meetingDoc": 70,
         "activityDist": 60
       },
-      "peerValidation": "Statistical analysis",
-      "savedAt": "2025-10-29T08:00:15.106Z"
+      "peerValidation": "Statistical analysis"
     },
     "createdAt": "2025-10-29T08:00:15.106Z"
   },

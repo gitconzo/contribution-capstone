@@ -1,3 +1,4 @@
+// frontend/src/components/dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 
 export default function Dashboard({ onViewStudent }) {
@@ -37,13 +38,45 @@ export default function Dashboard({ onViewStudent }) {
     );
   }, [scores, query]);
 
+  // ---- Compute per-student CODE-ONLY weighted sums and max → Code Score %
+  const codeScoreByKey = useMemo(() => {
+    const ranking = scores?.ranking || [];
+    if (!ranking.length) return new Map();
+
+    const weights = scores?.weights || {};
+    const defaultWeights = {
+      loc: 12, editedCode: 10, commits: 7,
+      functions: 12, hotspots: 10, codeComplexity: 9
+    };
+    const w = {
+      loc: weights.loc ?? defaultWeights.loc,
+      editedCode: weights.editedCode ?? defaultWeights.editedCode,
+      commits: weights.commits ?? defaultWeights.commits,
+      functions: weights.functions ?? defaultWeights.functions,
+      hotspots: weights.hotspots ?? defaultWeights.hotspots,
+      codeComplexity: weights.codeComplexity ?? defaultWeights.codeComplexity
+    };
+    const codeDims = ["loc", "editedCode", "commits", "functions", "hotspots", "codeComplexity"];
+
+    // weighted code-only sum per student (normalized values already in breakdown)
+    const sums = ranking.map(r =>
+      codeDims.reduce((sum, d) => sum + ((r.breakdown?.[d] || 0) * (w[d] || 0)), 0)
+    );
+
+    const maxSum = Math.max(...sums, 1);
+    const map = new Map();
+    ranking.forEach((r, idx) => {
+      const pct = Math.round((sums[idx] / maxSum) * 100);
+      map.set(r.email || r.name, pct);
+    });
+    return map;
+  }, [scores]);
+
   const kpis = useMemo(() => {
     const list = scores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
-    
     const avg = Math.round((list.reduce((s, r) => s + (r.score || 0), 0) / list.length) * 10) / 10;
     const high = `${list.filter(r => r.score >= 80).length}/${list.length}`;
-    
     return { avg, high, commits: 0 };
   }, [scores]);
 
@@ -139,41 +172,36 @@ export default function Dashboard({ onViewStudent }) {
         {students.map((s) => {
           const breakdown = s.breakdown || {};
           const raw = s.raw || {};
-          
-          // Get weights from scores response (dynamic from RuleSettings)
+
+          // Weights for docs (as before)
           const weights = scores?.weights || {};
-          
-          // Calculate weighted doc score using the rule weights
-          // Fallback to default weights if not loaded
           const docWeights = {
             avgSentenceLength: weights.avgSentenceLength ?? 5,
             sentenceComplexity: weights.sentenceComplexity ?? 5,
             wordCount: weights.wordCount ?? 7,
             readability: weights.readability ?? 11
           };
-          
           const docMetrics = {
             avgSentenceLength: breakdown.avgSentenceLength || 0,
             sentenceComplexity: breakdown.sentenceComplexity || 0,
             wordCount: breakdown.wordCount || 0,
             readability: breakdown.readability || 0
-          };
-          
+          }; 
           const totalDocWeight = Object.values(docWeights).reduce((sum, w) => sum + w, 0);
           const weightedDocScore = totalDocWeight > 0
             ? Object.entries(docMetrics).reduce((sum, [key, value]) => {
                 return sum + (value * docWeights[key]);
               }, 0) / totalDocWeight
             : 0;
-          
           const docScore = Math.round(weightedDocScore * 100);
-          
-          // Word count from raw data
+
+          // NEW: Code Score from precomputed map
+          const codeScore = codeScoreByKey.get(s.email || s.name) ?? 0;
+
+          // Extras
           const wordCount = raw.wordCount || 0;
-          
-          // Attendance percentage - use the pre-calculated percentage from AttendanceSummary
           const attendance = Math.round((raw.attendance || 0) * 100);
-          
+
           return (
             <div key={s.email || s.name} style={rowCard()}>
               <div>
@@ -184,7 +212,7 @@ export default function Dashboard({ onViewStudent }) {
                 <div style={{ color: "#64748b", fontSize: 13 }}>{s.email}</div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 10, fontSize: 13 }}>
-                  <Metric label="Code Score" value="—" />
+                  <Metric label="Code Score" value={`${codeScore}%`} />
                   <Metric label="Doc Score" value={docScore > 0 ? `${docScore}%` : '—'} />
                   <Metric label="Word Count" value={wordCount > 0 ? wordCount : '—'} />
                   <Metric label="Attendance" value={attendance > 0 ? `${attendance}%` : '—'} />

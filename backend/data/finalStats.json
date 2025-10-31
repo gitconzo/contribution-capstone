@@ -1,64 +1,39 @@
 {
-  "fourthedesign": {
-    "average_complexity": 1.933,
-    "percentage_of_functions_written": 53.39,
-    "percentage_of_hotspots": 45.24,
-    "percentage_of_LOC": 4.56,
-    "commits": 7,
-    "additions": 1091,
-    "deletions": 76,
-    "commit_percentage": 70.0,
-    "edit_percentage": 33.45
+  "gitconzo": {
+    "average_complexity": 3.425,
+    "percentage_of_functions_written": 91.39,
+    "percentage_of_hotspots": 88.39,
+    "percentage_of_LOC": 97.86,
+    "commits": 12,
+    "additions": 211036,
+    "deletions": 37528,
+    "commit_percentage": 70.59,
+    "edit_percentage": 23.98
   },
-  "KAAzadi": {
-    "average_complexity": 1.356,
-    "percentage_of_functions_written": 11.02,
-    "percentage_of_hotspots": 21.43,
-    "percentage_of_LOC": 9.23,
+  "jasonv47": {
+    "average_complexity": 2.627,
+    "percentage_of_functions_written": 8.61,
+    "percentage_of_hotspots": 11.61,
+    "percentage_of_LOC": 2.11,
     "commits": 2,
-    "additions": 1197,
-    "deletions": 83,
-    "commit_percentage": 20.0,
-    "edit_percentage": 36.69
+    "additions": 1152,
+    "deletions": 113,
+    "commit_percentage": 11.76,
+    "edit_percentage": 0.12
   },
-  "Alex": {
-    "average_complexity": 1.269,
-    "percentage_of_functions_written": 16.95,
-    "percentage_of_hotspots": 23.81,
-    "percentage_of_LOC": 43.99,
-    "commit_percentage": 0.0,
-    "edit_percentage": 0.0
-  },
-  "CyberDryad": {
-    "average_complexity": 0.875,
-    "percentage_of_functions_written": 13.56,
-    "percentage_of_hotspots": 9.52,
-    "percentage_of_LOC": 38.11,
-    "commit_percentage": 0.0,
-    "edit_percentage": 0.0
-  },
-  "Shadow": {
-    "average_complexity": 0.453,
-    "percentage_of_functions_written": 3.39,
-    "percentage_of_hotspots": 0.0,
-    "percentage_of_LOC": 1.81,
-    "commit_percentage": 0.0,
-    "edit_percentage": 0.0
-  },
-  "Angel Bowers": {
-    "average_complexity": 0.451,
-    "percentage_of_functions_written": 1.69,
-    "percentage_of_hotspots": 0.0,
-    "percentage_of_LOC": 2.24,
+  "urjenz": {
+    "percentage_of_LOC": 0.03,
     "commits": 1,
-    "additions": 998,
-    "deletions": 44,
-    "commit_percentage": 10.0,
-    "edit_percentage": 29.87
+    "additions": 760553,
+    "deletions": 0,
+    "commit_percentage": 5.88,
+    "edit_percentage": 73.36
   },
-  "codesee-maps[bot]": {
-    "percentage_of_LOC": 0.05,
-    "commit_percentage": 0.0,
-    "edit_percentage": 0.0
+  "Kavinduwer11": {
+    "commits": 2,
+    "additions": 14540,
+    "deletions": 11778,
+    "commit_percentage": 11.76,
+    "edit_percentage": 2.54
   }
 }

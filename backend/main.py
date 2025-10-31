@@ -1,4 +1,3 @@
-# backend/main.py
 from git import Repo
 import os
 import lizard
@@ -7,14 +6,39 @@ import tempfile
 import json
 import argparse
 
+# ------------------ Ignore rules ------------------
+IGNORE_DIRS = {
+    ".git", "__pycache__", "venv", ".venv", "env",
+    "site-packages", "node_modules", "dist", "build"
+}
+IGNORE_EXTENSIONS = {
+    ".pyc", ".pyo", ".exe", ".dll", ".so", ".dylib"
+}
+
+def should_ignore(path: str) -> bool:
+    """Return True if the path should be skipped from analysis."""
+    parts = set(os.path.normpath(path).split(os.sep))
+    if parts & IGNORE_DIRS:
+        return True
+    ext = os.path.splitext(path)[1].lower()
+    if ext in IGNORE_EXTENSIONS:
+        return True
+    return False
+# --------------------------------------------------
+
 def analyse_functions(tempFolder):
-    print("Analysing repository... please wait ... this could take a while...")
+    print("Analysing repository... please wait ...")
     analyseRepo = list(lizard.analyze([tempFolder]))
     repo = Repo(tempFolder)
 
     Authors = defaultdict(list)
     authorsFunctions = defaultdict(float)
     totalFunctions = 0
+
+    # filter out ignored dirs/files
+    analyseRepo = [
+        f for f in analyseRepo if not should_ignore(f.filename)
+    ]
 
     totalCCN = [f.cyclomatic_complexity for file in analyseRepo for f in file.function_list]
     if not totalCCN:
@@ -27,15 +51,18 @@ def analyse_functions(tempFolder):
 
     for file in analyseRepo:
         relPath = os.path.relpath(file.filename, tempFolder)
-        absPath = os.path.join(tempFolder, relPath)
-        if not os.path.exists(absPath):
+        if should_ignore(relPath) or not os.path.exists(file.filename):
             continue
 
         for func in file.function_list:
             startLine = func.start_line
             endLine = func.end_line
 
-            blameOutput = repo.git.blame('-w', '-L', f"{startLine},{endLine}", '--line-porcelain', relPath)
+            try:
+                blameOutput = repo.git.blame('-w', '-L', f"{startLine},{endLine}", '--line-porcelain', relPath)
+            except Exception:
+                continue
+
             linesInFunction = defaultdict(int)
             currentAuthor = None
             for line in blameOutput.splitlines():
@@ -87,11 +114,13 @@ def calculate_LOC(tempFolder):
     authorLOC = defaultdict(int)
 
     for root, dirs, files in os.walk(tempFolder):
-        if ".git" in dirs:
-            dirs.remove(".git")
+        # filter ignored directories
+        dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
         for file in files:
             absPath = os.path.join(root, file)
             relPath = os.path.relpath(absPath, tempFolder)
+            if should_ignore(relPath):
+                continue
             try:
                 blameOutput = repo.git.blame('--line-porcelain', relPath)
             except Exception:
@@ -102,7 +131,8 @@ def calculate_LOC(tempFolder):
                     authorLOC[authorName] += 1
 
     totalLOC = sum(authorLOC.values()) or 1
-    authorPercentage = { author: round((loc / totalLOC) * 100, 2) for author, loc in authorLOC.items() }
+    authorPercentage = {author: round((loc / totalLOC) * 100, 2)
+                        for author, loc in authorLOC.items()}
     return authorPercentage
 
 def merge_metrics(results, locPercentage):
@@ -117,7 +147,7 @@ def merge_metrics(results, locPercentage):
         output = dict(stats)
         output["percentage_of_LOC"] = locPercentage.get(author, 0.0)
         mergedMetrics[author] = output
-    return mergedMetrics  # <-- moved out of loop
+    return mergedMetrics 
 
 def write_json(jsonPath, repoURL, results, locPercentage):
     write = {

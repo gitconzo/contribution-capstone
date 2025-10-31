@@ -17,6 +17,11 @@ export default function UploadFile() {
   const [overrideType, setOverrideType] = useState("unknown");
   const [confirming, setConfirming] = useState(false);
 
+  // NEW: repo analysis UI state
+  const [repoUrl, setRepoUrl] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeMsg, setAnalyzeMsg] = useState("");
+
   const API = "http://localhost:5002";
 
   const detectedType = uploadResult?.detectedType || "unknown";
@@ -67,8 +72,66 @@ export default function UploadFile() {
     fetchFiles();
   };
 
+  // NEW: analyze repo -> runs fetchData.js + main.py on the backend
+  //analyze (fetch commits + run main.py)
+  const handleAnalyzeRepo = async () => {
+    setAnalyzeMsg("");
+    if (!repoUrl.trim()) {
+      setAnalyzeMsg("Please paste a GitHub repository URL first.");
+      return;
+    }
+    setAnalyzing(true);
+    try {
+      const res = await fetch(`${API}/api/github/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: repoUrl.trim() })
+      });
+      // If response is blocked (CORS/mixed-content), we’ll go to catch.
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      setAnalyzeMsg(`Successfully Analyzed: ${json.repo?.owner}/${json.repo?.repo}. Commits: ${json.summary?.commits || 0}`);
+    } catch (e) {
+      // Fallback probe: check if artifacts were produced anyway
+      try {
+        const st = await fetch(`${API}/api/github/status`).then(r => r.json());
+        if (st.finalStatsExists) {
+          setAnalyzeMsg("Analysis finished, but the browser couldn’t read the response (likely CORS/mixed-content). Data is ready.");
+        } else if (st.commitsExists) {
+          setAnalyzeMsg("Commits fetched, but analysis response failed. Try again or refresh dashboard.");
+        } else {
+          setAnalyzeMsg(`${e.message || "Network error (check backend/CORS)"}`);
+        }
+      } catch {
+        setAnalyzeMsg(` ${e.message || "Network error (check backend/CORS)"}`);
+      }
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   return (
     <div style={styles.pageContainer}>
+      {/* NEW: Analyze GitHub Repo card */}
+      <div style={styles.card}>
+        <h1>Analyze GitHub Repository</h1>
+        <label style={styles.label}>Paste GitHub URL</label>
+        <input
+          type="text"
+          placeholder="https://github.com/owner/repo"
+          value={repoUrl}
+          onChange={(e) => setRepoUrl(e.target.value)}
+          style={styles.input}
+        />
+        <button onClick={handleAnalyzeRepo} disabled={analyzing || !repoUrl.trim()} style={styles.analyzeBtn}>
+          {analyzing ? "Analyzing…" : "Analyze Repo"}
+        </button>
+        {analyzeMsg && <div style={{ marginTop: 8, color: analyzeMsg.startsWith("❌") ? "#b91c1c" : "#065f46" }}>{analyzeMsg}</div>}
+        <div style={{ marginTop: 8, color: "#64748b", fontSize: 12 }}>
+          This will fetch commits and run code analysis (Lizard + blame) via <code>main.py</code>.
+        </div>
+      </div>
+
       <div style={styles.card}>
         <h1>Upload Documents</h1>
 
@@ -157,6 +220,11 @@ const styles = {
   },
   label: { fontWeight: "bold", marginTop: "10px" },
   select: { width: "100%", padding: "8px", marginTop: "5px" },
+  input: { width: "100%", padding: "10px", marginTop: 6, borderRadius: 8, border: "1px solid #d1d5db" },
+  analyzeBtn: {
+    width: "100%", padding: "10px", borderRadius: "5px", border: "none",
+    background: "#111827", color: "white", cursor: "pointer", marginTop: "10px"
+  },
   uploadBox: {
     border: "2px dashed #ccc", padding: "15px", textAlign: "center", marginTop: "10px"
   },
