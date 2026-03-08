@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Ensure dirs/files exist on startup
+// Check dirs/files exist on startup
 ensureDir(DATA_DIR);
 ensureDir(UPLOAD_DIR);
 ensureDir(PARSED_DIR);
@@ -20,7 +20,7 @@ ensureFile(ACTIVE_TEAM_PATH, null);
 // Serve uploaded files as static assets
 app.use("/uploads", express.static(UPLOAD_DIR));
 
-// All API routes
+// API routes
 app.use("/api", require("./routes"));
 
 app.listen(PORT, () => {
