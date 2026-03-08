@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-
-const API = "http://localhost:5002";
+import { apiFetch } from "../utils/api";
+import { card, inputBox, solidBtn } from "../utils/styles";
 
 export default function SetupTeam() {
   const [name, setName] = useState("");
@@ -16,7 +16,7 @@ export default function SetupTeam() {
   const loadTeams = async () => {
     setError("");
     try {
-      const res = await fetch(`${API}/api/teams`);
+      const res = await apiFetch("/api/teams");
       if (!res.ok) throw new Error(`Load teams failed (${res.status})`);
       const data = await res.json();
       setTeams(Array.isArray(data) ? data : []);
@@ -46,10 +46,10 @@ export default function SetupTeam() {
         name: name.trim(),
         code: code.trim(),
         repo: normalizeRepo(repoUrl.trim()),
-        students, // [{name,email}]
+        students,
       };
 
-      const res = await fetch(`${API}/api/teams`, {
+      const res = await apiFetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -57,7 +57,6 @@ export default function SetupTeam() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `Create failed (${res.status})`);
 
-      // Refresh and clear form
       await loadTeams();
       setName("");
       setCode("");
@@ -87,10 +86,10 @@ export default function SetupTeam() {
       <div style={card()}>
         <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
           <Field label="Team Name">
-            <input value={name} onChange={(e) => setName(e.target.value)} style={inp()} />
+            <input value={name} onChange={(e) => setName(e.target.value)} style={inputBox()} />
           </Field>
           <Field label="Project Code">
-            <input value={code} onChange={(e) => setCode(e.target.value)} style={inp()} />
+            <input value={code} onChange={(e) => setCode(e.target.value)} style={inputBox()} />
           </Field>
         </div>
 
@@ -100,7 +99,7 @@ export default function SetupTeam() {
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
               placeholder="e.g. https://github.com/org/repo"
-              style={inp({ minWidth: 400 })}
+              style={inputBox({ minWidth: 400 })}
             />
           </Field>
         </div>
@@ -112,7 +111,7 @@ export default function SetupTeam() {
               onChange={(e) => setCsvText(e.target.value)}
               placeholder={`Example:\nAlice Smith, alice@example.com\nBob Jones, bob@example.com`}
               rows={8}
-              style={inp({ fontFamily: "monospace" })}
+              style={inputBox({ fontFamily: "monospace" })}
             />
           </Field>
           <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
@@ -121,13 +120,12 @@ export default function SetupTeam() {
         </div>
 
         <div style={{ marginTop: 14 }}>
-          <button onClick={onCreate} disabled={creating} style={btn()}>
+          <button onClick={onCreate} disabled={creating} style={solidBtn()}>
             {creating ? "Creating..." : "Create Team"}
           </button>
         </div>
       </div>
 
-      {/* Teams list */}
       <div style={card({ marginTop: 16 })}>
         <div style={{ fontWeight: 700, marginBottom: 8 }}>Existing Teams</div>
         {teams.length ? (
@@ -153,11 +151,10 @@ export default function SetupTeam() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {/* Optional: make-active / delete buttons wired to /api/teams/active and DELETE /api/teams/:id */}
                   <button
                     onClick={async () => {
                       try {
-                        const res = await fetch(`${API}/api/teams/active`, {
+                        const res = await apiFetch("/api/teams/active", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ id: t.id }),
@@ -168,7 +165,7 @@ export default function SetupTeam() {
                         alert(e.message);
                       }
                     }}
-                    style={btn({ background: "#111", color: "#fff" })}
+                    style={solidBtn()}
                   >
                     Make Active
                   </button>
@@ -195,7 +192,6 @@ function parseCsv(text) {
 }
 
 function normalizeRepo(url) {
-  // returns {url, owner, repo} when possible
   try {
     const u = new URL(url);
     const parts = u.pathname.split("/").filter(Boolean);
@@ -207,9 +203,6 @@ function normalizeRepo(url) {
   }
 }
 
-function card(extra = {}) {
-  return { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, boxShadow: "0 4px 12px rgba(0,0,0,.04)", ...extra };
-}
 function Field({ label, children }) {
   return (
     <label style={{ display: "grid", gap: 6 }}>
@@ -217,10 +210,4 @@ function Field({ label, children }) {
       {children}
     </label>
   );
-}
-function inp(extra = {}) {
-  return { border: "1px solid #d1d5db", borderRadius: 10, padding: "8px 10px", fontSize: 14, ...extra };
-}
-function btn(extra = {}) {
-  return { background: "#000", color: "#fff", border: "none", padding: "10px 14px", borderRadius: 10, cursor: "pointer", ...extra };
 }

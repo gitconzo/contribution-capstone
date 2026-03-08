@@ -1,5 +1,7 @@
 // frontend/src/components/dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../utils/api";
+import { card, rowCard, rowBetween, inputBox, outlineBtn, scoreColor } from "../utils/styles";
 
 export default function Dashboard({ onViewStudent }) {
   const [teamId, setTeamId] = useState("");
@@ -7,13 +9,11 @@ export default function Dashboard({ onViewStudent }) {
   const [scores, setScores] = useState(null);
   const [query, setQuery] = useState("");
 
-  const API = "http://localhost:5002";
-
   useEffect(() => {
     (async () => {
       const [tres, ares] = await Promise.all([
-        fetch(`${API}/api/teams`).then(r => r.json()),
-        fetch(`${API}/api/teams/active`).then(r => r.json()),
+        apiFetch("/api/teams").then(r => r.json()),
+        apiFetch("/api/teams/active").then(r => r.json()),
       ]);
       setTeams(tres || []);
       setTeamId(ares?.id || tres?.[0]?.id || "");
@@ -22,7 +22,7 @@ export default function Dashboard({ onViewStudent }) {
 
   useEffect(() => {
     if (!teamId) return;
-    fetch(`${API}/api/scores?teamId=${encodeURIComponent(teamId)}`)
+    apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`)
       .then(r => r.json())
       .then(setScores)
       .catch(() => setScores(null));
@@ -58,7 +58,6 @@ export default function Dashboard({ onViewStudent }) {
     };
     const codeDims = ["loc", "editedCode", "commits", "functions", "hotspots", "codeComplexity"];
 
-    // weighted code-only sum per student (normalized values already in breakdown)
     const sums = ranking.map(r =>
       codeDims.reduce((sum, d) => sum + ((r.breakdown?.[d] || 0) * (w[d] || 0)), 0)
     );
@@ -95,13 +94,13 @@ export default function Dashboard({ onViewStudent }) {
           onChange={async (e) => {
             const newTeamId = e.target.value;
             setTeamId(newTeamId);
-            await fetch(`${API}/api/teams/active`, {
+            await apiFetch("/api/teams/active", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ id: newTeamId }),
             });
           }}
-          style={selectBox()}
+          style={inputBox({ minWidth: 300 })}
           title="select project / team"
         >
           {teams.map((t) => (
@@ -117,8 +116,8 @@ export default function Dashboard({ onViewStudent }) {
         <div style={{ color: "#64748b", fontSize: 14 }}>{scores?.team?.code || ""}</div>
         <div style={{ marginTop: 10, display: "flex", gap: 16, color: "#334155", fontSize: 13 }}>
           <span>👥 {scores?.studentsCount || 0} students</span>
-          <span>🔗 {scores?.team?.repo?.url ? 
-            <a href={scores.team.repo.url} target="_blank" rel="noopener noreferrer" 
+          <span>🔗 {scores?.team?.repo?.url ?
+            <a href={scores.team.repo.url} target="_blank" rel="noopener noreferrer"
                style={{ color: "#2563eb", textDecoration: "none" }}>
               {scores.team.repo.owner}/{scores.team.repo.repo}
             </a> : "No repo"}
@@ -154,7 +153,7 @@ export default function Dashboard({ onViewStudent }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search students…"
-              style={inputBox()}
+              style={inputBox({ minWidth: 240 })}
             />
           </div>
         </div>
@@ -168,12 +167,11 @@ export default function Dashboard({ onViewStudent }) {
             </div>
           </div>
         )}
-        
+
         {students.map((s) => {
           const breakdown = s.breakdown || {};
           const raw = s.raw || {};
 
-          // Weights for docs (as before)
           const weights = scores?.weights || {};
           const docWeights = {
             avgSentenceLength: weights.avgSentenceLength ?? 5,
@@ -186,7 +184,7 @@ export default function Dashboard({ onViewStudent }) {
             sentenceComplexity: breakdown.sentenceComplexity || 0,
             wordCount: breakdown.wordCount || 0,
             readability: breakdown.readability || 0
-          }; 
+          };
           const totalDocWeight = Object.values(docWeights).reduce((sum, w) => sum + w, 0);
           const weightedDocScore = totalDocWeight > 0
             ? Object.entries(docMetrics).reduce((sum, [key, value]) => {
@@ -195,10 +193,7 @@ export default function Dashboard({ onViewStudent }) {
             : 0;
           const docScore = Math.round(weightedDocScore * 100);
 
-          // NEW: Code Score from precomputed map
           const codeScore = codeScoreByKey.get(s.email || s.name) ?? 0;
-
-          // Extras
           const wordCount = raw.wordCount || 0;
           const attendance = Math.round((raw.attendance || 0) * 100);
 
@@ -225,7 +220,7 @@ export default function Dashboard({ onViewStudent }) {
                   {Math.round(s.score) || '—'}
                 </div>
                 <div style={{ color: scoreColor(s.score), fontSize: 12, marginTop: -8 }}>%</div>
-                <button onClick={() => onViewStudent?.(s)} style={linkBtn()}>
+                <button onClick={() => onViewStudent?.(s)} style={outlineBtn()}>
                   👁 View Details
                 </button>
               </div>
@@ -291,69 +286,4 @@ function badgeFromScore(s = 0) {
   if (s >= 80) return "high";
   if (s >= 60) return "medium";
   return "low";
-}
-
-function scoreColor(s = 0) {
-  if (s >= 90) return "#16a34a";
-  if (s >= 80) return "#22c55e";
-  if (s >= 70) return "#2563eb";
-  if (s >= 60) return "#ca8a04";
-  if (s >= 50) return "#ea580c";
-  return "#dc2626";
-}
-
-function card(extra = {}) {
-  return {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 14,
-    padding: 14,
-    boxShadow: "0 6px 14px rgba(0,0,0,.04)",
-    ...extra
-  };
-}
-
-function rowCard() {
-  return {
-    ...card(),
-    display: "grid",
-    gridTemplateColumns: "1fr auto",
-    gap: 16,
-    alignItems: "center"
-  };
-}
-
-function inputBox() {
-  return {
-    padding: "8px 12px",
-    borderRadius: 10,
-    border: "1px solid #d1d5db",
-    background: "#fff",
-    fontSize: 14,
-    minWidth: 240
-  };
-}
-
-function selectBox() {
-  return { ...inputBox(), minWidth: 300 };
-}
-
-function linkBtn() {
-  return {
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    borderRadius: 10,
-    padding: "6px 10px",
-    fontSize: 13,
-    cursor: "pointer"
-  };
-}
-
-function rowBetween(extra = {}) {
-  return {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    ...extra
-  };
 }

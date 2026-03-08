@@ -2,16 +2,10 @@
 const fs = require("fs");
 const path = require("path");
 const { combineDocumentationMetrics } = require("./combineDocumentationMetrics");
+const { safeReadJson } = require("../utils/fileUtils");
 
-// ---------- helpers ----------
-function safeReadJSON(p, fallback = null) {
-  try {
-    if (!fs.existsSync(p)) return fallback;
-    return JSON.parse(fs.readFileSync(p, "utf-8"));
-  } catch {
-    return fallback;
-  }
-}
+// Alias for backwards-compatibility within this file
+const safeReadJSON = safeReadJson;
 
 function normalize(values) {
   const arr = Array.isArray(values) ? values : [];

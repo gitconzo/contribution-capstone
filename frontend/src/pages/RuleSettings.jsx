@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-
-const API = "http://localhost:5002";
+import { apiFetch } from "../utils/api";
 
 // Enhanced descriptions for each metric
 const METRIC_DESCRIPTIONS = {
@@ -83,7 +82,7 @@ export default function RuleSettings() {
     try {
       setLoading(true);
       setError("");
-      const res = await fetch(`${API}/api/rules`);
+      const res = await apiFetch("/api/rules");
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || `Failed to fetch rules (${res.status})`);
@@ -108,7 +107,7 @@ export default function RuleSettings() {
   const fetchScores = useCallback(async () => {
     try {
       setLoadingScores(true);
-      const res = await fetch(`${API}/api/scores`);
+      const res = await apiFetch("/api/scores");
       if (!res.ok) throw new Error("Failed to fetch scores");
       const data = await res.json();
       setScores(data);
@@ -141,7 +140,7 @@ export default function RuleSettings() {
         autoRecalc: effectiveRules.autoRecalc,
         crossVerify: effectiveRules.crossVerify,
       };
-      const res = await fetch(`${API}/api/rules`, {
+      const res = await apiFetch("/api/rules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

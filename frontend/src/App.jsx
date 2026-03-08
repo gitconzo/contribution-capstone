@@ -1,6 +1,7 @@
 // frontend/src/App.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
+import { isAuthed, setAuthed, clearAuthed } from "./utils/auth";
 
 import Navigation from "./components/Navigation";
 import Dashboard from "./pages/Dashboard";
@@ -12,16 +13,12 @@ import { Login } from "./pages/Login";
 
 function Shell() {
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [authed, setAuthed] = useState(() => {
-    // persist login across refreshes (optional)
-    return localStorage.getItem("p17_authed") === "1";
-  });
+  const [authed, setAuthedState] = useState(() => isAuthed());
   const [dark, setDark] = useState(false);
 
   const nav = useNavigate();
   const { pathname } = useLocation();
 
-  // derive current tab
   const current = useMemo(() => {
     if (pathname === "/") return "dashboard";
     if (pathname.startsWith("/rules")) return "rules";
@@ -39,31 +36,28 @@ function Shell() {
     else if (key === "export") nav("/export");
   };
 
-  // Apply dark mode class (you can extend with CSS variables)
   useEffect(() => {
     const cl = document.body.classList;
     if (dark) cl.add("p17-dark");
     else cl.remove("p17-dark");
   }, [dark]);
 
-  // auth helpers
   const handleLogin = () => {
-    setAuthed(true);
-    localStorage.setItem("p17_authed", "1");
+    setAuthed();
+    setAuthedState(true);
     nav("/");
   };
+
   const handleLogout = () => {
-    setAuthed(false);
-    localStorage.removeItem("p17_authed");
+    clearAuthed();
+    setAuthedState(false);
     nav("/login");
   };
 
-  // If not authed, only allow /login
   if (!authed && pathname !== "/login") {
     return <Navigate to="/login" replace />;
   }
 
-  // Logged-in shell
   if (authed) {
     return (
       <>
@@ -73,7 +67,6 @@ function Shell() {
           onLogout={handleLogout}
           onToggleDark={() => setDark((d) => !d)}
         />
-        {/* push below fixed nav */}
         <div style={{ paddingTop: 64 }}>
           <Routes>
             <Route
@@ -103,7 +96,6 @@ function Shell() {
     );
   }
 
-  // Not authed → login route
   return (
     <Routes>
       <Route path="/login" element={<Login onLogin={handleLogin} />} />

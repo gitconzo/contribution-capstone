@@ -1,5 +1,6 @@
 // frontend/src/pages/UploadFile.js
 import React, { useEffect, useMemo, useState } from "react";
+import { apiFetch, API_URL } from "../utils/api";
 
 const TYPE_OPTIONS = [
   { value: "attendance", label: "Attendance Sheet (.xlsx)" },
@@ -17,12 +18,9 @@ export default function UploadFile() {
   const [overrideType, setOverrideType] = useState("unknown");
   const [confirming, setConfirming] = useState(false);
 
-  // NEW: repo analysis UI state
   const [repoUrl, setRepoUrl] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeMsg, setAnalyzeMsg] = useState("");
-
-  const API = "http://localhost:5002";
 
   const detectedType = uploadResult?.detectedType || "unknown";
   const effectiveType = useMemo(() => {
@@ -30,7 +28,7 @@ export default function UploadFile() {
   }, [overrideType, detectedType]);
 
   const fetchFiles = () => {
-    fetch(`${API}/api/uploads`)
+    apiFetch("/api/uploads")
       .then(res => res.json())
       .then(setFiles)
       .catch(console.error);
@@ -51,7 +49,7 @@ export default function UploadFile() {
     formData.append("file", file);
     formData.append("userType", overrideType);
 
-    const res = await fetch(`${API}/api/uploads`, { method: "POST", body: formData });
+    const res = await apiFetch("/api/uploads", { method: "POST", body: formData });
     const json = await res.json();
     setUploadResult(json);
   };
@@ -60,7 +58,7 @@ export default function UploadFile() {
     if (!uploadResult?.id) return;
     setConfirming(true);
 
-    const res = await fetch(`${API}/api/uploads/confirm`, {
+    const res = await apiFetch("/api/uploads/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: uploadResult.id, type: effectiveType })
@@ -72,8 +70,6 @@ export default function UploadFile() {
     fetchFiles();
   };
 
-  // NEW: analyze repo -> runs fetchData.js + main.py on the backend
-  //analyze (fetch commits + run main.py)
   const handleAnalyzeRepo = async () => {
     setAnalyzeMsg("");
     if (!repoUrl.trim()) {
@@ -82,21 +78,19 @@ export default function UploadFile() {
     }
     setAnalyzing(true);
     try {
-      const res = await fetch(`${API}/api/github/analyze`, {
+      const res = await apiFetch("/api/github/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: repoUrl.trim() })
       });
-      // If response is blocked (CORS/mixed-content), we’ll go to catch.
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setAnalyzeMsg(`Successfully Analyzed: ${json.repo?.owner}/${json.repo?.repo}. Commits: ${json.summary?.commits || 0}`);
     } catch (e) {
-      // Fallback probe: check if artifacts were produced anyway
       try {
-        const st = await fetch(`${API}/api/github/status`).then(r => r.json());
+        const st = await apiFetch("/api/github/status").then(r => r.json());
         if (st.finalStatsExists) {
-          setAnalyzeMsg("Analysis finished, but the browser couldn’t read the response (likely CORS/mixed-content). Data is ready.");
+          setAnalyzeMsg("Analysis finished, but the browser couldn't read the response (likely CORS/mixed-content). Data is ready.");
         } else if (st.commitsExists) {
           setAnalyzeMsg("Commits fetched, but analysis response failed. Try again or refresh dashboard.");
         } else {
@@ -112,7 +106,6 @@ export default function UploadFile() {
 
   return (
     <div style={styles.pageContainer}>
-      {/* NEW: Analyze GitHub Repo card */}
       <div style={styles.card}>
         <h1>Analyze GitHub Repository</h1>
         <label style={styles.label}>Paste GitHub URL</label>
@@ -190,7 +183,7 @@ export default function UploadFile() {
                 <td style={styles.tableCell}>{file.status}</td>
                 <td style={styles.tableCell}>
                   <a
-                    href={`http://localhost:5002/${file.storedPath}`}
+                    href={`${API_URL}/${file.storedPath}`}
                     download
                     style={styles.downloadBtn}
                   >

@@ -13,6 +13,7 @@ function safeReadJSON(p, fallback = null) {
 
 function combineDocumentationMetrics(rootDir) {
   const dataDir = path.join(rootDir, "data");
+  const parsedDir = path.join(dataDir, "parsed");
   const registryPath = path.join(rootDir, "fileRegistry.json");
   
   console.log(`Looking for registry at: ${registryPath}`);
@@ -144,7 +145,7 @@ function combineDocumentationMetrics(rootDir) {
   });
 
   const result = { students: combined };
-  const outputPath = path.join(dataDir, "combined_documentation_metrics.json");
+  const outputPath = path.join(parsedDir, "combined_documentation_metrics.json");
   
   fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
   console.log(`Combined documentation metrics written to ${outputPath}`);
