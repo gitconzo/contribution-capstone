@@ -1,0 +1,16 @@
+[
+    {
+      "id": 1,
+      "name": "Lecturer One",
+      "email": "lecturer@university.edu",
+      "password": "$2b$10$dd.0CC7YdxlHJV8pg6GSPOOEEuT1gfhNCHEj/stvI8Cwi3am4VEnG",
+      "role": "teacher"
+    },
+    {
+      "id": 2,
+      "name": "Student One",
+      "email": "student@university.edu",
+      "password": "$2b$10$dd.0CC7YdxlHJV8pg6GSPOOEEuT1gfhNCHEj/stvI8Cwi3am4VEnG",
+      "role": "student"
+    }
+  ]

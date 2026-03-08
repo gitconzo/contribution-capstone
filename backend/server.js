@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 // backend/server.js
 const express = require("express");
 const cors = require("cors");
@@ -27,15 +29,29 @@ if (!fs.existsSync(TEAMS_PATH)) fs.writeFileSync(TEAMS_PATH, JSON.stringify([], 
 if (!fs.existsSync(ACTIVE_TEAM_PATH)) fs.writeFileSync(ACTIVE_TEAM_PATH, JSON.stringify(null, null, 2));
 
 // Registry helpers
-function loadRegistry() { return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf-8")); }
-function saveRegistry(data) { fs.writeFileSync(REGISTRY_PATH, JSON.stringify(data, null, 2)); }
+function loadRegistry() {
+  return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf-8"));
+}
+function saveRegistry(data) {
+  fs.writeFileSync(REGISTRY_PATH, JSON.stringify(data, null, 2));
+}
 
 // Teams helpers
-function loadTeams() { return JSON.parse(fs.readFileSync(TEAMS_PATH, "utf-8")); }
-function saveTeams(data) { fs.writeFileSync(TEAMS_PATH, JSON.stringify(data, null, 2)); }
-function getActiveTeamId() { return JSON.parse(fs.readFileSync(ACTIVE_TEAM_PATH, "utf-8")); }
-function setActiveTeamId(id) { fs.writeFileSync(ACTIVE_TEAM_PATH, JSON.stringify(id, null, 2)); }
-function findTeamById(id) { return loadTeams().find(t => t.id === id) || null; }
+function loadTeams() {
+  return JSON.parse(fs.readFileSync(TEAMS_PATH, "utf-8"));
+}
+function saveTeams(data) {
+  fs.writeFileSync(TEAMS_PATH, JSON.stringify(data, null, 2));
+}
+function getActiveTeamId() {
+  return JSON.parse(fs.readFileSync(ACTIVE_TEAM_PATH, "utf-8"));
+}
+function setActiveTeamId(id) {
+  fs.writeFileSync(ACTIVE_TEAM_PATH, JSON.stringify(id, null, 2));
+}
+function findTeamById(id) {
+  return loadTeams().find((t) => t.id === id) || null;
+}
 function getActiveTeam() {
   const id = getActiveTeamId();
   return id ? findTeamById(id) : null;
@@ -49,7 +65,7 @@ const storage = multer.diskStorage({
     const ext = path.extname(file.originalname);
     const base = path.basename(file.originalname, ext);
     cb(null, `${base}__${ts}${ext}`);
-  }
+  },
 });
 const upload = multer({ storage });
 
@@ -103,7 +119,7 @@ app.post("/api/teams", teamUpload.single("studentsCsv"), (req, res) => {
       for (let i = 0; i < lines.length; i++) {
         const row = lines[i].trim();
         if (!row) continue;
-        const cols = row.split(",").map(s => s.trim());
+        const cols = row.split(",").map((s) => s.trim());
         if (cols.length >= 2) {
           // Skip header if matches
           if (i === 0 && /name/i.test(cols[0]) && /email/i.test(cols[1])) continue;
@@ -117,11 +133,13 @@ app.post("/api/teams", teamUpload.single("studentsCsv"), (req, res) => {
 
   const id = `team_${Date.now()}`;
   const team = {
-    id, name, code,
+    id,
+    name,
+    code,
     repo, // {url, owner, repo} or null
     students, // [{name,email}]
     rules: null, // will be saved via /rules
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   };
 
   const teams = loadTeams();
@@ -167,7 +185,7 @@ app.get("/api/teams/:id", (req, res) => {
 app.post("/api/teams/:id/rules", (req, res) => {
   const id = req.params.id;
   const teams = loadTeams();
-  const idx = teams.findIndex(t => t.id === id);
+  const idx = teams.findIndex((t) => t.id === id);
   if (idx === -1) return res.status(404).json({ error: "Team not found" });
 
   const { rules, autoRecalc, crossVerify, triangulation, peerValidation } = req.body || {};
@@ -177,7 +195,7 @@ app.post("/api/teams/:id/rules", (req, res) => {
     crossVerify: !!crossVerify,
     triangulation: triangulation || { codeWorklog: 80, meetingDoc: 70, activityDist: 60 },
     peerValidation: peerValidation || "Statistical analysis",
-    savedAt: new Date().toISOString()
+    savedAt: new Date().toISOString(),
   };
   saveTeams(teams);
   res.json(teams[idx].rules);
@@ -205,7 +223,7 @@ app.get("/api/scores", (req, res) => {
   }
 
   const raw = {};
-  commits.forEach(c => {
+  commits.forEach((c) => {
     const author = c.author || "Unknown";
     if (!raw[author]) raw[author] = { commits: 0, additions: 0, deletions: 0 };
     raw[author].commits += 1;
@@ -214,18 +232,18 @@ app.get("/api/scores", (req, res) => {
   });
 
   const authors = Object.keys(raw);
-  const commitsArr   = authors.map(a => raw[a].commits);
-  const additionsArr = authors.map(a => raw[a].additions);
-  const deletionsArr = authors.map(a => raw[a].deletions);
+  const commitsArr = authors.map((a) => raw[a].commits);
+  const additionsArr = authors.map((a) => raw[a].additions);
+  const deletionsArr = authors.map((a) => raw[a].deletions);
 
   function normalizeMinMax(values) {
     const min = Math.min(...values);
     const max = Math.max(...values);
     if (max === min) return values.map(() => 1);
-    return values.map(v => (v - min) / (max - min));
+    return values.map((v) => (v - min) / (max - min));
   }
 
-  const commitsNorm   = normalizeMinMax(commitsArr);
+  const commitsNorm = normalizeMinMax(commitsArr);
   const additionsNorm = normalizeMinMax(additionsArr);
   const deletionsNorm = normalizeMinMax(deletionsArr);
 
@@ -236,9 +254,9 @@ app.get("/api/scores", (req, res) => {
     additions: raw[author].additions,
     deletions: raw[author].deletions,
     score:
-      commitsNorm[i]   * weights.commits +
+      commitsNorm[i] * weights.commits +
       additionsNorm[i] * weights.additions +
-      deletionsNorm[i] * weights.deletions
+      deletionsNorm[i] * weights.deletions,
   }));
 
   scored.sort((a, b) => b.score - a.score);
@@ -251,7 +269,7 @@ app.get("/api/scores", (req, res) => {
     additions: r.additions,
     deletions: r.deletions,
     score: Number(r.score.toFixed(6)),
-    percent: `${((r.score / totalScore) * 100).toFixed(1)}%`
+    percent: `${((r.score / totalScore) * 100).toFixed(1)}%`,
   }));
 
   res.json({ ranking, raw });
@@ -265,7 +283,12 @@ app.post("/api/github/fetch", (req, res) => {
   }
   const script = path.join(__dirname, "fetchData.js");
   // Pass repo info via env to the script (script should read process.env.REPO_URL etc.)
-  const env = { ...process.env, REPO_URL: active.repo.url, REPO_OWNER: active.repo.owner || "", REPO_NAME: active.repo.repo || "" };
+  const env = {
+    ...process.env,
+    REPO_URL: active.repo.url,
+    REPO_OWNER: active.repo.owner || "",
+    REPO_NAME: active.repo.repo || "",
+  };
 
   execFile("node", [script], { cwd: __dirname, env }, (err, stdout, stderr) => {
     if (err) {
@@ -302,7 +325,7 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
     detectedType,
     userType: null,
     status: "uploaded",
-    parseInfo: null
+    parseInfo: null,
   };
 
   registry.push(entry);
@@ -316,10 +339,10 @@ app.post("/api/uploads/confirm", (req, res) => {
   if (!id) return res.status(400).json({ error: "Missing id" });
 
   const registry = loadRegistry();
-  const entry = registry.find(r => r.id === id);
+  const entry = registry.find((r) => r.id === id);
   if (!entry) return res.status(404).json({ error: "Upload not found" });
 
-  const finalType = type && type !== "unknown" ? type : (entry.detectedType || "unknown");
+  const finalType = type && type !== "unknown" ? type : entry.detectedType || "unknown";
   entry.userType = finalType;
   entry.status = "confirmed";
 
@@ -375,7 +398,10 @@ app.post("/api/uploads/confirm", (req, res) => {
       } else {
         const jsonFile = path.join(path.dirname(absPath), "sprint_report_summary.json");
         entry.status = "parsed";
-        entry.parseInfo = { jsonPath: path.relative(__dirname, jsonFile), message: "Sprint report parsed successfully" };
+        entry.parseInfo = {
+          jsonPath: path.relative(__dirname, jsonFile),
+          message: "Sprint report parsed successfully",
+        };
       }
       finish();
     });
@@ -392,7 +418,10 @@ app.post("/api/uploads/confirm", (req, res) => {
       } else {
         const jsonFile = path.join(path.dirname(absPath), "project_plan_summary.json");
         entry.status = "parsed";
-        entry.parseInfo = { jsonPath: path.relative(__dirname, jsonFile), message: "Project Plan parsed successfully" };
+        entry.parseInfo = {
+          jsonPath: path.relative(__dirname, jsonFile),
+          message: "Project Plan parsed successfully",
+        };
       }
       finish();
     });
@@ -409,14 +438,17 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 
 const teamsRouter = require("./routes/teams");
 const rulesRouter = require("./routes/rules");
+const authRoutes = require("./routes/authRoutes");
+
 app.use("/api", teamsRouter);
 app.use("/api/rules", rulesRouter);
+app.use("/api/auth", authRoutes);
 
 // Return parsed JSON for an upload
 app.get("/api/uploads/:id/json", (req, res) => {
   const { id } = req.params;
   const registry = loadRegistry();
-  const entry = registry.find(f => f.id === id);
+  const entry = registry.find((f) => f.id === id);
 
   if (!entry || !entry.parseInfo?.jsonPath) {
     return res.status(404).json({ error: "Parsed JSON not found for this file" });
