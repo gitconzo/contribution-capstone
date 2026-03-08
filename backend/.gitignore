@@ -1,6 +1,5 @@
 node_modules/
 package-lock.json
-.env
 
 # Runtime data (generated at runtime, not source files)
 data/
