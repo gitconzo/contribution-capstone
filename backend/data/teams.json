@@ -55,7 +55,7 @@
       "rules": [
         {
           "name": "Total Lines of Code",
-          "value": 24,
+          "value": 10,
           "desc": "Percentage of code written in code base"
         },
         {
@@ -65,17 +65,17 @@
         },
         {
           "name": "Total Commits",
-          "value": 9,
+          "value": 17,
           "desc": "Percentage of commits made"
         },
         {
           "name": "Total Functions Written",
-          "value": 15,
+          "value": 9,
           "desc": "Percentage of functions written in codebase"
         },
         {
           "name": "Total Hotspot Contributed",
-          "value": 11,
+          "value": 16,
           "desc": "Percentage of hotspots written in codebase (hotspots = above average function complexity)"
         },
         {
@@ -90,7 +90,7 @@
         },
         {
           "name": "Sentence Complexity",
-          "value": 5,
+          "value": 12,
           "desc": "Sentence complexity"
         },
         {
@@ -154,5 +154,27 @@
     ],
     "rules": null,
     "createdAt": "2025-10-30T02:18:28.969Z"
+  },
+  {
+    "id": "team_1762690066093",
+    "name": "demonstration",
+    "code": "COS40005",
+    "repo": {
+      "url": "https://github.com/gitconzo/contribution-capstone",
+      "owner": "gitconzo",
+      "repo": "contribution-capstone"
+    },
+    "students": [
+      {
+        "name": "BOB JONES",
+        "email": "bob@gmail.com"
+      },
+      {
+        "name": "SANDY CHEEKS",
+        "email": "sandy@gmail.com"
+      }
+    ],
+    "rules": null,
+    "createdAt": "2025-11-09T12:07:46.093Z"
   }
 ]

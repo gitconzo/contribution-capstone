@@ -1155,5 +1155,21 @@
       "jsonPath": "data/sprint_report_1761790646909.json",
       "message": "Sprint report parsed successfully"
     }
+  },
+  {
+    "id": "COS40005 Sprint 3 Report__1762689981547.docx",
+    "originalName": "COS40005 Sprint 3 Report.docx",
+    "storedName": "COS40005 Sprint 3 Report__1762689981547.docx",
+    "storedPath": "uploads/COS40005 Sprint 3 Report__1762689981547.docx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 23749,
+    "uploadDate": "2025-11-09T12:06:21.555Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/sprint_report_1762689982635.json",
+      "message": "Sprint report parsed successfully"
+    }
   }
 ]
