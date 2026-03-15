@@ -2,5 +2,5 @@ node_modules/
 package-lock.json
 
 # Runtime data (generated at runtime, not source files)
-data/
-uploads/
+/data/
+/uploads/
