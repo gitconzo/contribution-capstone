@@ -1,14 +1,32 @@
-// frontend/src/components/Navigation.jsx
 import React from "react";
 
-export default function Navigation({ currentPage, onNavigate, onLogout, onToggleDark }) {
-  const menuItems = [
+export default function Navigation({
+  currentPage,
+  onNavigate,
+  onLogout,
+  onToggleDark,
+  user,
+}) {
+  const isStudent = user?.role === "student";
+  const isTeacher = user?.role === "teacher";
+
+  const teacherMenuItems = [
     { key: "dashboard", label: "Dashboard" },
     { key: "rules", label: "Rule Settings" },
     { key: "upload", label: "Upload Data" },
     { key: "setup-team", label: "Setup Team" },
-    { key: "export", label: "Export Report" },
+    { key: "lecturer-settings", label: "Settings" },
   ];
+
+  const studentMenuItems = [
+    { key: "student-dashboard", label: "My Progress" },
+    { key: "settings", label: "Settings" },
+  ];
+
+  const menuItems = isStudent ? studentMenuItems : teacherMenuItems;
+
+  const displayName = user?.name || (isTeacher ? "Lecturer" : "Student");
+  const displayRole = isTeacher ? "Teacher" : isStudent ? "Student" : "";
 
   return (
     <div
@@ -22,7 +40,6 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
         zIndex: 1000,
       }}
     >
-      {/* Centered container to prevent overflow on small screens */}
       <div
         style={{
           maxWidth: 1200,
@@ -34,7 +51,6 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           gap: 12,
         }}
       >
-        {/* left: brand + tabs */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           <div
             style={{
@@ -53,9 +69,11 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           >
             👥
           </div>
-          <span style={{ fontWeight: 700, fontSize: 16, whiteSpace: "nowrap" }}>Project17</span>
 
-          {/* Tabs (wrap on narrow screens) */}
+          <span style={{ fontWeight: 700, fontSize: 16, whiteSpace: "nowrap" }}>
+            Project17
+          </span>
+
           <div
             style={{
               display: "flex",
@@ -89,7 +107,6 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           </div>
         </div>
 
-        {/* right: actions (never off-screen; shrinks nicely) */}
         <div
           style={{
             display: "flex",
@@ -98,6 +115,19 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
             flex: "0 0 auto",
           }}
         >
+          {user && (
+            <span
+              style={{
+                fontSize: 12,
+                color: "#6b7280",
+                marginRight: 6,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {displayName} {displayRole ? `(${displayRole})` : ""}
+            </span>
+          )}
+
           <button
             onClick={onToggleDark}
             style={{
@@ -113,6 +143,7 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           >
             Dark Mode
           </button>
+
           <button
             onClick={onLogout}
             style={{

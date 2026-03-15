@@ -154,5 +154,61 @@
     ],
     "rules": null,
     "createdAt": "2025-10-30T02:18:28.969Z"
+  },
+  {
+    "id": "team_1773546267992",
+    "name": "P20",
+    "code": "COS30001",
+    "repo": {
+      "url": "https://github.com/Kavinduwer11/COS30045-data-visualization.git",
+      "owner": "Kavinduwer11",
+      "repo": "COS30045-data-visualization"
+    },
+    "students": [
+      {
+        "name": "jaden smith",
+        "email": "jaden@gmail.com"
+      },
+      {
+        "name": "Alice smith",
+        "email": "alice@gmail.com"
+      },
+      {
+        "name": "alex wayne",
+        "email": "alex@gmai.com"
+      }
+    ],
+    "rules": null,
+    "createdAt": "2026-03-15T03:44:27.993Z"
+  },
+  {
+    "id": "team_1773549075430",
+    "name": "P21 Solar App",
+    "code": "COS2001",
+    "repo": {
+      "url": "https://github.com/Kavinduwer11/COS30045-data-visualization.git",
+      "owner": "Kavinduwer11",
+      "repo": "COS30045-data-visualization"
+    },
+    "students": [
+      {
+        "name": "Alice smith",
+        "email": "alice@gmail.com"
+      },
+      {
+        "name": "jaden smith",
+        "email": "jaden@gmail.com"
+      },
+      {
+        "name": "roxy smith",
+        "email": "roxy@gmail.com"
+      },
+      {
+        "name": "kevin perera",
+        "email": "kevin@gmail.com"
+      }
+    ],
+    "rules": null,
+    "createdAt": "2026-03-15T04:31:15.431Z"
   }
 ]

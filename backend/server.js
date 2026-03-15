@@ -1,12 +1,17 @@
-// backend/server.js
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const { execFile } = require("child_process");
+const bcrypt = require("bcryptjs");
+
 const { aggregateTeamScores } = require("./services/aggregator");
 const { combineDocumentationMetrics } = require("./services/combineDocumentationMetrics");
+
+const authRoutes = require("./routes/authRoutes");
+const teamsRouter = require("./routes/teams");
+const rulesRouter = require("./routes/rules");
 
 const app = express();
 const PORT = 5002;
@@ -20,6 +25,7 @@ const UPLOAD_DIR = path.join(__dirname, "uploads");
 const REGISTRY_PATH = path.join(__dirname, "fileRegistry.json");
 const TEAMS_PATH = path.join(DATA_DIR, "teams.json");
 const ACTIVE_TEAM_PATH = path.join(DATA_DIR, "activeTeam.json");
+const USERS_PATH = path.join(DATA_DIR, "users.json");
 
 // Ensure dirs/files
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -28,38 +34,105 @@ if (!fs.existsSync(REGISTRY_PATH)) fs.writeFileSync(REGISTRY_PATH, JSON.stringif
 if (!fs.existsSync(TEAMS_PATH)) fs.writeFileSync(TEAMS_PATH, JSON.stringify([], null, 2));
 if (!fs.existsSync(ACTIVE_TEAM_PATH)) fs.writeFileSync(ACTIVE_TEAM_PATH, JSON.stringify(null, null, 2));
 
-// Registry helpers
-function loadRegistry() { return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf-8")); }
-function saveRegistry(data) { fs.writeFileSync(REGISTRY_PATH, JSON.stringify(data, null, 2)); }
+// Seed users with hashed passwords if file does not exist
+if (!fs.existsSync(USERS_PATH)) {
+  const seedUsers = async () => {
+    const passwordHash = await bcrypt.hash("123456", 10);
 
-// Teams helpers
-function loadTeams() { return JSON.parse(fs.readFileSync(TEAMS_PATH, "utf-8")); }
-function saveTeams(data) { fs.writeFileSync(TEAMS_PATH, JSON.stringify(data, null, 2)); }
-function getActiveTeamId() { return JSON.parse(fs.readFileSync(ACTIVE_TEAM_PATH, "utf-8")); }
-function setActiveTeamId(id) { fs.writeFileSync(ACTIVE_TEAM_PATH, JSON.stringify(id, null, 2)); }
-function findTeamById(id) { return loadTeams().find(t => t.id === id) || null; }
-function getActiveTeam() {
-  const id = getActiveTeamId();
-  return id ? findTeamById(id) : null;
+    const users = [
+      {
+        id: 1,
+        name: "Lecturer",
+        email: "lecturer@university.edu",
+        password: passwordHash,
+        role: "teacher",
+      },
+      {
+        id: 2,
+        name: "Kavindu Bhanuka Weragoda",
+        email: "kavindu@dummy.com",
+        password: passwordHash,
+        role: "student",
+      },
+      {
+        id: 3,
+        name: "Connor Lack",
+        email: "connor@dummy.com",
+        password: passwordHash,
+        role: "student",
+      },
+      {
+        id: 4,
+        name: "Jason Vo",
+        email: "jason@dummy.com",
+        password: passwordHash,
+        role: "student",
+      },
+      {
+        id: 5,
+        name: "Jen Mao",
+        email: "jen@dummy.com",
+        password: passwordHash,
+        role: "student",
+      },
+      {
+        id: 6,
+        name: "Md Hridoy Mia",
+        email: "hridoy@dummy.com",
+        password: passwordHash,
+        role: "student",
+      },
+    ];
+
+    fs.writeFileSync(USERS_PATH, JSON.stringify(users, null, 2));
+  };
+
+  seedUsers().catch((err) => {
+    console.error("Failed to seed users:", err);
+  });
 }
 
-// ---------- small utils ----------
+// Registry helpers
+function loadRegistry() {
+  return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf-8"));
+}
+function saveRegistry(data) {
+  fs.writeFileSync(REGISTRY_PATH, JSON.stringify(data, null, 2));
+}
+
+// Teams helpers
+function loadTeams() {
+  return JSON.parse(fs.readFileSync(TEAMS_PATH, "utf-8"));
+}
+function getActiveTeamId() {
+  return JSON.parse(fs.readFileSync(ACTIVE_TEAM_PATH, "utf-8"));
+}
+function getActiveTeam() {
+  const id = getActiveTeamId();
+  return id ? loadTeams().find((t) => t.id === id) || null : null;
+}
+
+// Utils
 function parseRepoFromUrl(url) {
-  let owner = "", repo = "";
+  let owner = "";
+  let repo = "";
   try {
     if (url.includes("github.com")) {
       const cleaned = url.replace(/\.git$/i, "");
       const parts = cleaned.split(/github\.com[/:]/).pop().split("/");
       owner = (parts[0] || "").trim();
-      repo  = (parts[1] || "").trim();
+      repo = (parts[1] || "").trim();
     } else if (/^[^/]+\/[^/]+$/.test(url)) {
-      // owner/repo form
       [owner, repo] = url.split("/");
     }
   } catch {}
   return { url, owner, repo };
 }
-function pyBin() { return process.platform === "win32" ? "python" : "python3"; }
+
+function pyBin() {
+  return process.platform === "win32" ? "python" : "python3";
+}
+
 function runFile(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
     execFile(cmd, args, opts, (err, stdout, stderr) => {
@@ -69,7 +142,7 @@ function runFile(cmd, args, opts = {}) {
   });
 }
 
-// Multer storage for uploads
+// Multer storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
@@ -77,11 +150,10 @@ const storage = multer.diskStorage({
     const ext = path.extname(file.originalname);
     const base = path.basename(file.originalname, ext);
     cb(null, `${base}__${ts}${ext}`);
-  }
+  },
 });
 const upload = multer({ storage });
 
-// Simple type detection by name
 function detectTypeFromName(filename, userGuess) {
   if (userGuess && userGuess !== "unknown") return userGuess;
   const lower = (filename || "").toLowerCase();
@@ -93,8 +165,10 @@ function detectTypeFromName(filename, userGuess) {
   return "unknown";
 }
 
-// ---------------------- Scores / GitHub ----------------------
+// Auth routes
+app.use("/api/auth", authRoutes);
 
+// Scores / GitHub
 app.get("/api/scores", (req, res) => {
   try {
     const teamId = req.query.teamId || getActiveTeamId();
@@ -108,14 +182,19 @@ app.get("/api/scores", (req, res) => {
   }
 });
 
-// Trigger GitHub fetch (expects active team repo)
 app.post("/api/github/fetch", (req, res) => {
   const active = getActiveTeam();
   if (!active?.repo?.url) {
     return res.status(400).json({ error: "Active team has no repository URL configured." });
   }
+
   const script = path.join(__dirname, "fetchData.js");
-  const env = { ...process.env, REPO_URL: active.repo.url, REPO_OWNER: active.repo.owner || "", REPO_NAME: active.repo.repo || "" };
+  const env = {
+    ...process.env,
+    REPO_URL: active.repo.url,
+    REPO_OWNER: active.repo.owner || "",
+    REPO_NAME: active.repo.repo || "",
+  };
 
   execFile("node", [script], { cwd: __dirname, env }, (err, stdout, stderr) => {
     if (err) {
@@ -125,8 +204,6 @@ app.post("/api/github/fetch", (req, res) => {
   });
 });
 
-
-
 app.post("/api/github/analyze", async (req, res) => {
   try {
     const rawUrl = String(req.body?.url || "").trim();
@@ -135,19 +212,14 @@ app.post("/api/github/analyze", async (req, res) => {
     const { url, owner, repo } = parseRepoFromUrl(rawUrl);
     if (!owner || !repo) return res.status(400).json({ error: "Could not parse owner/repo from URL." });
 
-    // Ensure data dir & write repo.json (used by fetchData.js)
-    const DATA_DIR = path.join(__dirname, "data");
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(path.join(DATA_DIR, "repo.json"), JSON.stringify({ url, owner, repo }, null, 2));
 
-    // fetch commits from commits.json
     await runFile("node", [path.join(__dirname, "fetchData.js")], { cwd: __dirname });
 
-    // run main.py
     const py = process.platform === "win32" ? "python" : "python3";
     await runFile(py, [path.join(__dirname, "main.py"), "--repo-url", url], { cwd: __dirname });
 
-    // small summary
     let commits = [];
     const commitsPath = path.join(DATA_DIR, "commits.json");
     if (fs.existsSync(commitsPath)) {
@@ -160,8 +232,8 @@ app.post("/api/github/analyze", async (req, res) => {
     res.status(500).json({ error: e.message || "Failed to analyze GitHub repo" });
   }
 });
-// ---------------------- Uploads API ----------------------
 
+// Uploads
 app.get("/api/uploads", (req, res) => {
   const registry = loadRegistry().sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
   res.json(registry);
@@ -185,7 +257,7 @@ app.post("/api/uploads", upload.single("file"), (req, res) => {
     detectedType,
     userType: null,
     status: "uploaded",
-    parseInfo: null
+    parseInfo: null,
   };
 
   registry.push(entry);
@@ -198,10 +270,10 @@ app.post("/api/uploads/confirm", (req, res) => {
   if (!id) return res.status(400).json({ error: "Missing id" });
 
   const registry = loadRegistry();
-  const entry = registry.find(r => r.id === id);
+  const entry = registry.find((r) => r.id === id);
   if (!entry) return res.status(404).json({ error: "Upload not found" });
 
-  const finalType = type && type !== "unknown" ? type : (entry.detectedType || "unknown");
+  const finalType = type && type !== "unknown" ? type : entry.detectedType || "unknown";
   entry.userType = finalType;
   entry.status = "confirmed";
 
@@ -249,14 +321,17 @@ app.post("/api/uploads/confirm", (req, res) => {
     const py = path.join(__dirname, "parsers", "parse_sprint_report_docx.py");
     const timestamp = Date.now();
     const outJson = path.join(DATA_DIR, `sprint_report_${timestamp}.json`);
-    
+
     execFile(pyBin(), [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Sprint report parse failed: ${stderr || err.message}` };
       } else {
         entry.status = "parsed";
-        entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Sprint report parsed successfully" };
+        entry.parseInfo = {
+          jsonPath: path.relative(__dirname, outJson),
+          message: "Sprint report parsed successfully",
+        };
 
         try {
           combineDocumentationMetrics(__dirname);
@@ -273,14 +348,17 @@ app.post("/api/uploads/confirm", (req, res) => {
     const py = path.join(__dirname, "parsers", "parse_project_plan_docx.py");
     const timestamp = Date.now();
     const outJson = path.join(DATA_DIR, `project_plan_${timestamp}.json`);
-    
+
     execFile(pyBin(), [py, absPath, outJson], { cwd: __dirname }, (err, stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `Project Plan parse failed: ${stderr || err.message}` };
       } else {
         entry.status = "parsed";
-        entry.parseInfo = { jsonPath: path.relative(__dirname, outJson), message: "Project Plan parsed successfully" };
+        entry.parseInfo = {
+          jsonPath: path.relative(__dirname, outJson),
+          message: "Project Plan parsed successfully",
+        };
 
         try {
           combineDocumentationMetrics(__dirname);
@@ -299,17 +377,14 @@ app.post("/api/uploads/confirm", (req, res) => {
 
 app.use("/uploads", express.static(UPLOAD_DIR));
 
-// Routers
-const teamsRouter = require("./routes/teams");
-const rulesRouter = require("./routes/rules");
+// Other routers
 app.use("/api/teams", teamsRouter);
 app.use("/api/rules", rulesRouter);
 
-// Return parsed JSON for an upload
 app.get("/api/uploads/:id/json", (req, res) => {
   const { id } = req.params;
   const registry = loadRegistry();
-  const entry = registry.find(f => f.id === id);
+  const entry = registry.find((f) => f.id === id);
 
   if (!entry || !entry.parseInfo?.jsonPath) {
     return res.status(404).json({ error: "Parsed JSON not found for this file" });
@@ -324,16 +399,16 @@ app.get("/api/uploads/:id/json", (req, res) => {
   res.json(data);
 });
 
-// Cleanup endpoint
 app.delete("/api/uploads/cleanup-docs", (req, res) => {
   try {
     const registry = loadRegistry();
-    const docFiles = registry.filter(r => 
-      ["sprint_report", "project_plan", "worklog"].includes(r.userType || r.detectedType) &&
-      r.status === "parsed"
+    const docFiles = registry.filter(
+      (r) =>
+        ["sprint_report", "project_plan", "worklog"].includes(r.userType || r.detectedType) &&
+        r.status === "parsed"
     );
     let deleted = 0;
-    docFiles.forEach(entry => {
+    docFiles.forEach((entry) => {
       if (entry.parseInfo?.jsonPath) {
         const fullPath = path.join(__dirname, entry.parseInfo.jsonPath);
         if (fs.existsSync(fullPath)) {
@@ -354,9 +429,8 @@ app.delete("/api/uploads/cleanup-docs", (req, res) => {
 });
 
 app.get("/api/github/status", (_req, res) => {
-  const dataDir = path.join(__dirname, "data");
-  const commits = path.join(dataDir, "commits.json");
-  const finalStats = path.join(dataDir, "finalStats.json");
+  const commits = path.join(DATA_DIR, "commits.json");
+  const finalStats = path.join(DATA_DIR, "finalStats.json");
 
   const out = {
     commitsExists: fs.existsSync(commits),
@@ -376,3 +450,4 @@ app.get("/api/github/status", (_req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
+
