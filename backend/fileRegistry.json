@@ -1171,5 +1171,21 @@
       "jsonPath": "data/sprint_report_1762689982635.json",
       "message": "Sprint report parsed successfully"
     }
+  },
+  {
+    "id": "team_attendance__1773213185223.xlsx",
+    "originalName": "team_attendance.xlsx",
+    "storedName": "team_attendance__1773213185223.xlsx",
+    "storedPath": "uploads/team_attendance__1773213185223.xlsx",
+    "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 9657,
+    "uploadDate": "2026-03-11T07:13:05.227Z",
+    "detectedType": "attendance",
+    "userType": "attendance",
+    "status": "parsed",
+    "parseInfo": {
+      "jsonPath": "data/parsed/attendance.json",
+      "message": "Attendance parsed successfully"
+    }
   }
 ]
