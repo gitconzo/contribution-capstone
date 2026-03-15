@@ -40,6 +40,23 @@ router.post("/", (req, res) => {
   res.status(201).json(newTeam);
 });
 
+// POST /api/teams/:id/students - adding students
+router.post("/:id/students", (req, res) => {
+  const teams = readJson(TEAMS_PATH);
+  const team = teams.find(t => t.id === req.params.id);
+  if (!team) return res.status(404).json({ error: "Team not found" });
+
+  const { name, email, github } = req.body || {};
+  if (!name || !email) return res.status(400).json({ error: "Name and email required" });
+
+   const exists = team.students.find(s => s.email === email);
+  if (exists) return res.status(400).json({ error: "Student with this email already exists" });
+
+  team.students.push({ name, email, github: github || "" });
+  writeJson(TEAMS_PATH, teams);
+  res.json(team);
+})
+
 // POST /api/teams/:id/rules
 router.post("/:id/rules", (req, res) => {
   const { id } = req.params;
@@ -60,5 +77,7 @@ router.post("/:id/rules", (req, res) => {
   writeJson(TEAMS_PATH, teams);
   res.json(teams[idx].rules);
 });
+
+
 
 module.exports = router;

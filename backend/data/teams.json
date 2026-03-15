@@ -1,7 +1,7 @@
 [
   {
     "id": "team_1761724815106",
-    "name": "P17 Individual contribution assessment",
+    "name": "P17 Individual contribution assessments",
     "code": "COS40005",
     "repo": {
       "url": "https://github.com/gitconzo/contribution-capstone",
@@ -32,14 +32,6 @@
         "github": "urjenz",
         "aliases": [
           "Jen"
-        ]
-      },
-      {
-        "name": "Md Hridoy Mia",
-        "email": "105077229@student.swin.edu.au",
-        "github": "Hridoy-23",
-        "aliases": [
-          "Hridoy"
         ]
       },
       {
@@ -116,24 +108,6 @@
     "createdAt": "2025-10-29T08:00:15.106Z"
   },
   {
-    "id": "team_1761789663190",
-    "name": "test",
-    "code": "test123",
-    "repo": {
-      "url": "https://github.com/gitconzo/contribution-capstone",
-      "owner": "gitconzo",
-      "repo": "contribution-capstone"
-    },
-    "students": [
-      {
-        "name": "connor lack",
-        "email": "test@gmail.com"
-      }
-    ],
-    "rules": null,
-    "createdAt": "2025-10-30T02:01:03.190Z"
-  },
-  {
     "id": "team_1761790708969",
     "name": "test1234",
     "code": "COS300042",
@@ -167,11 +141,17 @@
     "students": [
       {
         "name": "BOB JONES",
-        "email": "bob@gmail.com"
+        "email": "bob@gmail.com",
+        "github": "BEEBS"
       },
       {
         "name": "SANDY CHEEKS",
         "email": "sandy@gmail.com"
+      },
+      {
+        "name": "MEE",
+        "email": "BOO",
+        "github": "meebod"
       }
     ],
     "rules": null,

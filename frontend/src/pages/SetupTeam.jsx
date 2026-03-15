@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../utils/api";
-import { card, inputBox, solidBtn } from "../utils/styles";
+
+const API = "http://localhost:5002";
 
 export default function SetupTeam() {
   const [name, setName] = useState("");
@@ -11,12 +11,33 @@ export default function SetupTeam() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
+  // Which team is expanded (shows edit panel + students)
+  const [expandedId, setExpandedId] = useState(null);
+
+  // Edit team details state
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [editRepo, setEditRepo] = useState("");
+
+  // Add student state
+  const [addingStudentToId, setAddingStudentToId] = useState(null);
+  const [newStudentName, setNewStudentName] = useState("");
+  const [newStudentEmail, setNewStudentEmail] = useState("");
+  const [newStudentGithub, setNewStudentGithub] = useState("");
+
+  // Edit student state
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editStudentName, setEditStudentName] = useState("");
+  const [editStudentEmail, setEditStudentEmail] = useState("");
+  const [editStudentGithub, setEditStudentGithub] = useState("");
+
   const students = useMemo(() => parseCsv(csvText), [csvText]);
 
   const loadTeams = async () => {
     setError("");
     try {
-      const res = await apiFetch("/api/teams");
+      const res = await fetch(`${API}/api/teams`);
       if (!res.ok) throw new Error(`Load teams failed (${res.status})`);
       const data = await res.json();
       setTeams(Array.isArray(data) ? data : []);
@@ -25,10 +46,23 @@ export default function SetupTeam() {
     }
   };
 
-  useEffect(() => {
-    loadTeams();
-  }, []);
+  useEffect(() => { loadTeams(); }, []);
 
+  const toggleExpand = (id) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+      setEditingId(null);
+      setEditingStudent(null);
+      setAddingStudentToId(null);
+    } else {
+      setExpandedId(id);
+      setEditingId(null);
+      setEditingStudent(null);
+      setAddingStudentToId(null);
+    }
+  };
+
+  // ---- Create team ----
   const onCreate = async () => {
     setError("");
     if (!name.trim() || !code.trim() || !repoUrl.trim()) {
@@ -39,34 +73,116 @@ export default function SetupTeam() {
       setError("Must include at least one student.");
       return;
     }
-
     setCreating(true);
     try {
-      const body = {
-        name: name.trim(),
-        code: code.trim(),
-        repo: normalizeRepo(repoUrl.trim()),
-        students,
-      };
-
-      const res = await apiFetch("/api/teams", {
+      const body = { name: name.trim(), code: code.trim(), repo: normalizeRepo(repoUrl.trim()), students };
+      const res = await fetch(`${API}/api/teams`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `Create failed (${res.status})`);
-
       await loadTeams();
-      setName("");
-      setCode("");
-      setRepoUrl("");
-      setCsvText("");
+      setName(""); setCode(""); setRepoUrl(""); setCsvText("");
       alert("Team created.");
     } catch (e) {
       setError(e.message || "Create team failed");
     } finally {
       setCreating(false);
+    }
+  };
+
+  // ---- Edit team details ----
+  const onEditTeam = (t) => {
+    setEditingId(t.id);
+    setEditName(t.name);
+    setEditCode(t.code);
+    setEditRepo(t.repo?.url || "");
+  };
+
+  const onSaveTeam = async (id) => {
+    try {
+      const res = await fetch(`${API}/api/teams/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName, code: editCode, repo: normalizeRepo(editRepo) }),
+      });
+      if (!res.ok) throw new Error("Failed to update team");
+      setEditingId(null);
+      await loadTeams();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  // ---- Delete team ----
+  const onDeleteTeam = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this team?")) return;
+    try {
+      const res = await fetch(`${API}/api/teams/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete team");
+      if (expandedId === id) setExpandedId(null);
+      await loadTeams();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  // ---- Add student ----
+  const onAddStudent = async (teamId) => {
+    if (!newStudentName.trim() || !newStudentEmail.trim()) {
+      setError("Student name and email are required.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/api/teams/${teamId}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newStudentName.trim(), email: newStudentEmail.trim(), github: newStudentGithub.trim() }),
+      });
+      if (!res.ok) { const j = await res.json(); throw new Error(j.error || "Failed to add student"); }
+      setAddingStudentToId(null);
+      setNewStudentName(""); setNewStudentEmail(""); setNewStudentGithub("");
+      await loadTeams();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  // ---- Remove student ----
+  const onRemoveStudent = async (teamId, email) => {
+    if (!window.confirm(`Remove ${email} from team?`)) return;
+    try {
+      const res = await fetch(`${API}/api/teams/${teamId}/students/${encodeURIComponent(email)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to remove student");
+      await loadTeams();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  // ---- Edit student ----
+  const onEditStudent = (teamId, student) => {
+    setEditingStudent({ teamId, email: student.email });
+    setEditStudentName(student.name);
+    setEditStudentEmail(student.email);
+    setEditStudentGithub(student.github || "");
+  };
+
+  const onSaveStudent = async () => {
+    const { teamId, email } = editingStudent;
+    try {
+      const res = await fetch(`${API}/api/teams/${teamId}/students/${encodeURIComponent(email)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editStudentName, email: editStudentEmail, github: editStudentGithub }),
+      });
+      if (!res.ok) throw new Error("Failed to update student");
+      setEditingStudent(null);
+      await loadTeams();
+    } catch (e) {
+      setError(e.message);
     }
   };
 
@@ -78,98 +194,182 @@ export default function SetupTeam() {
       </div>
 
       {error && (
-        <div style={{ background: "#fee2e2", color: "#991b1b", padding: 10, borderRadius: 8, marginBottom: 12 }}>
+        <div style={{ background: "#fee2e2", color: "#991b1b", padding: 10, borderRadius: 8, marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
           {error}
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#991b1b", fontWeight: 700 }}>✕</button>
         </div>
       )}
 
+      {/* Create team form */}
       <div style={card()}>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>Create New Team</div>
         <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
           <Field label="Team Name">
-            <input value={name} onChange={(e) => setName(e.target.value)} style={inputBox()} />
+            <input value={name} onChange={(e) => setName(e.target.value)} style={inp()} />
           </Field>
           <Field label="Project Code">
-            <input value={code} onChange={(e) => setCode(e.target.value)} style={inputBox()} />
+            <input value={code} onChange={(e) => setCode(e.target.value)} style={inp()} />
           </Field>
         </div>
-
         <div style={{ marginTop: 10 }}>
           <Field label="Repository URL">
-            <input
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="e.g. https://github.com/org/repo"
-              style={inputBox({ minWidth: 400 })}
-            />
+            <input value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)}
+              placeholder="e.g. https://github.com/org/repo" style={inp({ width: "100%" })} />
           </Field>
         </div>
-
         <div style={{ marginTop: 10 }}>
-          <Field label="Students CSV (name,email per line)">
-            <textarea
-              value={csvText}
-              onChange={(e) => setCsvText(e.target.value)}
-              placeholder={`Example:\nAlice Smith, alice@example.com\nBob Jones, bob@example.com`}
-              rows={8}
-              style={inputBox({ fontFamily: "monospace" })}
-            />
+          <Field label="Students CSV (name, email, github per line)">
+            <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)}
+              placeholder={`Example:\nAlice Smith, alice@example.com, alicegh\nBob Jones, bob@example.com, bobjones`}
+              rows={6} style={inp({ fontFamily: "monospace", width: "100%" })} />
           </Field>
           <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
             Parsed {students.length} student{students.length !== 1 ? "s" : ""}.
           </div>
         </div>
-
         <div style={{ marginTop: 14 }}>
-          <button onClick={onCreate} disabled={creating} style={solidBtn()}>
+          <button onClick={onCreate} disabled={creating} style={btn()}>
             {creating ? "Creating..." : "Create Team"}
           </button>
         </div>
       </div>
 
+      {/* Teams list */}
       <div style={card({ marginTop: 16 })}>
         <div style={{ fontWeight: 700, marginBottom: 8 }}>Existing Teams</div>
         {teams.length ? (
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 12 }}>
             {teams.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 10,
-                  padding: "10px 12px",
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto",
-                  gap: 8,
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600 }}>
-                    {t.name} <span style={{ color: "#64748b", fontWeight: 400 }}>({t.code})</span>
+              <div key={t.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "12px 14px" }}>
+
+                {/* Team header — always visible */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 8 }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>
+                      {t.name} <span style={{ color: "#64748b", fontWeight: 400 }}>({t.code})</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>
+                      {t.repo?.url} • {t.students?.length || 0} students
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: "#64748b" }}>
-                    {t.repo?.url} • {t.students?.length || 0} students
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={async () => {
+                      await fetch(`${API}/api/teams/active`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: t.id }),
+                      });
+                      alert("Active team updated.");
+                    }} style={btn({ fontSize: 12, padding: "6px 10px" })}>Make Active</button>
+                    <button
+                      onClick={() => toggleExpand(t.id)}
+                      style={btn({ background: expandedId === t.id ? "#6b7280" : "#2563eb", fontSize: 12, padding: "6px 10px" })}
+                    >
+                      {expandedId === t.id ? "Close" : "Edit"}
+                    </button>
+                    <button onClick={() => onDeleteTeam(t.id)} style={btn({ background: "#dc2626", fontSize: 12, padding: "6px 10px" })}>Delete</button>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await apiFetch("/api/teams/active", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: t.id }),
-                        });
-                        if (!res.ok) throw new Error("Failed to set active team");
-                        alert("Active team updated.");
-                      } catch (e) {
-                        alert(e.message);
-                      }
-                    }}
-                    style={solidBtn()}
-                  >
-                    Make Active
-                  </button>
-                </div>
+
+                {/* Expanded panel — only visible when Edit is clicked */}
+                {expandedId === t.id && (
+                  <div style={{ marginTop: 12, borderTop: "1px solid #e5e7eb", paddingTop: 12, display: "grid", gap: 12 }}>
+
+                    {/* Edit team details */}
+                    {editingId === t.id ? (
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Edit Team Details</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          <Field label="Team Name">
+                            <input value={editName} onChange={e => setEditName(e.target.value)} style={inp()} />
+                          </Field>
+                          <Field label="Project Code">
+                            <input value={editCode} onChange={e => setEditCode(e.target.value)} style={inp()} />
+                          </Field>
+                        </div>
+                        <Field label="Repository URL">
+                          <input value={editRepo} onChange={e => setEditRepo(e.target.value)} style={inp({ width: "100%" })} />
+                        </Field>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={() => onSaveTeam(t.id)} style={btn()}>Save</button>
+                          <button onClick={() => setEditingId(null)} style={btn({ background: "#6b7280" })}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => onEditTeam(t)} style={btn({ background: "#2563eb", fontSize: 12, padding: "6px 10px", width: "fit-content" })}>
+                        Edit Team Details
+                      </button>
+                    )}
+
+                    {/* Students */}
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#374151" }}>
+                        Students ({t.students?.length || 0})
+                      </div>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        {(t.students || []).map(s => (
+                          <div key={s.email}>
+                            {editingStudent?.teamId === t.id && editingStudent?.email === s.email ? (
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 6, alignItems: "end", background: "#f0f9ff", borderRadius: 8, padding: 8 }}>
+                                <Field label="Name">
+                                  <input value={editStudentName} onChange={e => setEditStudentName(e.target.value)} style={inp()} />
+                                </Field>
+                                <Field label="Email">
+                                  <input value={editStudentEmail} onChange={e => setEditStudentEmail(e.target.value)} style={inp()} />
+                                </Field>
+                                <Field label="GitHub">
+                                  <input value={editStudentGithub} onChange={e => setEditStudentGithub(e.target.value)} style={inp()} />
+                                </Field>
+                                <div style={{ display: "flex", gap: 4 }}>
+                                  <button onClick={onSaveStudent} style={btn({ fontSize: 12, padding: "6px 10px" })}>Save</button>
+                                  <button onClick={() => setEditingStudent(null)} style={btn({ background: "#6b7280", fontSize: 12, padding: "6px 10px" })}>Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", background: "#f9fafb", borderRadius: 8, padding: "6px 10px" }}>
+                                <div style={{ fontSize: 13 }}>
+                                  <span style={{ fontWeight: 500 }}>{s.name}</span>
+                                  <span style={{ color: "#64748b", marginLeft: 8 }}>{s.email}</span>
+                                  {s.github && <span style={{ color: "#2563eb", marginLeft: 8 }}>@{s.github}</span>}
+                                </div>
+                                <div style={{ display: "flex", gap: 4 }}>
+                                  <button onClick={() => onEditStudent(t.id, s)} style={btn({ background: "#2563eb", fontSize: 11, padding: "4px 8px" })}>Edit</button>
+                                  <button onClick={() => onRemoveStudent(t.id, s.email)} style={btn({ background: "#dc2626", fontSize: 11, padding: "4px 8px" })}>Remove</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add student */}
+                      {addingStudentToId === t.id ? (
+                        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 6, alignItems: "end", background: "#f0fdf4", borderRadius: 8, padding: 8 }}>
+                          <Field label="Name">
+                            <input value={newStudentName} onChange={e => setNewStudentName(e.target.value)} style={inp()} placeholder="Alice Smith" />
+                          </Field>
+                          <Field label="Email">
+                            <input value={newStudentEmail} onChange={e => setNewStudentEmail(e.target.value)} style={inp()} placeholder="alice@example.com" />
+                          </Field>
+                          <Field label="GitHub">
+                            <input value={newStudentGithub} onChange={e => setNewStudentGithub(e.target.value)} style={inp()} placeholder="alicegh" />
+                          </Field>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button onClick={() => onAddStudent(t.id)} style={btn({ fontSize: 12, padding: "6px 10px" })}>Add</button>
+                            <button onClick={() => setAddingStudentToId(null)} style={btn({ background: "#6b7280", fontSize: 12, padding: "6px 10px" })}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setAddingStudentToId(t.id)}
+                          style={{ marginTop: 8, background: "none", border: "1px dashed #d1d5db", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 12, color: "#64748b", width: "100%" }}
+                        >
+                          + Add Student
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -182,11 +382,14 @@ export default function SetupTeam() {
 }
 
 function parseCsv(text) {
-  const rows = (text || "").split(/\r?\n/).map((r) => r.trim()).filter(Boolean);
+  const rows = (text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
   const out = [];
   for (const r of rows) {
-    const [name, email] = r.split(",").map((x) => (x || "").trim());
-    if (name && email) out.push({ name, email });
+    const parts = r.split(",").map(x => (x || "").trim());
+    const name = parts[0] || "";
+    const email = parts[1] || "";
+    const github = parts[2] || "";
+    if (name && email) out.push({ name, email, github });
   }
   return out;
 }
@@ -203,11 +406,20 @@ function normalizeRepo(url) {
   }
 }
 
+function card(extra = {}) {
+  return { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 14, boxShadow: "0 4px 12px rgba(0,0,0,.04)", ...extra };
+}
 function Field({ label, children }) {
   return (
-    <label style={{ display: "grid", gap: 6 }}>
-      <span style={{ fontSize: 13, color: "#374151" }}>{label}</span>
+    <label style={{ display: "grid", gap: 4 }}>
+      <span style={{ fontSize: 12, color: "#374151" }}>{label}</span>
       {children}
     </label>
   );
+}
+function inp(extra = {}) {
+  return { border: "1px solid #d1d5db", borderRadius: 10, padding: "8px 10px", fontSize: 14, ...extra };
+}
+function btn(extra = {}) {
+  return { background: "#000", color: "#fff", border: "none", padding: "10px 14px", borderRadius: 10, cursor: "pointer", fontSize: 13, ...extra };
 }
