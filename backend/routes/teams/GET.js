@@ -1,4 +1,4 @@
-// backend/routes/teams/get.js
+// backend/routes/teams/GET.js
 const router = require("express").Router();
 const { TEAMS_PATH } = require("../../utils/config");
 const { readJson } = require("../../utils/fileUtils");

@@ -1,8 +1,8 @@
-// backend/routes/github/get.js
+// backend/routes/github/GET.js
 const fs = require("fs");
+const path = require("path");
 const router = require("express").Router();
 const { DATA_DIR } = require("../../utils/config");
-const path = require("path");
 
 // GET /api/github/status
 router.get("/status", (_req, res) => {

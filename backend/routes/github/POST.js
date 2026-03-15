@@ -1,4 +1,4 @@
-// backend/routes/github/post.js
+// backend/routes/github/POST.js
 const path = require("path");
 const { execFile } = require("child_process");
 const router = require("express").Router();
