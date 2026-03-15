@@ -1,4 +1,4 @@
-// backend/routes/teams/post.js
+// backend/routes/teams/POST.js
 const router = require("express").Router();
 const { TEAMS_PATH } = require("../../utils/config");
 const { readJson, writeJson } = require("../../utils/fileUtils");

@@ -1,4 +1,4 @@
-// backend/routes/scores/get.js
+// backend/routes/scores/GET.js
 const router = require("express").Router();
 const { ROOT_DIR } = require("../../utils/config");
 const { readActiveId } = require("../../utils/activeTeamUtils");
