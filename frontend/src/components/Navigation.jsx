@@ -1,13 +1,30 @@
 // frontend/src/components/Navigation.jsx
 import React from "react";
+import {
+  Users,
+  LayoutDashboard,
+  Settings,
+  Upload,
+  UserPlus,
+  Download,
+  Moon,
+  Sun,
+  LogOut,
+} from "lucide-react";
 
-export default function Navigation({ currentPage, onNavigate, onLogout, onToggleDark }) {
+export default function Navigation({
+  currentPage,
+  onNavigate,
+  onLogout,
+  onToggleDark,
+  darkMode,
+}) {
   const menuItems = [
-    { key: "dashboard", label: "Dashboard" },
-    { key: "rules", label: "Rule Settings" },
-    { key: "upload", label: "Upload Data" },
-    { key: "setup-team", label: "Setup Team" },
-    { key: "export", label: "Export Report" },
+    { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={15} /> },
+    { key: "rules", label: "Rule Settings", icon: <Settings size={15} /> },
+    { key: "upload", label: "Upload Data", icon: <Upload size={15} /> },
+    { key: "setup-team", label: "Setup Team", icon: <UserPlus size={15} /> },
+    { key: "export", label: "Export Report", icon: <Download size={15} /> },
   ];
 
   return (
@@ -17,12 +34,11 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
         top: 0,
         left: 0,
         width: "100%",
-        background: "#fff",
-        borderBottom: "1px solid #e5e7eb",
+        background: darkMode ? "#0f172a" : "#fff",
+        borderBottom: darkMode ? "1px solid #1f2937" : "1px solid #e5e7eb",
         zIndex: 1000,
       }}
     >
-      {/* Centered container to prevent overflow on small screens */}
       <div
         style={{
           maxWidth: 1200,
@@ -34,62 +50,96 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           gap: 12,
         }}
       >
-        {/* left: brand + tabs */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-          <div
+        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+          <button
+            onClick={() => onNavigate?.("dashboard")}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "#000",
-              color: "#fff",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 600,
+              gap: 12,
+              border: "none",
+              background: "transparent",
+              padding: 0,
+              cursor: "pointer",
               flex: "0 0 auto",
             }}
-            aria-hidden
+            title="Go to dashboard"
           >
-            👥
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 16, whiteSpace: "nowrap" }}>Project17</span>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: "#000",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: darkMode
+                  ? "0 0 0 1px #1f2937"
+                  : "0 4px 10px rgba(0,0,0,.12)",
+              }}
+              aria-hidden
+            >
+              <Users size={21} color="#fff" strokeWidth={2.2} />
+            </div>
 
-          {/* Tabs (wrap on narrow screens) */}
+            <span
+              style={{
+                fontWeight: 800,
+                fontSize: 18,
+                color: darkMode ? "#f8fafc" : "#111827",
+                whiteSpace: "nowrap",
+                letterSpacing: "0.2px",
+              }}
+            >
+              Project17
+            </span>
+          </button>
+
           <div
             style={{
               display: "flex",
               gap: 8,
-              marginLeft: 12,
+              marginLeft: 10,
               flexWrap: "wrap",
               alignItems: "center",
             }}
           >
             {menuItems.map((item) => {
               const active = currentPage === item.key;
+
               return (
                 <button
                   key={item.key}
                   onClick={() => onNavigate?.(item.key)}
                   style={{
-                    border: "1px solid #e5e7eb",
-                    background: active ? "#000" : "#fff",
-                    color: active ? "#fff" : "#374151",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    border: active
+                      ? "1px solid #000"
+                      : darkMode
+                      ? "1px solid #334155"
+                      : "1px solid #e5e7eb",
+                    background: active ? "#000" : darkMode ? "#111827" : "#fff",
+                    color: active ? "#fff" : darkMode ? "#e5e7eb" : "#4b5563",
                     fontSize: 13,
-                    padding: "6px 10px",
-                    borderRadius: 8,
+                    fontWeight: 500,
+                    padding: "8px 12px",
+                    borderRadius: 10,
                     cursor: "pointer",
-                    transition: ".15s",
+                    transition: "all 0.15s ease",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {item.label}
+                  <span style={{ display: "flex", alignItems: "center" }}>{item.icon}</span>
+                  <span>{item.label}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* right: actions (never off-screen; shrinks nicely) */}
         <div
           style={{
             display: "flex",
@@ -101,32 +151,45 @@ export default function Navigation({ currentPage, onNavigate, onLogout, onToggle
           <button
             onClick={onToggleDark}
             style={{
-              border: "1px solid #e5e7eb",
-              background: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              border: darkMode ? "1px solid #334155" : "1px solid #e5e7eb",
+              background: darkMode ? "#111827" : "#fff",
               fontSize: 13,
-              color: "#374151",
+              fontWeight: 500,
+              color: darkMode ? "#e5e7eb" : "#4b5563",
               cursor: "pointer",
-              borderRadius: 8,
-              padding: "6px 10px",
+              borderRadius: 10,
+              padding: "8px 12px",
+              whiteSpace: "nowrap",
             }}
             title="Toggle dark mode"
           >
-            Dark Mode
+            {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+            <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>
           </button>
+
           <button
             onClick={onLogout}
             style={{
-              border: "1px solid #e5e7eb",
-              background: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              border: darkMode ? "1px solid #334155" : "1px solid #e5e7eb",
+              background: darkMode ? "#111827" : "#fff",
               fontSize: 13,
-              color: "#374151",
+              fontWeight: 500,
+              color: darkMode ? "#e5e7eb" : "#4b5563",
               cursor: "pointer",
-              borderRadius: 8,
-              padding: "6px 10px",
+              borderRadius: 10,
+              padding: "8px 12px",
+              whiteSpace: "nowrap",
             }}
             title="Logout"
           >
-            Logout
+            <LogOut size={15} />
+            <span>Logout</span>
           </button>
         </div>
       </div>
