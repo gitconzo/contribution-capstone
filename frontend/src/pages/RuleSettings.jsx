@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 
 const API = "http://localhost:5002";
 
-// Single source of truth for defaults (matches backend DEFAULT_RULES)
 const DEFAULT_RULES = {
   rules: [
     { name: "Total Lines of Code", value: 12, desc: "Percentage of code written in code base" },
@@ -23,14 +22,40 @@ const DEFAULT_RULES = {
   peerValidation: "Statistical analysis",
 };
 
-export default function RuleSettings() {
-  // Entire rules payload lives here; initialize as null to show loader → always render with effectiveRules
+export default function RuleSettings({ darkMode }) {
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // derive effective (never null)
+  const theme = darkMode
+    ? {
+        pageBg: "#0b1120",
+        card: "#111827",
+        cardAlt: "#0f172a",
+        text: "#f8fafc",
+        subtext: "#94a3b8",
+        border: "#1f2937",
+        softBorder: "#334155",
+        inputBg: "#0f172a",
+        shadow: "0 8px 20px rgba(0,0,0,.28)",
+        green: "#16a34a",
+        red: "#dc2626",
+      }
+    : {
+        pageBg: "#f9fafb",
+        card: "#ffffff",
+        cardAlt: "#ffffff",
+        text: "#333333",
+        subtext: "#777777",
+        border: "#e5e7eb",
+        softBorder: "#eeeeee",
+        inputBg: "#ffffff",
+        shadow: "0 4px 12px rgba(0,0,0,0.08)",
+        green: "#16a34a",
+        red: "#dc2626",
+      };
+
   const effectiveRules = payload ?? DEFAULT_RULES;
 
   const totalWeight = useMemo(
@@ -42,7 +67,6 @@ export default function RuleSettings() {
     try {
       setLoading(true);
       setError("");
-      // GET /api/rules returns: { teamId, rules, autoRecalc, crossVerify, triangulation, peerValidation }
       const res = await fetch(`${API}/api/rules`);
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -50,7 +74,6 @@ export default function RuleSettings() {
       }
       const data = await res.json();
 
-      // Normalize shape defensively
       const normalized = {
         rules: Array.isArray(data.rules) ? data.rules : DEFAULT_RULES.rules,
         autoRecalc:
@@ -64,7 +87,6 @@ export default function RuleSettings() {
       setPayload(normalized);
     } catch (e) {
       setError(e.message || "Unable to load rules");
-      // Still show defaults so UI is usable
       setPayload(null);
     } finally {
       setLoading(false);
@@ -92,7 +114,6 @@ export default function RuleSettings() {
         crossVerify: effectiveRules.crossVerify,
         triangulation: effectiveRules.triangulation,
         peerValidation: effectiveRules.peerValidation,
-        // teamId can be omitted to target the active team per backend contract
       };
       const res = await fetch(`${API}/api/rules`, {
         method: "POST",
@@ -104,10 +125,9 @@ export default function RuleSettings() {
         throw new Error(j.error || `Save failed (${res.status})`);
       }
       const saved = await res.json();
-      // Mirror back what server persisted (defensive)
       setPayload((prev) => ({
         ...(prev ?? {}),
-        ...(saved.rules ? saved : { ...prev }), // backend returns { ok, teamId, rules }
+        ...(saved.rules ? saved : { ...prev }),
         rules: saved.rules?.rules ?? body.rules,
         autoRecalc: saved.rules?.autoRecalc ?? body.autoRecalc,
         crossVerify: saved.rules?.crossVerify ?? body.crossVerify,
@@ -123,7 +143,6 @@ export default function RuleSettings() {
     }
   };
 
-  // Local “team preview” data left as-is but guarded
   const teamPreview = [
     { name: "Jason Vo", tag: "High Performer", tagClass: "high", score: 94, change: "+2%", plus: true },
     { name: "Jen Mao", tag: "High Performer", tagClass: "high", score: 92, change: "+1%", plus: true },
@@ -134,35 +153,72 @@ export default function RuleSettings() {
 
   return (
     <>
-      <div className="rule-settings-container">
-        <div className="page-header">
-          <h1>Rule Settings</h1>
+      <div
+        className="rule-settings-container"
+        style={{
+          background: theme.pageBg,
+          color: theme.text,
+          minHeight: "100vh",
+          padding: 40,
+        }}
+      >
+        <div
+          className="page-header"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 30,
+          }}
+        >
+          <h1 style={{ color: theme.text, margin: 0 }}>Rule Settings</h1>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn-black" onClick={fetchRules} disabled={loading}>
+            <button
+              className="btn-black"
+              onClick={fetchRules}
+              disabled={loading}
+              style={buttonStyle(darkMode)}
+            >
               {loading ? "Loading..." : "Reload"}
             </button>
-            <button className="btn-black" onClick={saveSettings} disabled={saving || loading}>
+            <button
+              className="btn-black"
+              onClick={saveSettings}
+              disabled={saving || loading}
+              style={buttonStyle(darkMode)}
+            >
               {saving ? "Saving..." : "Save Settings"}
             </button>
           </div>
         </div>
 
         {error && (
-          <div style={{ background: "#fee2e2", color: "#991b1b", padding: 10, borderRadius: 8, marginBottom: 16 }}>
+          <div
+            style={{
+              background: darkMode ? "#3f1d1d" : "#fee2e2",
+              color: darkMode ? "#fecaca" : "#991b1b",
+              padding: 10,
+              borderRadius: 8,
+              marginBottom: 16,
+              border: `1px solid ${darkMode ? "#7f1d1d" : "#fecaca"}`,
+            }}
+          >
             {error}
           </div>
         )}
 
-        {/* Assessment Rule Weights */}
-        <div className="card">
-          <h2 className="section-title">Assessment Rule Weights</h2>
-          <p className="section-desc">
+        <div style={card(theme)}>
+          <h2 className="section-title" style={{ color: theme.text }}>Assessment Rule Weights</h2>
+          <p className="section-desc" style={{ color: theme.subtext }}>
             Adjust the importance of each contribution metric. Total must equal 100%.
           </p>
 
           {(effectiveRules.rules || []).map((r, i) => (
-            <div key={`${r.name}-${i}`} className="range-group">
-              <div className="range-header">
+            <div key={`${r.name}-${i}`} className="range-group" style={{ marginBottom: 20 }}>
+              <div
+                className="range-header"
+                style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontWeight: 500 }}
+              >
                 <span>{r.name}</span>
                 <span>{r.value}%</span>
               </div>
@@ -179,21 +235,36 @@ export default function RuleSettings() {
                     return next;
                   });
                 }}
+                style={{ width: "100%", accentColor: "#000" }}
               />
-              <p className="range-desc">{r.desc}</p>
+              <p className="range-desc" style={{ fontSize: "0.8rem", color: theme.subtext }}>
+                {r.desc}
+              </p>
             </div>
           ))}
 
-          <p className={`total-weight ${totalWeight === 100 ? "green" : "red"}`}>
+          <p
+            className="total-weight"
+            style={{
+              textAlign: "right",
+              fontWeight: 600,
+              color: totalWeight === 100 ? theme.green : theme.red,
+            }}
+          >
             Total Weight: {totalWeight}%
           </p>
         </div>
 
-        {/* System Settings */}
-        <div className="card">
-          <h2 className="section-title">System Settings</h2>
-          <p className="section-desc">Configure automated behavior and validation options</p>
-          <div className="switch-row">
+        <div style={card(theme)}>
+          <h2 className="section-title" style={{ color: theme.text }}>System Settings</h2>
+          <p className="section-desc" style={{ color: theme.subtext }}>
+            Configure automated behavior and validation options
+          </p>
+
+          <div
+            className="switch-row"
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}
+          >
             <span>Automatically recalculate scores when rules change</span>
             <input
               type="checkbox"
@@ -203,7 +274,11 @@ export default function RuleSettings() {
               }
             />
           </div>
-          <div className="switch-row">
+
+          <div
+            className="switch-row"
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}
+          >
             <span>Cross-verify metrics for consistency and flag issues</span>
             <input
               type="checkbox"
@@ -215,10 +290,11 @@ export default function RuleSettings() {
           </div>
         </div>
 
-        {/* Triangulation Rules */}
-        <div className="card">
-          <h2 className="section-title">Triangulation Rules</h2>
-          <p className="section-desc">Configure how the system cross-checks different data sources</p>
+        <div style={card(theme)}>
+          <h2 className="section-title" style={{ color: theme.text }}>Triangulation Rules</h2>
+          <p className="section-desc" style={{ color: theme.subtext }}>
+            Configure how the system cross-checks different data sources
+          </p>
 
           <TriSlider
             label="Code–Worklog Validation"
@@ -230,7 +306,9 @@ export default function RuleSettings() {
                 triangulation: { ...(cur.triangulation || {}), codeWorklog: v },
               }))
             }
+            theme={theme}
           />
+
           <TriSlider
             label="Meeting–Document Correlation"
             suffix=" % correlation required"
@@ -241,7 +319,9 @@ export default function RuleSettings() {
                 triangulation: { ...(cur.triangulation || {}), meetingDoc: v },
               }))
             }
+            theme={theme}
           />
+
           <TriSlider
             label="Activity Distribution"
             suffix=" % of project duration"
@@ -252,14 +332,16 @@ export default function RuleSettings() {
                 triangulation: { ...(cur.triangulation || {}), activityDist: v },
               }))
             }
+            theme={theme}
           />
 
-          <label>Peer Validation Method</label>
+          <label style={{ color: theme.text }}>Peer Validation Method</label>
           <select
             value={effectiveRules.peerValidation || "Statistical analysis"}
             onChange={(e) =>
               setRulesField((cur) => ({ ...cur, peerValidation: e.target.value }))
             }
+            style={selectStyle(theme)}
           >
             <option>Statistical analysis</option>
             <option>Manual comparison</option>
@@ -267,22 +349,41 @@ export default function RuleSettings() {
           </select>
         </div>
 
-        {/* Rule Impact Preview (sample data) */}
-        <div className="card">
-          <h2 className="section-title">Rule Impact Preview</h2>
-          <p className="section-desc">
+        <div style={card(theme)}>
+          <h2 className="section-title" style={{ color: theme.text }}>Rule Impact Preview</h2>
+          <p className="section-desc" style={{ color: theme.subtext }}>
             See how current rule weights would affect your teammates' scores
           </p>
 
           {teamPreview.map((m, i) => (
-            <div key={i} className="team-row">
+            <div
+              key={i}
+              className="team-row"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                border: `1px solid ${theme.softBorder}`,
+                borderRadius: 10,
+                padding: "12px 16px",
+                marginBottom: 10,
+                background: theme.cardAlt,
+              }}
+            >
               <div>
-                <span className={`tag ${m.tagClass}`}>{m.tag}</span>
-                <div>{m.name}</div>
+                <span style={tagStyle(m.tagClass)}>{m.tag}</span>
+                <div style={{ color: theme.text }}>{m.name}</div>
               </div>
               <div>
-                <div className="score">{m.score}%</div>
-                <div className={`score-change ${m.plus ? "plus" : "minus"}`}>
+                <div className="score" style={{ fontWeight: 600, color: theme.text }}>
+                  {m.score}%
+                </div>
+                <div
+                  className={`score-change ${m.plus ? "plus" : "minus"}`}
+                  style={{
+                    color: m.plus ? theme.green : theme.red,
+                    fontSize: "0.8rem",
+                  }}
+                >
                   {m.change} from current rules
                 </div>
               </div>
@@ -290,44 +391,20 @@ export default function RuleSettings() {
           ))}
         </div>
       </div>
-
-      {/* Inline Styling */}
-      <style>{`
-        .rule-settings-container { background: #f9fafb; padding: 40px; color: #333; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-black { background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
-        .btn-black:hover { background: #333; }
-        .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
-        .section-title { font-size: 1.1rem; font-weight: 600; }
-        .section-desc { color: #777; font-size: 0.9rem; margin-bottom: 16px; }
-        .range-group { margin-bottom: 20px; }
-        .range-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 500; }
-        .range-desc { font-size: 0.8rem; color: #666; }
-        input[type=range] { width: 100%; accent-color: #000; }
-        .switch-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
-        select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc; margin-top: 6px; }
-        .total-weight { text-align: right; font-weight: 600; }
-        .green { color: #16a34a; } .red { color: #dc2626; }
-        .team-row { display: flex; justify-content: space-between; border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
-        .tag { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; margin-bottom: 4px; }
-        .tag.high { background: #dcfce7; color: #166534; }
-        .tag.medium { background: #fef9c3; color: #854d0e; }
-        .tag.low { background: #fee2e2; color: #b91c1c; }
-        .score { font-weight: 600; }
-        .score-change.plus { color: #16a34a; font-size: 0.8rem; }
-        .score-change.minus { color: #dc2626; font-size: 0.8rem; }
-      `}</style>
     </>
   );
 }
 
-function TriSlider({ label, value, onChange, suffix = "" }) {
+function TriSlider({ label, value, onChange, theme }) {
   const v = Number.isFinite(value) ? value : 0;
   return (
-    <div className="range-group">
-      <div className="range-header">
-        <span>{label}</span>
-        <span>{v}%{suffix ? "" : ""}</span>
+    <div className="range-group" style={{ marginBottom: 20 }}>
+      <div
+        className="range-header"
+        style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontWeight: 500 }}
+      >
+        <span style={{ color: theme.text }}>{label}</span>
+        <span style={{ color: theme.text }}>{v}%</span>
       </div>
       <input
         type="range"
@@ -335,7 +412,60 @@ function TriSlider({ label, value, onChange, suffix = "" }) {
         max="100"
         value={v}
         onChange={(e) => onChange(parseInt(e.target.value, 10) || 0)}
+        style={{ width: "100%", accentColor: "#000" }}
       />
     </div>
   );
 }
+
+function card(theme) {
+  return {
+    background: theme.card,
+    borderRadius: 16,
+    padding: 24,
+    boxShadow: theme.shadow,
+    marginBottom: 24,
+    border: `1px solid ${theme.border}`,
+  };
+}
+
+function buttonStyle(darkMode) {
+  return {
+    background: "#000",
+    color: "#fff",
+    border: "none",
+    padding: "10px 20px",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontWeight: 500,
+    opacity: darkMode ? 0.95 : 1,
+  };
+}
+
+function selectStyle(theme) {
+  return {
+    width: "100%",
+    padding: 8,
+    borderRadius: 6,
+    border: `1px solid ${theme.border}`,
+    marginTop: 6,
+    background: theme.card,
+    color: theme.text,
+  };
+}
+
+function tagStyle(level) {
+  const base = {
+    display: "inline-block",
+    padding: "3px 8px",
+    borderRadius: 10,
+    fontSize: "0.75rem",
+    fontWeight: 500,
+    marginBottom: 4,
+  };
+
+  if (level === "high") return { ...base, background: "#dcfce7", color: "#166534" };
+  if (level === "medium") return { ...base, background: "#fef9c3", color: "#854d0e" };
+  return { ...base, background: "#fee2e2", color: "#b91c1c" };
+}
+
