@@ -4,13 +4,15 @@ const router = require("express").Router();
 
 router.use("/teams",   require("./teams/GET"));
 router.use("/teams",   require("./teams/POST"));
+router.use("/teams",   require("./teams/PUT"));
+router.use("/teams",   require("./teams/DELETE"));
 router.use("/rules",   require("./rules/GET"));
 router.use("/rules",   require("./rules/POST"));
 router.use("/scores",  require("./scores/GET"));
 router.use("/github",  require("./github/GET"));
 router.use("/github",  require("./github/POST"));
-router.use("/uploads", require("./uploads/GET"));
-router.use("/uploads", require("./uploads/POST"));
-router.use("/uploads", require("./uploads/DELETE"));
+//router.use("/uploads", require("./uploads/GET"));
+//router.use("/uploads", require("./uploads/POST"));
+//router.use("/uploads", require("./uploads/DELETE"));
 
 module.exports = router;
