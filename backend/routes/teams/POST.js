@@ -1,64 +1,116 @@
 // backend/routes/teams/POST.js
 const router = require("express").Router();
-const { TEAMS_PATH } = require("../../utils/config");
-const { readJson, writeJson } = require("../../utils/fileUtils");
-const { writeActiveId } = require("../../utils/activeTeamUtils");
+const db = require("../../utils/db");
 
 // POST /api/teams/active  { id }
-router.post("/active", (req, res) => {
+router.post("/active", async (req, res) => {
   const { id } = req.body || {};
   if (!id) return res.status(400).json({ error: "Missing id" });
 
-  const team = readJson(TEAMS_PATH).find(t => t.id === id);
-  if (!team) return res.status(404).json({ error: "Team not found" });
+  const result = await db.query("SELECT id FROM teams WHERE id = $1", [id]);
+  if (!result.rows.length) return res.status(404).json({ error: "Team not found" });
 
-  writeActiveId(id);
   res.json({ success: true, id });
 });
 
 // POST /api/teams
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { name, code, repo, students } = req.body || {};
   if (!name || !code) return res.status(400).json({ error: "Missing required fields: name, code" });
 
-  const teams = readJson(TEAMS_PATH);
-  const id = `team_${Date.now()}`;
+  try {
+    // Find or create the unit by code
+    let unitResult = await db.query("SELECT id FROM units WHERE code = $1", [code]);
+    if (!unitResult.rows.length) {
+      unitResult = await db.query(
+        "INSERT INTO units (code, name) VALUES ($1, $2) RETURNING id",
+        [code, code]
+      );
+    }
+    const unitId = unitResult.rows[0].id;
 
-  const newTeam = {
-    id,
-    name,
-    code,
-    repo: repo || null,
-    students: Array.isArray(students) ? students : [],
-    rules: null,
-    createdAt: new Date().toISOString(),
-  };
+    const id = `team_${Date.now()}`;
+    const repoUrl   = repo?.url   || null;
+    const repoOwner = repo?.owner || null;
+    const repoName  = repo?.repo  || null;
 
-  teams.push(newTeam);
-  writeJson(TEAMS_PATH, teams);
-  writeActiveId(id);
-  res.status(201).json(newTeam);
+    await db.query(
+      `INSERT INTO teams (id, unit_id, name, repo_url, repo_owner, repo_name)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, unitId, name, repoUrl, repoOwner, repoName]
+    );
+
+    // Insert students if provided
+    const studentList = Array.isArray(students) ? students : [];
+    for (const s of studentList) {
+      await db.query(
+        `INSERT INTO students (team_id, name, email, github, aliases)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT DO NOTHING`,
+        [id, s.name, s.email || null, s.github || null, s.aliases ? JSON.stringify(s.aliases) : null]
+      );
+    }
+
+    res.status(201).json({ id, name, code, repo: repo || null, students: studentList });
+  } catch (e) {
+    console.error("POST /api/teams error:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // POST /api/teams/:id/rules
-router.post("/:id/rules", (req, res) => {
+router.post("/:id/rules", async (req, res) => {
   const { id } = req.params;
-  const teams = readJson(TEAMS_PATH);
-  const idx = teams.findIndex(t => t.id === id);
-  if (idx === -1) return res.status(404).json({ error: "Team not found" });
-
   const { rules, autoRecalc, crossVerify, triangulation, peerValidation } = req.body || {};
-  teams[idx].rules = {
-    rules: Array.isArray(rules) ? rules : null,
-    autoRecalc: !!autoRecalc,
-    crossVerify: !!crossVerify,
-    triangulation: triangulation || { codeWorklog: 80, meetingDoc: 70, activityDist: 60 },
-    peerValidation: peerValidation || "Statistical analysis",
-    savedAt: new Date().toISOString(),
-  };
 
-  writeJson(TEAMS_PATH, teams);
-  res.json(teams[idx].rules);
+  try {
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [id]);
+    if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
+
+    // Upsert rule_settings
+    await db.query(
+      `INSERT INTO rule_settings
+         (team_id, auto_recalc, cross_verify,
+          triangulation_code_worklog, triangulation_meeting_doc, triangulation_activity_dist,
+          peer_validation)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (team_id) DO UPDATE SET
+         auto_recalc                 = EXCLUDED.auto_recalc,
+         cross_verify                = EXCLUDED.cross_verify,
+         triangulation_code_worklog  = EXCLUDED.triangulation_code_worklog,
+         triangulation_meeting_doc   = EXCLUDED.triangulation_meeting_doc,
+         triangulation_activity_dist = EXCLUDED.triangulation_activity_dist,
+         peer_validation             = EXCLUDED.peer_validation`,
+      [
+        id,
+        autoRecalc ?? true,
+        crossVerify ?? true,
+        triangulation?.codeWorklog  ?? 80,
+        triangulation?.meetingDoc   ?? 70,
+        triangulation?.activityDist ?? 60,
+        peerValidation || "Statistical analysis",
+      ]
+    );
+
+    // Upsert individual rules
+    if (Array.isArray(rules)) {
+      for (const r of rules) {
+        await db.query(
+          `INSERT INTO rules (team_id, name, weight, description)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (team_id, name) DO UPDATE SET
+             weight      = EXCLUDED.weight,
+             description = EXCLUDED.description`,
+          [id, r.name, r.value ?? r.weight ?? 0, r.desc || r.description || null]
+        );
+      }
+    }
+
+    res.json({ ok: true, teamId: id });
+  } catch (e) {
+    console.error("POST /api/teams/:id/rules error:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

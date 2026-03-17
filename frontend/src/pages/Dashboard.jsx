@@ -7,6 +7,7 @@ export default function Dashboard({ onViewStudent }) {
   const [teamId, setTeamId] = useState("");
   const [teams, setTeams] = useState([]);
   const [scores, setScores] = useState(null);
+  const [teamStudents, setTeamStudents] = useState([]);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -26,17 +27,25 @@ export default function Dashboard({ onViewStudent }) {
       .then(r => r.json())
       .then(setScores)
       .catch(() => setScores(null));
+
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
+      .then(r => r.json())
+      .then(data => setTeamStudents(data.students || []))
+      .catch(() => setTeamStudents([]));
   }, [teamId]);
 
   const students = useMemo(() => {
-    const list = scores?.ranking || [];
+    // Use scored ranking if available, otherwise fall back to raw team students
+    const list = scores?.ranking?.length
+      ? scores.ranking
+      : teamStudents.map(s => ({ name: s.name, email: s.email, score: 0, breakdown: {}, raw: {} }));
     const q = query.trim().toLowerCase();
     if (!q) return list;
     return list.filter(s =>
       (s.name || "").toLowerCase().includes(q) ||
       (s.email || "").toLowerCase().includes(q)
     );
-  }, [scores, query]);
+  }, [scores, teamStudents, query]);
 
   // ---- Compute per-student CODE-ONLY weighted sums and max → Code Score %
   const codeScoreByKey = useMemo(() => {
