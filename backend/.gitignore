@@ -4,3 +4,6 @@ package-lock.json
 # Runtime data (generated at runtime, not source files)
 /data/
 /uploads/
+
+# AWS SSL certificate
+/certs/
