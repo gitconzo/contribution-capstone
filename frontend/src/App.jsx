@@ -25,8 +25,8 @@ function Shell() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const isTeacher = user?.role === "teacher";
   const isStudent = user?.role === "student";
+  const isTeacher = !isStudent; // default to teacher if no role set (backwards compat)
 
   const nav = useNavigate();
   const { pathname } = useLocation();
@@ -75,7 +75,8 @@ function Shell() {
     nav("/login");
   };
 
-  if (!authed && pathname !== "/login") {
+  const publicPaths = ["/login", "/forgot-username", "/forgot-password"];
+  if (!authed && !publicPaths.includes(pathname)) {
     return <Navigate to="/login" replace />;
   }
 

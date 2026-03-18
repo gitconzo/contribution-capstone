@@ -239,7 +239,7 @@ export default function StudentDashboard() {
     loadData();
   }, []);
 
-  const ranking = scores?.ranking || [];
+  const ranking = useMemo(() => scores?.ranking || [], [scores]);
   const matchedRecord = matchStudentRecord(ranking, savedUser);
   const student = normalizeStudentRecord(matchedRecord, savedUser);
 

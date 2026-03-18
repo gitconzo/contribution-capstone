@@ -3,7 +3,7 @@
     "id": 1,
     "name": "Lecturer",
     "email": "lecturer@university.edu",
-    "password": "$2b$10$3xJno2MV5mXTtr3TzcFZre6y0fIDtHaXXasX4s/GXVX1UYy1otUFK",
+    "password": "$2b$10$uRLUYQr.kdxDiLwjIIg8p.mvWgMJRK7q3R8c2TfUu/71/E2dT1lBK",
     "role": "teacher"
   },
   {
@@ -17,7 +17,7 @@
     "id": 3,
     "name": "Connor Lack",
     "email": "connor@dummy.com",
-    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "password": "$2b$10$NsYCmeGYjYiXZAqppnn7l.B6vjoB7hk9fd9EnSTA4iVsWK6EEwCji",
     "role": "student"
   },
   {
