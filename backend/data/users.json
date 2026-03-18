@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "name": "Lecturer",
+    "email": "lecturer@university.edu",
+    "password": "$2b$10$3xJno2MV5mXTtr3TzcFZre6y0fIDtHaXXasX4s/GXVX1UYy1otUFK",
+    "role": "teacher"
+  },
+  {
+    "id": 2,
+    "name": "Kavindu Bhanuka Weragoda",
+    "email": "kavindu@dummy.com",
+    "password": "$2b$10$oNKMALFQMuRfF.5q3pol9.KYhmG6YTidcnysbF86kYwVBQcw6G7ke",
+    "role": "student"
+  },
+  {
+    "id": 3,
+    "name": "Connor Lack",
+    "email": "connor@dummy.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  },
+  {
+    "id": 4,
+    "name": "Jason Vo",
+    "email": "jason@dummy.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  },
+  {
+    "id": 5,
+    "name": "Jen Mao",
+    "email": "jen@dummy.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  },
+  {
+    "id": 6,
+    "name": "Md Hridoy Mia",
+    "email": "hridoy@dummy.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  },
+  {
+    "id": 7,
+    "name": "Alice smith",
+    "email": "alice@gmail.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  },
+  {
+    "id": 8,
+    "name": "jaden smith",
+    "email": "jaden@gmail.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  },
+  {
+    "id": 9,
+    "name": "roxy smith",
+    "email": "roxy@gmail.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  },
+  {
+    "id": 10,
+    "name": "kevin perera",
+    "email": "kevin@gmail.com",
+    "password": "$2b$10$8WUEg1Z88ScymGAGhWBUFOVqbAkAInWXWcmbXtC5MS1G6jYELWMDO",
+    "role": "student"
+  }
+]

@@ -1,9 +1,10 @@
-// backend/server.js
 const express = require("express");
 const cors = require("cors");
 
 const { PORT, DATA_DIR, UPLOAD_DIR, PARSED_DIR, REGISTRY_PATH, TEAMS_PATH, ACTIVE_TEAM_PATH } = require("./utils/config");
 const { ensureFile, ensureDir } = require("./utils/fileUtils");
+
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 app.use(cors());
@@ -20,9 +21,13 @@ ensureFile(ACTIVE_TEAM_PATH, null);
 // Serve uploaded files as static assets
 app.use("/uploads", express.static(UPLOAD_DIR));
 
+// Auth routes
+app.use("/api/auth", authRoutes);
+
 // API routes
 app.use("/api", require("./routes"));
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
 });
+
