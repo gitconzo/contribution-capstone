@@ -33,32 +33,32 @@ export default function ExportReport({ darkMode }) {
   const students = [
     {
       id: 1,
-      name: "Jen Mao",
-      email: "103821194@student.swin.edu.au",
+      name: "Sue Rid",
+      email: "146786674@student.swin.edu.au",
       score: 92,
     },
     {
       id: 2,
-      name: "Connor Lack",
-      email: "103992223@student.swin.edu.au",
+      name: "Rem Bett",
+      email: "1037899@student.swin.edu.au",
       score: 89,
     },
     {
       id: 3,
-      name: "Jason Vo",
-      email: "103993653@student.swin.edu.au",
+      name: "Richard Blanchard",
+      email: "1897788@student.swin.edu.au",
       score: 94,
     },
     {
       id: 4,
-      name: "Kavindu Bhanuka Weragoda",
-      email: "104860525@student.swin.edu.au",
+      name: "Sam Wallay",
+      email: "145677@student.swin.edu.au",
       score: 73,
     },
     {
       id: 5,
-      name: "Md Hridoy Mia",
-      email: "105077229@student.swin.edu.au",
+      name: "Ben JJ",
+      email: "123455@student.swin.edu.au",
       score: 58,
     },
   ];
