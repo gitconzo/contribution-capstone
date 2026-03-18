@@ -1,23 +1,43 @@
 // backend/routes/teams/GET.js
 const router = require("express").Router();
 const db = require("../../utils/db");
+const { readActiveId } = require("../../utils/activeTeamUtils");
 
 async function fetchTeamById(id) {
-  const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [id]);
+  const teamRes = await db.query(
+    "SELECT t.*, u.code FROM teams t LEFT JOIN units u ON t.unit_id = u.id WHERE t.id = $1",
+    [id]
+  );
   if (!teamRes.rows.length) return null;
-  const team = teamRes.rows[0];
 
   const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [id]);
-  team.students = studentsRes.rows;
+  return normalizeTeam(teamRes.rows[0], studentsRes.rows);
+}
 
-  return team;
+function normalizeTeam(t, students) {
+  return {
+    ...t,
+    students: students || [],
+    code: t.code, // from JOIN with units table
+    repo: { url: t.repo_url, owner: t.repo_owner, repo: t.repo_name },
+  };
 }
 
 // GET /api/teams
 router.get("/", async (_req, res) => {
   try {
-    const result = await db.query("SELECT * FROM teams ORDER BY created_at DESC");
-    res.json(result.rows);
+    const teamsResult   = await db.query(
+      "SELECT t.*, u.code FROM teams t LEFT JOIN units u ON t.unit_id = u.id ORDER BY t.created_at DESC"
+    );
+    const studentsResult = await db.query("SELECT * FROM students");
+
+    const studentsByTeam = {};
+    for (const s of studentsResult.rows) {
+      if (!studentsByTeam[s.team_id]) studentsByTeam[s.team_id] = [];
+      studentsByTeam[s.team_id].push(s);
+    }
+
+    res.json(teamsResult.rows.map(t => normalizeTeam(t, studentsByTeam[t.id])));
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -26,9 +46,17 @@ router.get("/", async (_req, res) => {
 // GET /api/teams/active — must be before /:id
 router.get("/active", async (_req, res) => {
   try {
-    // Active team is the most recently created for now
-    const result = await db.query("SELECT * FROM teams ORDER BY created_at DESC LIMIT 1");
-    res.json(result.rows[0] || { id: null });
+    const savedId = readActiveId();
+    if (savedId) {
+      const result = await db.query("SELECT t.*, u.code FROM teams t LEFT JOIN units u ON t.unit_id = u.id WHERE t.id = $1", [savedId]);
+      if (result.rows.length) {
+        const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [savedId]);
+        return res.json(normalizeTeam(result.rows[0], studentsRes.rows));
+      }
+    }
+    // Fallback: most recently created
+    const result = await db.query("SELECT t.*, u.code FROM teams t LEFT JOIN units u ON t.unit_id = u.id ORDER BY t.created_at DESC LIMIT 1");
+    res.json(result.rows[0] ? normalizeTeam(result.rows[0], []) : { id: null });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

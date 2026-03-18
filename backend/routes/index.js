@@ -11,8 +11,8 @@ router.use("/rules",   require("./rules/POST"));
 router.use("/scores",  require("./scores/GET"));
 router.use("/github",  require("./github/GET"));
 router.use("/github",  require("./github/POST"));
-//router.use("/uploads", require("./uploads/GET"));
-//router.use("/uploads", require("./uploads/POST"));
-//router.use("/uploads", require("./uploads/DELETE"));
+router.use("/uploads", require("./uploads/GET"));
+router.use("/uploads", require("./uploads/POST"));
+router.use("/uploads", require("./uploads/DELETE"));
 
 module.exports = router;

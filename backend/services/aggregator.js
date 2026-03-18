@@ -7,6 +7,8 @@ const { safeReadJson } = require("../utils/fileUtils");
 // Alias for backwards-compatibility within this file
 const safeReadJSON = safeReadJson;
 
+const db = require("../utils/db");
+
 function normalize(values) {
   const arr = Array.isArray(values) ? values : [];
   if (arr.length === 0) return [];
@@ -18,7 +20,8 @@ function normalize(values) {
   const standardDeviation = Math.sqrt(variance);
 
   if (!Number.isFinite(standardDeviation) || standardDeviation === 0) {
-    return arr.map(() => 0.5);
+    // If all values are zero there is no data — return zeros, not 0.5
+    return arr.map(() => (mean === 0 ? 0 : 0.5));
   }
 
   const zScores = arr.map(v => modifyStdDev * ((v - mean) / standardDeviation));
@@ -320,22 +323,27 @@ function scoreStudents(students, rules = null) {
   return { ranking: ranked, weights: w, dims, studentsCount: students.length };
 }
 
-function loadTeamRulesIfAny(team) {
-  return team.rules || null;
-}
+async function aggregateTeamScores({ teamId, rootDir }) {
+  const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [teamId]);
+  if (!teamRes.rows.length) throw new Error("Team not found");
+  const team = teamRes.rows[0];
 
-function aggregateTeamScores({ teamId, rootDir }) {
-  const teamsPath = path.join(rootDir, "data", "teams.json");
-  const teams = safeReadJSON(teamsPath, []);
-  const team = teams.find(t => t.id === teamId);
-  if (!team) throw new Error("Team not found");
+  const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [teamId]);
+  team.students = studentsRes.rows;
+
+  const rulesRes = await db.query(
+    "SELECT name, weight, description FROM rules WHERE team_id = $1 ORDER BY id",
+    [teamId]
+  );
+  const rules = rulesRes.rows.length
+    ? { rules: rulesRes.rows.map(r => ({ name: r.name, value: r.weight, desc: r.description })) }
+    : null;
 
   const students = aggregateForTeam(team, rootDir);
-  const rules = loadTeamRulesIfAny(team);
   const scored = scoreStudents(students, rules);
 
   return {
-    team: { id: team.id, name: team.name, code: team.code, repo: team.repo },
+    team: { id: team.id, name: team.name, repo_url: team.repo_url },
     ...scored,
   };
 }

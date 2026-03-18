@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-const API = "http://localhost:5002";
+import { apiFetch } from "../utils/api";
 
 export default function SetupTeam() {
   const [name, setName] = useState("");
@@ -37,7 +37,7 @@ export default function SetupTeam() {
   const loadTeams = async () => {
     setError("");
     try {
-      const res = await fetch(`${API}/api/teams`);
+      const res = await apiFetch("/api/teams");
       if (!res.ok) throw new Error(`Load teams failed (${res.status})`);
       const data = await res.json();
       setTeams(Array.isArray(data) ? data : []);
@@ -76,7 +76,7 @@ export default function SetupTeam() {
     setCreating(true);
     try {
       const body = { name: name.trim(), code: code.trim(), repo: normalizeRepo(repoUrl.trim()), students };
-      const res = await fetch(`${API}/api/teams`, {
+      const res = await apiFetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -103,7 +103,7 @@ export default function SetupTeam() {
 
   const onSaveTeam = async (id) => {
     try {
-      const res = await fetch(`${API}/api/teams/${id}`, {
+      const res = await apiFetch(`/api/teams/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editName, code: editCode, repo: normalizeRepo(editRepo) }),
@@ -120,7 +120,7 @@ export default function SetupTeam() {
   const onDeleteTeam = async (id) => {
     if (!window.confirm("Are you sure you want to delete this team?")) return;
     try {
-      const res = await fetch(`${API}/api/teams/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/teams/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete team");
       if (expandedId === id) setExpandedId(null);
       await loadTeams();
@@ -136,7 +136,7 @@ export default function SetupTeam() {
       return;
     }
     try {
-      const res = await fetch(`${API}/api/teams/${teamId}/students`, {
+      const res = await apiFetch(`/api/teams/${teamId}/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newStudentName.trim(), email: newStudentEmail.trim(), github: newStudentGithub.trim() }),
@@ -154,7 +154,7 @@ export default function SetupTeam() {
   const onRemoveStudent = async (teamId, email) => {
     if (!window.confirm(`Remove ${email} from team?`)) return;
     try {
-      const res = await fetch(`${API}/api/teams/${teamId}/students/${encodeURIComponent(email)}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/teams/${teamId}/students/${encodeURIComponent(email)}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to remove student");
       await loadTeams();
     } catch (e) {
@@ -173,7 +173,7 @@ export default function SetupTeam() {
   const onSaveStudent = async () => {
     const { teamId, email } = editingStudent;
     try {
-      const res = await fetch(`${API}/api/teams/${teamId}/students/${encodeURIComponent(email)}`, {
+      const res = await apiFetch(`/api/teams/${teamId}/students/${encodeURIComponent(email)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editStudentName, email: editStudentEmail, github: editStudentGithub }),
@@ -254,7 +254,7 @@ export default function SetupTeam() {
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
                     <button onClick={async () => {
-                      await fetch(`${API}/api/teams/active`, {
+                      await apiFetch("/api/teams/active", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: t.id }),

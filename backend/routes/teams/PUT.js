@@ -1,39 +1,60 @@
+// backend/routes/teams/PUT.js
 const router = require("express").Router();
-const {TEAMS_PATH} = require("../../utils/config");
-const { readJson, writeJson } = require("../../utils/fileUtils");
+const db = require("../../utils/db");
 
+// PUT /api/teams/:id — edit team name, code, repo
+router.put("/:id", async (req, res) => {
+  const { name, code, repo } = req.body || {};
 
-// edit team name, class code, repo
-router.put("/:id", (req, res) =>{
-    const teams = readJson(TEAMS_PATH);
-    const idx = teams.findIndex(t => t.id === req.params.id);
-    if (idx  === -1) return res.status(404).json({error: "Team not found!"});
+  try {
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
+    if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
 
-    const {name, code, repo} = req.body || {};
-    if (name) teams[idx].name = name;
-    if (code) teams[idx].code = code;
-    if (repo) teams[idx].repo = repo;
+    if (name) await db.query("UPDATE teams SET name = $1 WHERE id = $2", [name, req.params.id]);
+    if (repo?.url !== undefined) await db.query(
+      "UPDATE teams SET repo_url = $1, repo_owner = $2, repo_name = $3 WHERE id = $4",
+      [repo.url || null, repo.owner || null, repo.repo || null, req.params.id]
+    );
 
-    writeJson(TEAMS_PATH, teams);
-    res.json(teams[idx]);
+    if (code) {
+      let unitResult = await db.query("SELECT id FROM units WHERE code = $1", [code]);
+      if (!unitResult.rows.length) {
+        unitResult = await db.query("INSERT INTO units (code, name) VALUES ($1, $2) RETURNING id", [code, code]);
+      }
+      await db.query("UPDATE teams SET unit_id = $1 WHERE id = $2", [unitResult.rows[0].id, req.params.id]);
+    }
+
+    const updated = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
+    const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [req.params.id]);
+    res.json({ ...updated.rows[0], students: studentsRes.rows });
+  } catch (e) {
+    console.error("PUT /api/teams/:id error:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// edit students
-router.put("/:id/students/:email", (req, res) => {
-    const teams = readJson(TEAMS_PATH);
-    const idx = teams.findIndex(t => t.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: "Team not found!" });
+// PUT /api/teams/:id/students/:email — edit a student
+router.put("/:id/students/:email", async (req, res) => {
+  const { name, email, github } = req.body || {};
 
-    const studentIdx = teams[idx].students.findIndex(s => s.email === req.params.email);
-    if (studentIdx === -1) return res.status(404).json({ error: "Student not found!" });
+  try {
+    const studentCheck = await db.query(
+      "SELECT * FROM students WHERE team_id = $1 AND email = $2",
+      [req.params.id, req.params.email]
+    );
+    if (!studentCheck.rows.length) return res.status(404).json({ error: "Student not found" });
 
-    const { name, email, github } = req.body || {};
-    if (name) teams[idx].students[studentIdx].name = name;
-    if (email) teams[idx].students[studentIdx].email = email;
-    if (github !== undefined) teams[idx].students[studentIdx].github = github;
+    if (name)   await db.query("UPDATE students SET name = $1   WHERE team_id = $2 AND email = $3", [name,   req.params.id, req.params.email]);
+    if (email)  await db.query("UPDATE students SET email = $1  WHERE team_id = $2 AND email = $3", [email,  req.params.id, req.params.email]);
+    if (github !== undefined) await db.query("UPDATE students SET github = $1 WHERE team_id = $2 AND email = $3", [github, req.params.id, req.params.email]);
 
-    writeJson(TEAMS_PATH, teams);
-    res.json(teams[idx]);
+    const teamRes     = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
+    const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [req.params.id]);
+    res.json({ ...teamRes.rows[0], students: studentsRes.rows });
+  } catch (e) {
+    console.error("PUT /api/teams/:id/students/:email error:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

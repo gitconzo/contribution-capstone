@@ -1,33 +1,54 @@
 // backend/routes/rules/POST.js
 const router = require("express").Router();
-const { TEAMS_PATH } = require("../../utils/config");
-const { readJson, writeJson } = require("../../utils/fileUtils");
+const db = require("../../utils/db");
 const { readActiveId } = require("../../utils/activeTeamUtils");
 const { DEFAULT_RULES, weightsFromRules } = require("./_defaults");
 
 // POST /api/rules
-router.post("/", (req, res) => {
-  const active = readActiveId();
-  const { teamId = active, rules, autoRecalc, crossVerify, triangulation, peerValidation } = req.body || {};
-  if (!teamId) return res.status(400).json({ error: "No active team and no teamId supplied." });
+router.post("/", async (req, res) => {
+  try {
+    const { teamId = readActiveId(), rules, autoRecalc /*, crossVerify, triangulation, peerValidation */ } = req.body || {};
+    if (!teamId) return res.status(400).json({ error: "No active team and no teamId supplied." });
 
-  const teams = readJson(TEAMS_PATH);
-  const idx = teams.findIndex(t => t.id === teamId);
-  if (idx === -1) return res.status(404).json({ error: "Team not found" });
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [teamId]);
+    if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
 
-  const current = teams[idx].rules || {};
-  teams[idx].rules = {
-    rules: Array.isArray(rules) ? rules : (current.rules || DEFAULT_RULES.rules),
-    autoRecalc: typeof autoRecalc === "boolean" ? autoRecalc : (current.autoRecalc ?? DEFAULT_RULES.autoRecalc),
-    crossVerify: typeof crossVerify === "boolean" ? crossVerify : (current.crossVerify ?? DEFAULT_RULES.crossVerify),
-    triangulation: triangulation || current.triangulation || DEFAULT_RULES.triangulation,
-    peerValidation: peerValidation || current.peerValidation || DEFAULT_RULES.peerValidation,
-  };
+    const [currentSettings, currentRules] = await Promise.all([
+      db.query("SELECT * FROM rule_settings WHERE team_id = $1", [teamId]),
+      db.query("SELECT name, weight, description FROM rules WHERE team_id = $1", [teamId]),
+    ]);
+    const cs = currentSettings.rows[0] || {};
+    const cr = currentRules.rows.map(r => ({ name: r.name, value: r.weight, desc: r.description }));
 
-  writeJson(TEAMS_PATH, teams);
-  const saved = teams[idx].rules;
-  const weights = weightsFromRules(saved.rules) || {};
-  res.json({ ok: true, teamId, rules: saved, weights });
+    const newRules      = Array.isArray(rules) ? rules : (cr.length ? cr : DEFAULT_RULES.rules);
+    const newAutoRecalc = typeof autoRecalc === "boolean" ? autoRecalc : (cs.auto_recalc ?? DEFAULT_RULES.autoRecalc);
+    // crossVerify and triangulation not yet implemented in scoring — skipped for now
+    // const newCrossVerify  = typeof crossVerify === "boolean" ? crossVerify : (cs.cross_verify ?? DEFAULT_RULES.crossVerify);
+    // const newTriang       = triangulation || ...
+    // const newPeerVal      = peerValidation || cs.peer_validation || DEFAULT_RULES.peerValidation;
+
+    await db.query(`
+      INSERT INTO rule_settings (team_id, auto_recalc)
+      VALUES ($1, $2)
+      ON CONFLICT (team_id) DO UPDATE SET
+        auto_recalc = EXCLUDED.auto_recalc
+    `, [teamId, newAutoRecalc]);
+
+    // Replace rules: delete then re-insert
+    await db.query("DELETE FROM rules WHERE team_id = $1", [teamId]);
+    for (const r of newRules) {
+      await db.query(
+        `INSERT INTO rules (team_id, name, weight, description) VALUES ($1,$2,$3,$4)`,
+        [teamId, r.name, r.value ?? r.weight ?? 0, r.desc ?? r.description ?? ""]
+      );
+    }
+
+    const saved = { rules: newRules, autoRecalc: newAutoRecalc };
+    res.json({ ok: true, teamId, rules: saved, weights: weightsFromRules(saved.rules) || {} });
+  } catch (err) {
+    console.error("POST /api/rules error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
 });
 
 module.exports = router;

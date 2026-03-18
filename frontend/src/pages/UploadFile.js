@@ -1,5 +1,6 @@
 // frontend/src/pages/UploadFile.js
 import React, { useEffect, useMemo, useState } from "react";
+import { apiFetch, API_URL } from "../utils/api";
 
 const TYPE_OPTIONS = [
   { value: "attendance", label: "Attendance Sheet (.xlsx)" },
@@ -22,15 +23,13 @@ export default function UploadFile() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeMsg, setAnalyzeMsg] = useState("");
 
-  const API = "http://localhost:5002";
-
   const detectedType = uploadResult?.detectedType || "unknown";
   const effectiveType = useMemo(() => {
     return overrideType !== "unknown" ? overrideType : detectedType;
   }, [overrideType, detectedType]);
 
   const fetchFiles = () => {
-    fetch(`${API}/api/uploads`)
+    apiFetch("/api/uploads")
       .then(res => res.json())
       .then(setFiles)
       .catch(console.error);
@@ -51,7 +50,7 @@ export default function UploadFile() {
     formData.append("file", file);
     formData.append("userType", overrideType);
 
-    const res = await fetch(`${API}/api/uploads`, { method: "POST", body: formData });
+    const res = await apiFetch("/api/uploads", { method: "POST", body: formData });
     const json = await res.json();
     setUploadResult(json);
   };
@@ -60,7 +59,7 @@ export default function UploadFile() {
     if (!uploadResult?.id) return;
     setConfirming(true);
 
-    const res = await fetch(`${API}/api/uploads/confirm`, {
+    const res = await apiFetch("/api/uploads/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: uploadResult.id, type: effectiveType })
@@ -81,7 +80,7 @@ export default function UploadFile() {
     }
     setAnalyzing(true);
     try {
-      await fetch(`${API}/api/github/analyze`, {
+      await apiFetch("/api/github/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: repoUrl.trim() })
@@ -89,7 +88,7 @@ export default function UploadFile() {
       let attempts = 0;
       const poll = setInterval(async () => {
           attempts++;
-          const st = await fetch(`${API}/api/github/status`).then(r => r.json());
+          const st = await apiFetch("/api/github/status").then(r => r.json());
           if (st.finalStatsExists) {
               clearInterval(poll);
               setAnalyzing(false);
@@ -104,7 +103,7 @@ export default function UploadFile() {
       }, 5000);
     } catch (e) {
       try {
-        const st = await fetch(`${API}/api/github/status`).then(r => r.json());
+        const st = await apiFetch("/api/github/status").then(r => r.json());
         if (st.finalStatsExists) {
           setAnalyzeMsg("Analysis finished, but the browser couldn’t read the response (likely CORS/mixed-content). Data is ready.");
         } else if (st.commitsExists) {
@@ -200,7 +199,7 @@ export default function UploadFile() {
                 <td style={styles.tableCell}>{file.status}</td>
                 <td style={styles.tableCell}>
                   <a
-                    href={`http://localhost:5002/${file.storedPath}`}
+                    href={`${API_URL}/${file.storedPath}`}
                     download
                     style={styles.downloadBtn}
                   >

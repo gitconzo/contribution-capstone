@@ -1,41 +1,40 @@
+// backend/routes/teams/DELETE.js
 const router = require("express").Router();
-const { TEAMS_PATH } = require("../../utils/config");
-const { readJson, writeJson } = require("../../utils/fileUtils");
-const { readActiveId, writeActiveId } = require("../../utils/activeTeamUtils");
+const db = require("../../utils/db");
 
-// DELETE /api/teams/:id — deleting a team
-router.delete("/:id", (req, res) => {
-  let teams = readJson(TEAMS_PATH);
-  if (!teams.find(t => t.id === req.params.id)) {
-    return res.status(404).json({ error: "Team not found" });
+// DELETE /api/teams/:id — delete a team
+router.delete("/:id", async (req, res) => {
+  try {
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
+    if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
+
+    await db.query("DELETE FROM teams WHERE id = $1", [req.params.id]);
+    // Active team is always the most recent by created_at — no extra logic needed
+    res.json({ success: true });
+  } catch (e) {
+    console.error("DELETE /api/teams/:id error:", e);
+    res.status(500).json({ error: e.message });
   }
- 
-  teams = teams.filter(t => t.id !== req.params.id);
-  writeJson(TEAMS_PATH, teams);
- 
-  //if active, clear active team
-  if (readActiveId() === req.params.id) {
-    writeActiveId(teams[0]?.id || null);
-  }
- 
-  res.json({ success: true });
 });
 
-// DELETE /api/teams/:id/students/:email — removing a student
-router.delete("/:id/students/:email", (req, res) => {
-  const teams = readJson(TEAMS_PATH);
-  const team = teams.find(t => t.id === req.params.id);
-  if (!team) return res.status(404).json({ error: "Team not found" });
- 
-  const before = team.students.length;
-  team.students = team.students.filter(s => s.email !== req.params.email);
- 
-  if (team.students.length === before) {
-    return res.status(404).json({ error: "Student not found" });
+// DELETE /api/teams/:id/students/:email — remove a student
+router.delete("/:id/students/:email", async (req, res) => {
+  try {
+    const studentCheck = await db.query(
+      "SELECT * FROM students WHERE team_id = $1 AND email = $2",
+      [req.params.id, req.params.email]
+    );
+    if (!studentCheck.rows.length) return res.status(404).json({ error: "Student not found" });
+
+    await db.query("DELETE FROM students WHERE team_id = $1 AND email = $2", [req.params.id, req.params.email]);
+
+    const teamRes     = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
+    const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [req.params.id]);
+    res.json({ ...teamRes.rows[0], students: studentsRes.rows });
+  } catch (e) {
+    console.error("DELETE /api/teams/:id/students/:email error:", e);
+    res.status(500).json({ error: e.message });
   }
- 
-  writeJson(TEAMS_PATH, teams);
-  res.json(team);
 });
- 
+
 module.exports = router;

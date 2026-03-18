@@ -12,12 +12,12 @@ export default function Dashboard({ onViewStudent }) {
 
   useEffect(() => {
     (async () => {
-      const [tres, ares] = await Promise.all([
+      const [allTeams, activeTeam] = await Promise.all([
         apiFetch("/api/teams").then(r => r.json()),
         apiFetch("/api/teams/active").then(r => r.json()),
       ]);
-      setTeams(tres || []);
-      setTeamId(ares?.id || tres?.[0]?.id || "");
+      setTeams(allTeams || []);
+      setTeamId(activeTeam?.id || allTeams?.[0]?.id || "");
     })();
   }, []);
 

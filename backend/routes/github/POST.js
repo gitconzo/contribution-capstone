@@ -2,10 +2,10 @@
 const path = require("path");
 const { execFile } = require("child_process");
 const router = require("express").Router();
-const { ROOT_DIR, DATA_DIR, TEAMS_PATH } = require("../../utils/config");
-const { readJson, writeJson, safeReadJson, ensureDir } = require("../../utils/fileUtils");
+const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
+const { writeJson, safeReadJson, ensureDir } = require("../../utils/fileUtils");
 const { pyBin, runFile } = require("../../utils/processUtils");
-const { readActiveId } = require("../../utils/activeTeamUtils");
+const db = require("../../utils/db");
 
 function parseRepoFromUrl(url) {
   let owner = "", repo = "";
@@ -23,27 +23,32 @@ function parseRepoFromUrl(url) {
 }
 
 // POST /api/github/fetch  (uses active team's saved repo URL)
-router.post("/fetch", (req, res) => {
-  const activeId = readActiveId();
-  const teams = readJson(TEAMS_PATH);
-  const active = teams.find(t => t.id === activeId) || null;
+router.post("/fetch", async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT repo_url, repo_owner, repo_name FROM teams ORDER BY created_at DESC LIMIT 1"
+    );
+    const active = result.rows[0] || null;
 
-  if (!active?.repo?.url) {
-    return res.status(400).json({ error: "Active team has no repository URL configured." });
+    if (!active?.repo_url) {
+      return res.status(400).json({ error: "Active team has no repository URL configured." });
+    }
+
+    const script = path.join(ROOT_DIR, "fetchData.js");
+    const env = {
+      ...process.env,
+      REPO_URL:   active.repo_url,
+      REPO_OWNER: active.repo_owner || "",
+      REPO_NAME:  active.repo_name  || "",
+    };
+
+    execFile("node", [script], { cwd: ROOT_DIR, env }, (err, stdout, stderr) => {
+      if (err) return res.status(500).json({ error: `GitHub fetch failed: ${stderr || err.message}` });
+      res.json({ success: true, message: "Fetched GitHub commits.", stdout });
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
-
-  const script = path.join(ROOT_DIR, "fetchData.js");
-  const env = {
-    ...process.env,
-    REPO_URL:   active.repo.url,
-    REPO_OWNER: active.repo.owner || "",
-    REPO_NAME:  active.repo.repo  || "",
-  };
-
-  execFile("node", [script], { cwd: ROOT_DIR, env }, (err, stdout, stderr) => {
-    if (err) return res.status(500).json({ error: `GitHub fetch failed: ${stderr || err.message}` });
-    res.json({ success: true, message: "Fetched GitHub commits.", stdout });
-  });
 });
 
 // POST /api/github/analyze  { url }

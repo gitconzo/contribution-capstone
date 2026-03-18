@@ -10,6 +10,8 @@ router.post("/active", async (req, res) => {
   const result = await db.query("SELECT id FROM teams WHERE id = $1", [id]);
   if (!result.rows.length) return res.status(404).json({ error: "Team not found" });
 
+  const { writeActiveId } = require("../../utils/activeTeamUtils");
+  writeActiveId(id);
   res.json({ success: true, id });
 });
 
@@ -59,54 +61,47 @@ router.post("/", async (req, res) => {
 });
 
 // POST /api/teams/:id/students - adding students
-router.post("/:id/students", (req, res) => {
-  const teams = readJson(TEAMS_PATH);
-  const team = teams.find(t => t.id === req.params.id);
-  if (!team) return res.status(404).json({ error: "Team not found" });
-
+router.post("/:id/students", async (req, res) => {
   const { name, email, github } = req.body || {};
   if (!name || !email) return res.status(400).json({ error: "Name and email required" });
 
-   const exists = team.students.find(s => s.email === email);
-  if (exists) return res.status(400).json({ error: "Student with this email already exists" });
+  try {
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
+    if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
 
-  team.students.push({ name, email, github: github || "" });
-  writeJson(TEAMS_PATH, teams);
-  res.json(team);
+    const exists = await db.query("SELECT id FROM students WHERE team_id = $1 AND email = $2", [req.params.id, email]);
+    if (exists.rows.length) return res.status(400).json({ error: "Student with this email already exists" });
+
+    await db.query(
+      "INSERT INTO students (team_id, name, email, github) VALUES ($1, $2, $3, $4)",
+      [req.params.id, name, email, github || null]
+    );
+
+    const teamRes     = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
+    const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [req.params.id]);
+    res.json({ ...teamRes.rows[0], students: studentsRes.rows });
+  } catch (e) {
+    console.error("POST /api/teams/:id/students error:", e);
+    res.status(500).json({ error: e.message });
+  }
 })
 
 // POST /api/teams/:id/rules
 router.post("/:id/rules", async (req, res) => {
   const { id } = req.params;
-  const { rules, autoRecalc, crossVerify, triangulation, peerValidation } = req.body || {};
+  const { rules, autoRecalc /*, crossVerify, triangulation, peerValidation */ } = req.body || {};
 
   try {
     const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [id]);
     if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
 
-    // Upsert rule_settings
+    // Upsert rule_settings — crossVerify/triangulation/peerValidation not yet implemented in scoring
     await db.query(
-      `INSERT INTO rule_settings
-         (team_id, auto_recalc, cross_verify,
-          triangulation_code_worklog, triangulation_meeting_doc, triangulation_activity_dist,
-          peer_validation)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `INSERT INTO rule_settings (team_id, auto_recalc)
+       VALUES ($1, $2)
        ON CONFLICT (team_id) DO UPDATE SET
-         auto_recalc                 = EXCLUDED.auto_recalc,
-         cross_verify                = EXCLUDED.cross_verify,
-         triangulation_code_worklog  = EXCLUDED.triangulation_code_worklog,
-         triangulation_meeting_doc   = EXCLUDED.triangulation_meeting_doc,
-         triangulation_activity_dist = EXCLUDED.triangulation_activity_dist,
-         peer_validation             = EXCLUDED.peer_validation`,
-      [
-        id,
-        autoRecalc ?? true,
-        crossVerify ?? true,
-        triangulation?.codeWorklog  ?? 80,
-        triangulation?.meetingDoc   ?? 70,
-        triangulation?.activityDist ?? 60,
-        peerValidation || "Statistical analysis",
-      ]
+         auto_recalc = EXCLUDED.auto_recalc`,
+      [id, autoRecalc ?? true]
     );
 
     // Upsert individual rules
