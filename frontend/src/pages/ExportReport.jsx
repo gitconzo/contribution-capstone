@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
+const API = "http://localhost:5002";
 
 export default function ExportReport({ darkMode }) {
   const [selectedFormat, setSelectedFormat] = useState("pdf");
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [team, setTeam] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const theme = darkMode
     ? {
@@ -13,8 +18,6 @@ export default function ExportReport({ darkMode }) {
         subtext: "#94a3b8",
         border: "#1f2937",
         softBorder: "#334155",
-        inputBg: "#0f172a",
-        buttonBg: "#111827",
         shadow: "0 8px 20px rgba(0,0,0,.28)",
       }
     : {
@@ -25,57 +28,57 @@ export default function ExportReport({ darkMode }) {
         subtext: "#6b7280",
         border: "#e5e7eb",
         softBorder: "#d1d5db",
-        inputBg: "#ffffff",
-        buttonBg: "#ffffff",
         shadow: "0 6px 14px rgba(0,0,0,.04)",
       };
 
-  const students = [
-    {
-      id: 1,
-      name: "Sue Rid",
-      email: "146786674@student.swin.edu.au",
-      score: 92,
-    },
-    {
-      id: 2,
-      name: "Rem Bett",
-      email: "1037899@student.swin.edu.au",
-      score: 89,
-    },
-    {
-      id: 3,
-      name: "Richard Blanchard",
-      email: "1897788@student.swin.edu.au",
-      score: 94,
-    },
-    {
-      id: 4,
-      name: "Sam Wallay",
-      email: "145677@student.swin.edu.au",
-      score: 73,
-    },
-    {
-      id: 5,
-      name: "Ben JJ",
-      email: "123455@student.swin.edu.au",
-      score: 58,
-    },
-  ];
+  useEffect(() => {
+    const loadTeam = async () => {
+      try {
+        setLoading(true);
 
-  const toggleStudent = (id) => {
+        const activeRes = await fetch(`${API}/api/teams/active`);
+        const activeData = await activeRes.json();
+
+        const teamsRes = await fetch(`${API}/api/teams`);
+        const teamsData = await teamsRes.json();
+
+        const activeTeam = (teamsData || []).find((t) => t.id === activeData?.teamId);
+
+        setTeam(activeTeam || null);
+        setStudents(activeTeam?.students || []);
+      } catch (err) {
+        console.error("Failed to load export team data:", err);
+        setTeam(null);
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTeam();
+  }, []);
+
+  const toggleStudent = (email) => {
     setSelectedStudents((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+      prev.includes(email) ? prev.filter((s) => s !== email) : [...prev, email]
     );
   };
 
   const selectAll = () => {
-    setSelectedStudents(students.map((s) => s.id));
+    setSelectedStudents(students.map((s) => s.email));
   };
 
   const clearSelection = () => {
     setSelectedStudents([]);
   };
+
+  const averageScore = useMemo(() => {
+    const withScores = students.filter((s) => typeof s.score === "number");
+    if (!withScores.length) return "N/A";
+    const avg =
+      withScores.reduce((sum, s) => sum + s.score, 0) / withScores.length;
+    return `${Math.round(avg)}%`;
+  }, [students]);
 
   const cardStyle = {
     background: theme.card,
@@ -96,6 +99,21 @@ export default function ExportReport({ darkMode }) {
     color: theme.text,
   };
 
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: theme.pageBg,
+          color: theme.text,
+          padding: "24px",
+        }}
+      >
+        Loading export data...
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -111,7 +129,6 @@ export default function ExportReport({ darkMode }) {
           margin: "0 auto",
         }}
       >
-        {/* Header Card */}
         <div
           style={{
             ...cardStyle,
@@ -159,7 +176,6 @@ export default function ExportReport({ darkMode }) {
           </div>
         </div>
 
-        {/* Main Grid */}
         <div
           style={{
             display: "grid",
@@ -168,9 +184,7 @@ export default function ExportReport({ darkMode }) {
             alignItems: "start",
           }}
         >
-          {/* Left Column */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {/* Export Format */}
             <div style={cardStyle}>
               <div
                 style={{
@@ -199,109 +213,39 @@ export default function ExportReport({ darkMode }) {
                   gap: "14px",
                 }}
               >
-                <div
-                  onClick={() => setSelectedFormat("pdf")}
-                  style={{
-                    ...smallCardStyle,
-                    border:
-                      selectedFormat === "pdf"
-                        ? "2px solid #9ca3af"
-                        : `1px solid ${theme.border}`,
-                  }}
-                >
+                {[
+                  ["pdf", "PDF Report", "Formatted document with charts"],
+                  ["word", "Word Document", "Editable DOCX format"],
+                  ["csv", "CSV Data", "Raw data for analysis"],
+                  ["excel", "Excel Workbook", "Multi-sheet analysis"],
+                ].map(([value, title, desc]) => (
                   <div
+                    key={value}
+                    onClick={() => setSelectedFormat(value)}
                     style={{
-                      fontSize: "16px",
-                      fontWeight: 700,
-                      marginBottom: "6px",
-                      color: theme.text,
+                      ...smallCardStyle,
+                      border:
+                        selectedFormat === value
+                          ? "2px solid #9ca3af"
+                          : `1px solid ${theme.border}`,
                     }}
                   >
-                    PDF Report
+                    <div
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: 700,
+                        marginBottom: "6px",
+                        color: theme.text,
+                      }}
+                    >
+                      {title}
+                    </div>
+                    <div style={{ fontSize: "14px", color: theme.subtext }}>{desc}</div>
                   </div>
-                  <div style={{ fontSize: "14px", color: theme.subtext }}>
-                    Formatted document with charts
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => setSelectedFormat("word")}
-                  style={{
-                    ...smallCardStyle,
-                    border:
-                      selectedFormat === "word"
-                        ? "2px solid #9ca3af"
-                        : `1px solid ${theme.border}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: 700,
-                      marginBottom: "6px",
-                      color: theme.text,
-                    }}
-                  >
-                    Word Document
-                  </div>
-                  <div style={{ fontSize: "14px", color: theme.subtext }}>
-                    Editable DOCX format
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => setSelectedFormat("csv")}
-                  style={{
-                    ...smallCardStyle,
-                    border:
-                      selectedFormat === "csv"
-                        ? "2px solid #9ca3af"
-                        : `1px solid ${theme.border}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: 700,
-                      marginBottom: "6px",
-                      color: theme.text,
-                    }}
-                  >
-                    CSV Data
-                  </div>
-                  <div style={{ fontSize: "14px", color: theme.subtext }}>
-                    Raw data for analysis
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => setSelectedFormat("excel")}
-                  style={{
-                    ...smallCardStyle,
-                    border:
-                      selectedFormat === "excel"
-                        ? "2px solid #9ca3af"
-                        : `1px solid ${theme.border}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: 700,
-                      marginBottom: "6px",
-                      color: theme.text,
-                    }}
-                  >
-                    Excel Workbook
-                  </div>
-                  <div style={{ fontSize: "14px", color: theme.subtext }}>
-                    Multi-sheet analysis
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Include in Report */}
             <div style={cardStyle}>
               <div
                 style={{
@@ -323,30 +267,14 @@ export default function ExportReport({ darkMode }) {
                 Select which sections to include in the exported report
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gap: "12px",
-                  fontSize: "15px",
-                  color: theme.text,
-                }}
-              >
-                <label>
-                  <input type="checkbox" defaultChecked /> Contribution Charts & Visualizations
-                </label>
-                <label>
-                  <input type="checkbox" defaultChecked /> Activity Timeline & Evidence
-                </label>
-                <label>
-                  <input type="checkbox" defaultChecked /> Rule Weights & Calculation Methods
-                </label>
-                <label>
-                  <input type="checkbox" defaultChecked /> Triangulation Analysis & Validation
-                </label>
+              <div style={{ display: "grid", gap: "12px", fontSize: "15px" }}>
+                <label><input type="checkbox" defaultChecked /> Contribution Charts & Visualizations</label>
+                <label><input type="checkbox" defaultChecked /> Activity Timeline & Evidence</label>
+                <label><input type="checkbox" defaultChecked /> Rule Weights & Calculation Methods</label>
+                <label><input type="checkbox" defaultChecked /> Triangulation Analysis & Validation</label>
               </div>
             </div>
 
-            {/* Student Selection */}
             <div style={cardStyle}>
               <div
                 style={{
@@ -403,63 +331,67 @@ export default function ExportReport({ darkMode }) {
               </div>
 
               <div style={{ display: "grid", gap: "10px" }}>
-                {students.map((student) => (
-                  <div
-                    key={student.id}
-                    style={{
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: "12px",
-                      padding: "14px 16px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      background: theme.cardAlt,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student.id)}
-                        onChange={() => toggleStudent(student.id)}
-                      />
-                      <div>
-                        <div
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 600,
-                            color: theme.text,
-                          }}
-                        >
-                          {student.name}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "14px",
-                            color: theme.subtext,
-                          }}
-                        >
-                          {student.email}
-                        </div>
-                      </div>
-                    </div>
-
+                {students.length ? (
+                  students.map((student, index) => (
                     <div
+                      key={student.email || index}
                       style={{
-                        border: `1px solid ${theme.softBorder}`,
-                        borderRadius: "999px",
-                        padding: "4px 10px",
-                        fontSize: "14px",
-                        fontWeight: 700,
-                        color: theme.text,
-                        minWidth: "52px",
-                        textAlign: "center",
-                        background: darkMode ? "#0f172a" : "#ffffff",
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: "12px",
+                        padding: "14px 16px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        background: theme.cardAlt,
                       }}
                     >
-                      {student.score}%
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student.email)}
+                          onChange={() => toggleStudent(student.email)}
+                        />
+                        <div>
+                          <div
+                            style={{
+                              fontSize: "15px",
+                              fontWeight: 600,
+                              color: theme.text,
+                            }}
+                          >
+                            {student.name}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              color: theme.subtext,
+                            }}
+                          >
+                            {student.email}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          border: `1px solid ${theme.softBorder}`,
+                          borderRadius: "999px",
+                          padding: "4px 10px",
+                          fontSize: "14px",
+                          fontWeight: 700,
+                          color: theme.text,
+                          minWidth: "52px",
+                          textAlign: "center",
+                          background: darkMode ? "#0f172a" : "#ffffff",
+                        }}
+                      >
+                        {typeof student.score === "number" ? `${student.score}%` : "--"}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div style={{ color: theme.subtext }}>No students found in the active team.</div>
+                )}
               </div>
 
               <div
@@ -477,9 +409,7 @@ export default function ExportReport({ darkMode }) {
             </div>
           </div>
 
-          {/* Right Column */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {/* Report Summary */}
             <div style={cardStyle}>
               <div
                 style={{
@@ -511,7 +441,7 @@ export default function ExportReport({ darkMode }) {
                   marginBottom: "10px",
                 }}
               >
-                COS40005-Computing Technology Project A - Sprint 1
+                {team?.name || "No Active Team"} {team?.code ? `(${team.code})` : ""}
               </div>
 
               <div
@@ -522,8 +452,7 @@ export default function ExportReport({ darkMode }) {
                   marginBottom: "18px",
                 }}
               >
-                Sprint 1: Project setup, requirements analysis, and initial development
-                phase with team formation and technology stack selection
+                Repository: {team?.repo?.url || "Not connected"}
               </div>
 
               <hr
@@ -535,38 +464,17 @@ export default function ExportReport({ darkMode }) {
               />
 
               <div style={{ display: "grid", gap: "10px", marginBottom: "16px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "15px",
-                    color: theme.text,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px" }}>
                   <span>Students:</span>
-                  <strong>5</strong>
+                  <strong>{students.length}</strong>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "15px",
-                    color: theme.text,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px" }}>
                   <span>Average Score:</span>
-                  <strong style={{ color: "#16a34a" }}>81%</strong>
+                  <strong style={{ color: "#16a34a" }}>{averageScore}</strong>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: "15px",
-                    color: theme.text,
-                  }}
-                >
-                  <span>High Performers:</span>
-                  <strong>3</strong>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px" }}>
+                  <span>Selected for Export:</span>
+                  <strong>{selectedStudents.length || students.length}</strong>
                 </div>
               </div>
 
@@ -578,14 +486,7 @@ export default function ExportReport({ darkMode }) {
                 }}
               />
 
-              <div
-                style={{
-                  fontSize: "15px",
-                  fontWeight: 700,
-                  marginBottom: "10px",
-                  color: theme.text,
-                }}
-              >
+              <div style={{ fontSize: "15px", fontWeight: 700, marginBottom: "10px" }}>
                 Sections Included:
               </div>
               <ul
@@ -605,7 +506,6 @@ export default function ExportReport({ darkMode }) {
               </ul>
             </div>
 
-            {/* Export Button */}
             <div style={cardStyle}>
               <button
                 style={{
@@ -620,7 +520,7 @@ export default function ExportReport({ darkMode }) {
                   cursor: "pointer",
                 }}
               >
-                Export PDF Report
+                Export {selectedFormat.toUpperCase()} Report
               </button>
               <div
                 style={{
@@ -635,7 +535,6 @@ export default function ExportReport({ darkMode }) {
               </div>
             </div>
 
-            {/* Current Rules */}
             <div style={cardStyle}>
               <div
                 style={{
@@ -658,14 +557,7 @@ export default function ExportReport({ darkMode }) {
                 Assessment weights being applied
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gap: "12px",
-                  fontSize: "15px",
-                  color: theme.text,
-                }}
-              >
+              <div style={{ display: "grid", gap: "12px", fontSize: "15px", color: theme.text }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>Code Commits:</span>
                   <strong>30%</strong>
