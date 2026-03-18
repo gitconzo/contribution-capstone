@@ -8,8 +8,11 @@ router.delete("/:id", async (req, res) => {
     const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
     if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
 
+    // Delete dependents first to avoid foreign key constraint errors
+    await db.query("DELETE FROM students WHERE team_id = $1", [req.params.id]);
+    await db.query("DELETE FROM rules WHERE team_id = $1", [req.params.id]);
+    await db.query("DELETE FROM rule_settings WHERE team_id = $1", [req.params.id]);
     await db.query("DELETE FROM teams WHERE id = $1", [req.params.id]);
-    // Active team is always the most recent by created_at — no extra logic needed
     res.json({ success: true });
   } catch (e) {
     console.error("DELETE /api/teams/:id error:", e);

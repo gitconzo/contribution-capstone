@@ -8,9 +8,9 @@ const {
   updateStudentDefaultPassword,
   forgotUsername,
   forgotPassword,
-} = require("../controllers/authController");
+} = require("../../controllers/authController");
 
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../../middleware/authMiddleware");
 
 router.post("/login", login);
 router.get("/me", protect, getMe);
