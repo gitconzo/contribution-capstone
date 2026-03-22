@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { apiFetch } from "../utils/api";
+
+const EMPTY_STUDENT = { name: "", email: "", github: "", aliases: "" };
 
 export default function SetupTeam() {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
-  const [csvText, setCsvText] = useState("");
+  const [newStudents, setNewStudents] = useState([{ ...EMPTY_STUDENT }]);
   const [teams, setTeams] = useState([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -32,7 +34,12 @@ export default function SetupTeam() {
   const [editStudentEmail, setEditStudentEmail] = useState("");
   const [editStudentGithub, setEditStudentGithub] = useState("");
 
-  const students = useMemo(() => parseCsv(csvText), [csvText]);
+  const updateNewStudent = (i, field, value) =>
+    setNewStudents(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
+
+  const addNewStudentRow = () => setNewStudents(prev => [...prev, { ...EMPTY_STUDENT }]);
+
+  const removeNewStudentRow = (i) => setNewStudents(prev => prev.filter((_, idx) => idx !== i));
 
   const loadTeams = async () => {
     setError("");
@@ -69,13 +76,24 @@ export default function SetupTeam() {
       setError("Team Name, Project Code, and Repository URL are required.");
       return;
     }
-    if (students.length === 0) {
-      setError("Must include at least one student.");
+    const validStudents = newStudents.filter(s => s.name.trim() && s.email.trim());
+    if (validStudents.length === 0) {
+      setError("Must include at least one student with name and email.");
       return;
     }
     setCreating(true);
     try {
-      const body = { name: name.trim(), code: code.trim(), repo: normalizeRepo(repoUrl.trim()), students };
+      const body = {
+        name: name.trim(),
+        code: code.trim(),
+        repo: normalizeRepo(repoUrl.trim()),
+        students: validStudents.map(s => ({
+          name: s.name.trim(),
+          email: s.email.trim(),
+          github: s.github.trim() || null,
+          aliases: s.aliases.trim() ? s.aliases.split(",").map(a => a.trim()).filter(Boolean) : [],
+        })),
+      };
       const res = await apiFetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,7 +102,7 @@ export default function SetupTeam() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `Create failed (${res.status})`);
       await loadTeams();
-      setName(""); setCode(""); setRepoUrl(""); setCsvText("");
+      setName(""); setCode(""); setRepoUrl(""); setNewStudents([{ ...EMPTY_STUDENT }]);
       alert("Team created.");
     } catch (e) {
       setError(e.message || "Create team failed");
@@ -218,14 +236,28 @@ export default function SetupTeam() {
           </Field>
         </div>
         <div style={{ marginTop: 10 }}>
-          <Field label="Students CSV (name, email, github per line)">
-            <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)}
-              placeholder={`Example:\nAlice Smith, alice@example.com, alicegh\nBob Jones, bob@example.com, bobjones`}
-              rows={6} style={inp({ fontFamily: "monospace", width: "100%" })} />
-          </Field>
-          <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
-            Parsed {students.length} student{students.length !== 1 ? "s" : ""}.
-          </div>
+          <div style={{ fontSize: 12, color: "#374151", marginBottom: 6 }}>Students</div>
+          {newStudents.map((s, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: 6, alignItems: "end", marginBottom: 8 }}>
+              <Field label="Name">
+                <input value={s.name} onChange={e => updateNewStudent(i, "name", e.target.value)} style={inp()} placeholder="John Doe" />
+              </Field>
+              <Field label="Email">
+                <input value={s.email} onChange={e => updateNewStudent(i, "email", e.target.value)} style={inp()} placeholder="john@example.com" />
+              </Field>
+              <Field label="GitHub">
+                <input value={s.github} onChange={e => updateNewStudent(i, "github", e.target.value)} style={inp()} placeholder="johndoe" />
+              </Field>
+              <Field label="Aliases (comma separated)">
+                <input value={s.aliases} onChange={e => updateNewStudent(i, "aliases", e.target.value)} style={inp()} placeholder="john, j.doe" />
+              </Field>
+              <button onClick={() => removeNewStudentRow(i)} disabled={newStudents.length === 1}
+                style={{ ...btn({ background: "#000", padding: "8px 10px" }), marginBottom: 1 }}>✕</button>
+            </div>
+          ))}
+          <button onClick={addNewStudentRow} style={{ marginTop: 2, background: "none", border: "1px dashed #d1d5db", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 12, color: "#64748b", width: "100%" }}>
+            + Add Student
+          </button>
         </div>
         <div style={{ marginTop: 14 }}>
           <button onClick={onCreate} disabled={creating} style={btn()}>
@@ -259,6 +291,7 @@ export default function SetupTeam() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: t.id }),
                       });
+                      localStorage.setItem("activeTeamId", t.id);
                       alert("Active team updated.");
                     }} style={btn({ fontSize: 12, padding: "6px 10px" })}>Make Active</button>
                     <button
@@ -346,13 +379,13 @@ export default function SetupTeam() {
                       {addingStudentToId === t.id ? (
                         <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 6, alignItems: "end", background: "#f0fdf4", borderRadius: 8, padding: 8 }}>
                           <Field label="Name">
-                            <input value={newStudentName} onChange={e => setNewStudentName(e.target.value)} style={inp()} placeholder="Alice Smith" />
+                            <input value={newStudentName} onChange={e => setNewStudentName(e.target.value)} style={inp()} placeholder="John Doe" />
                           </Field>
                           <Field label="Email">
-                            <input value={newStudentEmail} onChange={e => setNewStudentEmail(e.target.value)} style={inp()} placeholder="alice@example.com" />
+                            <input value={newStudentEmail} onChange={e => setNewStudentEmail(e.target.value)} style={inp()} placeholder="john@example.com" />
                           </Field>
                           <Field label="GitHub">
-                            <input value={newStudentGithub} onChange={e => setNewStudentGithub(e.target.value)} style={inp()} placeholder="alicegh" />
+                            <input value={newStudentGithub} onChange={e => setNewStudentGithub(e.target.value)} style={inp()} placeholder="johndoe" />
                           </Field>
                           <div style={{ display: "flex", gap: 4 }}>
                             <button onClick={() => onAddStudent(t.id)} style={btn({ fontSize: 12, padding: "6px 10px" })}>Add</button>
@@ -381,18 +414,6 @@ export default function SetupTeam() {
   );
 }
 
-function parseCsv(text) {
-  const rows = (text || "").split(/\r?\n/).map(r => r.trim()).filter(Boolean);
-  const out = [];
-  for (const r of rows) {
-    const parts = r.split(",").map(x => (x || "").trim());
-    const name = parts[0] || "";
-    const email = parts[1] || "";
-    const github = parts[2] || "";
-    if (name && email) out.push({ name, email, github });
-  }
-  return out;
-}
 
 function normalizeRepo(url) {
   try {

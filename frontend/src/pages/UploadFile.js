@@ -1,6 +1,6 @@
 // frontend/src/pages/UploadFile.js
 import React, { useEffect, useMemo, useState } from "react";
-import { apiFetch, API_URL } from "../utils/api";
+import { apiFetch } from "../utils/api";
 
 const TYPE_OPTIONS = [
   { value: "attendance", label: "Attendance Sheet (.xlsx)" },
@@ -40,17 +40,50 @@ export default function UploadFile() {
   }, []);
 
   const handleFileSelect = (e) => {
-    setFile(e.target.files?.[0] || null);
+    const selected = e.target.files?.[0] || null;
+    setFile(selected);
     setUploadResult(null);
+    if (selected) {
+      const lower = selected.name.toLowerCase();
+      if (lower.includes("attendance")) setOverrideType("attendance");
+      else if (lower.includes("worklog")) setOverrideType("worklog");
+      else if (lower.match(/sprint[-_\s]?report/) || lower.includes("sprintreport")) setOverrideType("sprint_report");
+      else if (lower.includes("peer")) setOverrideType("peer_review");
+      else if (lower.includes("project") && lower.includes("plan")) setOverrideType("project_plan");
+      else setOverrideType("unknown");
+    }
   };
 
   const handleUpload = async () => {
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("userType", overrideType);
 
-    const res = await apiFetch("/api/uploads", { method: "POST", body: formData });
+    // Get presigned URL + S3 key from the backend
+    const presignRes = await apiFetch(
+      `/api/uploads/presign?filename=${encodeURIComponent(file.name)}&teamId=${encodeURIComponent(localStorage.getItem("activeTeamId") || "unknown")}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}`
+    );
+    const { url, s3Key, storedName } = await presignRes.json();
+
+    // Upload directly to S3 using the presigned URL
+    await fetch(url, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+    });
+
+    // registers the upload in the backend
+    const res = await apiFetch("/api/uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        s3Key,
+        storedName,
+        originalName: file.name,
+        size: file.size,
+        mimetype: file.type,
+        teamId: localStorage.getItem("activeTeamId") || "unknown",
+        userType: overrideType,
+      }),
+    });
     const json = await res.json();
     setUploadResult(json);
   };
@@ -198,13 +231,16 @@ export default function UploadFile() {
                 <td style={styles.tableCell}>{new Date(file.uploadDate).toLocaleString()}</td>
                 <td style={styles.tableCell}>{file.status}</td>
                 <td style={styles.tableCell}>
-                  <a
-                    href={`${API_URL}/${file.storedPath}`}
-                    download
+                  <button
                     style={styles.downloadBtn}
+                    onClick={async () => {
+                      const res = await apiFetch(`/api/uploads/${file.id}/download`);
+                      const { url } = await res.json();
+                      window.open(url, "_blank");
+                    }}
                   >
                     Download
-                  </a>
+                  </button>
                 </td>
               </tr>
             )) : (

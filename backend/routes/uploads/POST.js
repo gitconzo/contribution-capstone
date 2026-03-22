@@ -1,26 +1,16 @@
 // backend/routes/uploads/POST.js
 const path = require("path");
+const os = require("os");
 const { execFile } = require("child_process");
-const multer = require("multer");
 const router = require("express").Router();
-const { ROOT_DIR, UPLOAD_DIR, PARSED_DIR, REGISTRY_PATH } = require("../../utils/config");
+const { ROOT_DIR, PARSED_DIR, REGISTRY_PATH } = require("../../utils/config");
 const { readJson, writeJson } = require("../../utils/fileUtils");
 const { pyBin } = require("../../utils/processUtils");
 const { combineDocumentationMetrics } = require("../../services/combineDocumentationMetrics");
+const { downloadToFile, uploadFile } = require("../../utils/s3");
 
 function loadRegistry() { return readJson(REGISTRY_PATH); }
 function saveRegistry(data) { writeJson(REGISTRY_PATH, data); }
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
-    const ts = Date.now();
-    const ext = path.extname(file.originalname);
-    const base = path.basename(file.originalname, ext);
-    cb(null, `${base}__${ts}${ext}`);
-  },
-});
-const upload = multer({ storage });
 
 function detectTypeFromName(filename, userGuess) {
   if (userGuess && userGuess !== "unknown") return userGuess;
@@ -34,19 +24,24 @@ function detectTypeFromName(filename, userGuess) {
 }
 
 // POST /api/uploads
-router.post("/", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+// Called after the frontend has uploaded the file directly to S3 via presigned URL.
+// Registers the upload in the local registry using the S3 key.
+// Body: { s3Key, storedName, originalName, size, mimetype, teamId, userType }
+router.post("/", (req, res) => {
+  const { s3Key, storedName, originalName, size, mimetype, teamId, userType } = req.body || {};
+  if (!s3Key || !originalName) return res.status(400).json({ error: "Missing s3Key or originalName" });
 
   const registry = loadRegistry();
-  const detectedType = detectTypeFromName(req.file.originalname, req.body?.userType || null);
+  const detectedType = detectTypeFromName(originalName, userType || null);
 
   const entry = {
-    id: path.basename(req.file.filename),
-    originalName: req.file.originalname,
-    storedName: req.file.filename,
-    storedPath: path.join("uploads", req.file.filename),
-    mimetype: req.file.mimetype,
-    size: req.file.size,
+    id: storedName || path.basename(s3Key),
+    originalName,
+    storedName: storedName || path.basename(s3Key),
+    s3Key,
+    teamId: teamId || null,
+    mimetype: mimetype || null,
+    size: size || null,
     uploadDate: new Date().toISOString(),
     detectedType,
     userType: null,
@@ -60,7 +55,8 @@ router.post("/", upload.single("file"), (req, res) => {
 });
 
 // POST /api/uploads/confirm
-router.post("/confirm", (req, res) => {
+// Downloads the file from S3 to a temp path, runs the parser, uploads parsed JSON back to S3.
+router.post("/confirm", async (req, res) => {
   const { id, type } = req.body || {};
   if (!id) return res.status(400).json({ error: "Missing id" });
 
@@ -72,67 +68,96 @@ router.post("/confirm", (req, res) => {
   entry.userType = finalType;
   entry.status = "confirmed";
 
-  const absPath = path.join(ROOT_DIR, entry.storedPath);
-  const ext = path.extname(absPath).toLowerCase();
-
+  const ext = path.extname(entry.originalName).toLowerCase();
+  const baseName = path.basename(entry.originalName, ext);
+  const parsedName = `${baseName}-parsed.json`;
   const finish = () => { saveRegistry(registry); res.json(entry); };
 
   const parsers = {
     attendance: {
       exts: [".xlsx", ".xls"],
       script: path.join(ROOT_DIR, "parsers", "attendance.py"),
-      outPath: path.join(PARSED_DIR, "attendance.json"),
+      outName: parsedName,
       label: "Attendance",
       combine: false,
     },
     worklog: {
       exts: [".docx", ".pdf"],
       script: path.join(ROOT_DIR, "parsers", "worklog_parser.py"),
-      outPath: path.join(PARSED_DIR, "worklog.json"),
+      outName: parsedName,
       label: "Worklog",
       combine: false,
     },
     sprint_report: {
       exts: [".docx"],
       script: path.join(ROOT_DIR, "parsers", "parse_sprint_report_docx.py"),
-      outPath: path.join(PARSED_DIR, `sprint_report_${Date.now()}.json`),
+      outName: parsedName,
       label: "Sprint report",
       combine: true,
     },
     project_plan: {
       exts: [".docx"],
       script: path.join(ROOT_DIR, "parsers", "parse_project_plan_docx.py"),
-      outPath: path.join(PARSED_DIR, `project_plan_${Date.now()}.json`),
+      outName: parsedName,
       label: "Project Plan",
       combine: true,
     },
   };
 
   const parser = parsers[finalType];
-  if (parser && parser.exts.includes(ext)) {
-    execFile(pyBin(), [parser.script, absPath, parser.outPath], { cwd: ROOT_DIR }, (err, stdout, stderr) => {
+  if (!parser || !parser.exts.includes(ext)) {
+    entry.parseInfo = { message: "No parser run for this type." };
+    return finish();
+  }
+
+  try {
+    // Download the file from S3 to a temp location for the parser
+    const tempInput = path.join(os.tmpdir(), entry.storedName);
+    const tempOutput = path.join(os.tmpdir(), parser.outName);
+    await downloadToFile(entry.s3Key, tempInput);
+
+    execFile(pyBin(), [parser.script, tempInput, tempOutput], { cwd: ROOT_DIR }, async (err, _stdout, stderr) => {
       if (err) {
         entry.status = "parse_failed";
         entry.parseInfo = { message: `${parser.label} parse failed: ${stderr || err.message}` };
-      } else {
+        return finish();
+      }
+
+      // Upload parsed JSON to S3 under teamId/parsed/
+      const teamId = entry.teamId || "unknown";
+      const s3ParsedKey = `${teamId}/parsed/${parser.outName}`;
+      try {
+        await uploadFile(s3ParsedKey, tempOutput, "application/json");
+
+        // Also copy to local PARSED_DIR so aggregator can still read it
+        const fs = require("fs");
+        fs.copyFileSync(tempOutput, path.join(PARSED_DIR, parser.outName));
+
         entry.status = "parsed";
         entry.parseInfo = {
-          jsonPath: path.relative(ROOT_DIR, parser.outPath),
+          s3ParsedKey,
+          jsonPath: path.relative(ROOT_DIR, path.join(PARSED_DIR, parser.outName)),
           message: `${parser.label} parsed successfully`,
         };
+
         if (parser.combine) {
           try { combineDocumentationMetrics(ROOT_DIR); } catch (e) {
             console.error("Failed to combine documentation metrics:", e);
           }
         }
+      } catch (uploadErr) {
+        console.error("Failed to upload parsed JSON to S3:", uploadErr);
+        entry.status = "parse_failed";
+        entry.parseInfo = { message: `Parse succeeded but S3 upload failed: ${uploadErr.message}` };
       }
       finish();
     });
-    return;
+  } catch (downloadErr) {
+    console.error("Failed to download from S3 for parsing:", downloadErr);
+    entry.status = "parse_failed";
+    entry.parseInfo = { message: `Failed to download file from S3: ${downloadErr.message}` };
+    finish();
   }
-
-  entry.parseInfo = { message: "No parser run for this type." };
-  finish();
 });
 
 module.exports = router;
