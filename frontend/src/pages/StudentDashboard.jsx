@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { User } from "lucide-react";
 
 const API = "http://localhost:5002";
 
@@ -28,68 +29,35 @@ function getProgressBg(status) {
   return "#fee2e2";
 }
 
-function MetricCard({ title, value, subtitle }) {
+function MetricCard({ title, value, subtitle, theme }) {
   return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid #e5e7eb",
-        borderRadius: 16,
-        padding: 18,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
-      }}
-    >
-      <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: "#111827" }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 13, color: "#6b7280", marginTop: 6 }}>{subtitle}</div>}
+    <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 16, padding: 18, boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+      <div style={{ fontSize: 13, color: theme.subtext, marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: theme.text }}>{value}</div>
+      {subtitle && <div style={{ fontSize: 13, color: theme.subtext, marginTop: 6 }}>{subtitle}</div>}
     </div>
   );
 }
 
-function SectionCard({ title, children }) {
+function SectionCard({ title, children, theme }) {
   return (
-    <div
-      style={{
-        background: "#fff",
-        border: "1px solid #e5e7eb",
-        borderRadius: 18,
-        padding: 22,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
-      }}
-    >
-      <h3 style={{ margin: "0 0 16px 0", fontSize: 18, color: "#111827" }}>{title}</h3>
+    <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 18, padding: 22, boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+      <h3 style={{ margin: "0 0 16px 0", fontSize: 18, color: theme.text }}>{title}</h3>
       {children}
     </div>
   );
 }
 
-function ProgressBar({ label, value }) {
+function ProgressBar({ label, value, theme }) {
   const safeValue = Math.max(0, Math.min(100, Number(value) || 0));
-
   return (
     <div>
-      <div
-        style={{
-          fontSize: 14,
-          color: "#374151",
-          marginBottom: 6,
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
+      <div style={{ fontSize: 14, color: theme.subtext, marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
         <span>{label}</span>
         <span>{safeValue}%</span>
       </div>
-
-      <div style={{ height: 10, background: "#e5e7eb", borderRadius: 999 }}>
-        <div
-          style={{
-            width: `${safeValue}%`,
-            height: "100%",
-            background: "#111827",
-            borderRadius: 999,
-          }}
-        />
+      <div style={{ height: 10, background: theme.barBg, borderRadius: 999 }}>
+        <div style={{ width: `${safeValue}%`, height: "100%", background: theme.barFill, borderRadius: 999 }} />
       </div>
     </div>
   );
@@ -174,7 +142,30 @@ function safePercentFromRatio(value, max) {
   return Math.round((value / max) * 100);
 }
 
-export default function StudentDashboard() {
+export default function StudentDashboard({ darkMode }) {
+  const theme = darkMode
+    ? {
+        pageBg: "#0b1120",
+        card: "#111827",
+        cardSoft: "#0f172a",
+        text: "#f8fafc",
+        subtext: "#94a3b8",
+        border: "#1f2937",
+        inputBg: "#0f172a",
+        barBg: "#1f2937",
+        barFill: "#f8fafc",
+      }
+    : {
+        pageBg: "#f9fafb",
+        card: "#ffffff",
+        cardSoft: "#fafafa",
+        text: "#111827",
+        subtext: "#6b7280",
+        border: "#e5e7eb",
+        inputBg: "#ffffff",
+        barBg: "#e5e7eb",
+        barFill: "#111827",
+      };
   const savedUser = useMemo(() => {
     const raw = localStorage.getItem("user");
     return raw ? JSON.parse(raw) : null;
@@ -322,19 +313,10 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <div style={{ padding: 24 }}>
-        <div
-          style={{
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 18,
-            padding: 24,
-            maxWidth: 900,
-            margin: "0 auto",
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>Student Dashboard</h2>
-          <p style={{ color: "#6b7280" }}>Loading your contribution data...</p>
+      <div style={{ padding: 24, background: theme.pageBg, minHeight: "100vh" }}>
+        <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 18, padding: 24, maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ marginTop: 0, color: theme.text }}>Student Dashboard</h2>
+          <p style={{ color: theme.subtext }}>Loading your contribution data...</p>
         </div>
       </div>
     );
@@ -342,37 +324,20 @@ export default function StudentDashboard() {
 
   if (!student) {
     return (
-      <div style={{ padding: 24 }}>
-        <div
-          style={{
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 18,
-            padding: 24,
-            maxWidth: 900,
-            margin: "0 auto",
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>Student Dashboard</h2>
-          <p style={{ color: "#6b7280" }}>
-            Your student record could not be matched with the current team contribution data.
-          </p>
-          <p style={{ color: "#6b7280" }}>
-            Logged in as: <strong>{savedUser?.name || savedUser?.email || "Unknown user"}</strong>
-          </p>
-          <p style={{ color: "#6b7280" }}>
-            Expected GitHub author: <strong>{expectedAuthor}</strong>
-          </p>
-          <p style={{ color: "#6b7280" }}>
-            Available ranking authors: <strong>{availableAuthors.join(", ") || "No authors found"}</strong>
-          </p>
+      <div style={{ padding: 24, background: theme.pageBg, minHeight: "100vh" }}>
+        <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 18, padding: 24, maxWidth: 900, margin: "0 auto" }}>
+          <h2 style={{ marginTop: 0, color: theme.text }}>Student Dashboard</h2>
+          <p style={{ color: theme.subtext }}>Your student record could not be matched with the current team contribution data.</p>
+          <p style={{ color: theme.subtext }}>Logged in as: <strong>{savedUser?.name || savedUser?.email || "Unknown user"}</strong></p>
+          <p style={{ color: theme.subtext }}>Expected GitHub author: <strong>{expectedAuthor}</strong></p>
+          <p style={{ color: theme.subtext }}>Available ranking authors: <strong>{availableAuthors.join(", ") || "No authors found"}</strong></p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 24, background: "#f9fafb", minHeight: "100vh" }}>
+    <div style={{ padding: 24, background: theme.pageBg, minHeight: "100vh" }}>
       <style>{`
         @keyframes slideInToast {
           from {
@@ -394,7 +359,7 @@ export default function StudentDashboard() {
             right: 24,
             width: 360,
             maxWidth: "calc(100vw - 32px)",
-            background: "rgba(255,255,255,0.96)",
+            background: darkMode ? "rgba(17,24,39,0.96)" : "rgba(255,255,255,0.96)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
             border: "1px solid #fca5a5",
@@ -482,8 +447,8 @@ export default function StudentDashboard() {
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <div
           style={{
-            background: "#fff",
-            border: "1px solid #e5e7eb",
+            background: theme.card,
+            border: `1px solid ${theme.border}`,
             borderRadius: 20,
             padding: 24,
             marginBottom: 22,
@@ -525,18 +490,18 @@ export default function StudentDashboard() {
                     }}
                   />
                 ) : (
-                  <span style={{ fontSize: 30 }}>👤</span>
+                  <User size={36} color="#9ca3af" />
                 )}
               </div>
 
               <div>
-                <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 6 }}>
+                <div style={{ fontSize: 14, color: theme.subtext, marginBottom: 6 }}>
                   Student Contribution Dashboard
                 </div>
-                <h1 style={{ margin: 0, fontSize: 30, color: "#111827" }}>
+                <h1 style={{ margin: 0, fontSize: 30, color: theme.text }}>
                   Welcome, {student.displayName}
                 </h1>
-                <p style={{ margin: "8px 0 0 0", color: "#6b7280" }}>
+                <p style={{ margin: "8px 0 0 0", color: theme.subtext }}>
                   Email: {student.email} | Team: {team?.name || "Active Team"}
                 </p>
               </div>
@@ -600,26 +565,10 @@ export default function StudentDashboard() {
             marginBottom: 22,
           }}
         >
-          <MetricCard
-            title="Contribution Score"
-            value={`${student.score}%`}
-            subtitle="Overall contribution score"
-          />
-          <MetricCard
-            title="GitHub Commits"
-            value={student.commits}
-            subtitle="Recorded code contribution"
-          />
-          <MetricCard
-            title="Worklog Hours"
-            value={`${student.worklogHours}h`}
-            subtitle="Tracked worklog contribution"
-          />
-          <MetricCard
-            title="Team Rank"
-            value={`${student.rank} / ${teamSize}`}
-            subtitle="Your current position in the team"
-          />
+          <MetricCard title="Contribution Score" value={`${student.score}%`} subtitle="Overall contribution score" theme={theme} />
+          <MetricCard title="GitHub Commits" value={student.commits} subtitle="Recorded code contribution" theme={theme} />
+          <MetricCard title="Worklog Hours" value={`${student.worklogHours}h`} subtitle="Tracked worklog contribution" theme={theme} />
+          <MetricCard title="Team Rank" value={`${student.rank} / ${teamSize}`} subtitle="Your current position in the team" theme={theme} />
         </div>
 
         <div
@@ -629,40 +578,40 @@ export default function StudentDashboard() {
             gap: 18,
           }}
         >
-          <SectionCard title="Contribution Breakdown">
+          <SectionCard title="Contribution Breakdown" theme={theme}>
             <div style={{ display: "grid", gap: 14 }}>
-              <ProgressBar label="GitHub Activity" value={contributionBreakdown.githubActivity} />
-              <ProgressBar label="Worklog Contribution" value={contributionBreakdown.worklogContribution} />
-              <ProgressBar label="Documentation Contribution" value={contributionBreakdown.documentationContribution} />
-              <ProgressBar label="Meeting Participation" value={contributionBreakdown.meetingParticipation} />
+              <ProgressBar label="GitHub Activity" value={contributionBreakdown.githubActivity} theme={theme} />
+              <ProgressBar label="Worklog Contribution" value={contributionBreakdown.worklogContribution} theme={theme} />
+              <ProgressBar label="Documentation Contribution" value={contributionBreakdown.documentationContribution} theme={theme} />
+              <ProgressBar label="Meeting Participation" value={contributionBreakdown.meetingParticipation} theme={theme} />
             </div>
           </SectionCard>
 
-          <SectionCard title="Personal Progress Summary">
+          <SectionCard title="Personal Progress Summary" theme={theme}>
             <div style={{ display: "grid", gap: 14 }}>
               <div>
-                <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>Current Score</div>
-                <div style={{ fontWeight: 600, color: "#111827" }}>{student.score}%</div>
+                <div style={{ fontSize: 13, color: theme.subtext, marginBottom: 4 }}>Current Score</div>
+                <div style={{ fontWeight: 600, color: theme.text }}>{student.score}%</div>
               </div>
 
               <div>
-                <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>Code Contribution</div>
-                <div style={{ color: "#111827" }}>{student.commits} recorded commits</div>
+                <div style={{ fontSize: 13, color: theme.subtext, marginBottom: 4 }}>Code Contribution</div>
+                <div style={{ color: theme.text }}>{student.commits} recorded commits</div>
               </div>
 
               <div>
-                <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>Documentation Contribution</div>
-                <div style={{ color: "#111827" }}>{student.documents} documented contributions</div>
+                <div style={{ fontSize: 13, color: theme.subtext, marginBottom: 4 }}>Documentation Contribution</div>
+                <div style={{ color: theme.text }}>{student.documents} documented contributions</div>
               </div>
 
               <div>
-                <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>Meeting Participation</div>
-                <div style={{ color: "#111827" }}>{student.meetings} recorded meetings</div>
+                <div style={{ fontSize: 13, color: theme.subtext, marginBottom: 4 }}>Meeting Participation</div>
+                <div style={{ color: theme.text }}>{student.meetings} recorded meetings</div>
               </div>
 
               <div>
-                <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>Rank Summary</div>
-                <div style={{ color: "#111827" }}>
+                <div style={{ fontSize: 13, color: theme.subtext, marginBottom: 4 }}>Rank Summary</div>
+                <div style={{ color: theme.text }}>
                   You are currently ranked <strong>{student.rank}</strong> out of{" "}
                   <strong>{teamSize}</strong> team members based on current contribution data.
                 </div>

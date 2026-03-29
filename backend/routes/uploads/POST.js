@@ -24,9 +24,7 @@ function detectTypeFromName(filename, userGuess) {
 }
 
 // POST /api/uploads
-// Called after the frontend has uploaded the file directly to S3 via presigned URL.
-// Registers the upload in the local registry using the S3 key.
-// Body: { s3Key, storedName, originalName, size, mimetype, teamId, userType }
+// Called after the frontend has uploaded the file directly to S3 via presigned URL. --> Registers the upload in the local registry using the S3 key.
 router.post("/", (req, res) => {
   const { s3Key, storedName, originalName, size, mimetype, teamId, userType } = req.body || {};
   if (!s3Key || !originalName) return res.status(400).json({ error: "Missing s3Key or originalName" });

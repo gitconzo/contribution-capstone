@@ -1,3 +1,4 @@
+// frontend/src/pages/RuleSettings.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { apiFetch } from "../utils/api";
 
@@ -62,7 +63,7 @@ const DEFAULT_RULES = {
   crossVerify: true,
 };
 
-export default function RuleSettings() {
+export default function RuleSettings({ darkMode }) {
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,44 @@ export default function RuleSettings() {
   const [scores, setScores] = useState(null);
   const [loadingScores, setLoadingScores] = useState(false);
   const [expandedMetric, setExpandedMetric] = useState(null);
+
+  const theme = darkMode
+    ? {
+        pageBg: "#0b1120",
+        card: "#111827",
+        cardAlt: "#0f172a",
+        text: "#f8fafc",
+        subtext: "#94a3b8",
+        border: "#1f2937",
+        softBorder: "#334155",
+        inputBg: "#0f172a",
+        shadow: "0 8px 20px rgba(0,0,0,.28)",
+        green: "#16a34a",
+        red: "#dc2626",
+        expandedBg: "#0f172a",
+        expandedText: "#cbd5e1",
+        warnBg: "#422006",
+        warnText: "#fde68a",
+        warnBorder: "#78350f",
+      }
+    : {
+        pageBg: "#f9fafb",
+        card: "#ffffff",
+        cardAlt: "#ffffff",
+        text: "#333333",
+        subtext: "#777777",
+        border: "#e5e7eb",
+        softBorder: "#eeeeee",
+        inputBg: "#ffffff",
+        shadow: "0 4px 12px rgba(0,0,0,0.08)",
+        green: "#16a34a",
+        red: "#dc2626",
+        expandedBg: "#f9fafb",
+        expandedText: "#374151",
+        warnBg: "#fef3c7",
+        warnText: "#92400e",
+        warnBorder: "#fde68a",
+      };
 
   const effectiveRules = payload ?? DEFAULT_RULES;
 
@@ -156,11 +195,11 @@ export default function RuleSettings() {
         autoRecalc: saved.rules?.autoRecalc ?? body.autoRecalc,
         crossVerify: saved.rules?.crossVerify ?? body.crossVerify,
       }));
-      
+
       if (effectiveRules.autoRecalc) {
         await fetchScores();
       }
-      
+
       alert("Settings saved successfully!");
     } catch (e) {
       setError(e.message || "Failed to save settings");
@@ -172,12 +211,12 @@ export default function RuleSettings() {
 
   const teamPreview = useMemo(() => {
     if (!scores?.ranking) return [];
-    
+
     return scores.ranking.map(student => {
       const score = Math.round(student.score || 0);
       let tag = "Low Performer";
       let tagClass = "low";
-      
+
       if (score >= 80) {
         tag = "High Performer";
         tagClass = "high";
@@ -185,189 +224,297 @@ export default function RuleSettings() {
         tag = "Medium Performer";
         tagClass = "medium";
       }
-      
-      return {
-        name: student.name,
-        tag,
-        tagClass,
-        score,
-      };
+
+      return { name: student.name, tag, tagClass, score };
     }).sort((a, b) => b.score - a.score);
   }, [scores]);
 
   return (
-    <>
-      <div className="rule-settings-container">
-        <div className="page-header">
-          <h1>Rule Settings</h1>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn-black" onClick={fetchRules} disabled={loading}>
-              {loading ? "Loading..." : "Reload"}
-            </button>
-            <button className="btn-black" onClick={saveSettings} disabled={saving || loading || totalWeight !== 100}>
-              {saving ? "Saving..." : "Save Settings"}
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div style={{ background: "#fee2e2", color: "#991b1b", padding: 10, borderRadius: 8, marginBottom: 16 }}>
-            {error}
-          </div>
-        )}
-
-        {totalWeight !== 100 && (
-          <div style={{ background: "#fef3c7", color: "#92400e", padding: 10, borderRadius: 8, marginBottom: 16 }}>
-            ⚠️ Total weight must equal 100% before saving. Current: {totalWeight}%
-          </div>
-        )}
-
-        <div className="card">
-          <h2 className="section-title">Assessment Rule Weights</h2>
-          <p className="section-desc">
-            Adjust the importance of each contribution metric. Total must equal 100%. Click on any metric for a detailed explanation.
-          </p>
-
-          {(effectiveRules.rules || []).map((r, i) => {
-            const isExpanded = expandedMetric === r.name;
-            const description = METRIC_DESCRIPTIONS[r.name];
-            
-            return (
-              <div key={`${r.name}-${i}`} className="range-group">
-                <div 
-                  className="range-header clickable"
-                  onClick={() => setExpandedMetric(isExpanded ? null : r.name)}
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                >
-                  <span>
-                    {r.name} 
-                    <span style={{ marginLeft: 8, color: "#9ca3af", fontSize: "0.9em" }}>
-                      {isExpanded ? "▼" : "▶"}
-                    </span>
-                  </span>
-                  <span>{r.value}%</span>
-                </div>
-                
-                {isExpanded && description && (
-                  <div style={{ 
-                    background: "#f9fafb", 
-                    padding: "12px", 
-                    borderRadius: "6px", 
-                    marginBottom: "8px",
-                    fontSize: "0.85rem",
-                    color: "#374151",
-                    lineHeight: "1.6"
-                  }}>
-                    {description.detailed}
-                  </div>
-                )}
-                
-                <input
-                  type="range"
-                  min="0"
-                  max="50"
-                  value={r.value}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10) || 0;
-                    setRulesField((cur) => {
-                      const next = { ...cur, rules: [...(cur.rules || [])] };
-                      next.rules[i] = { ...next.rules[i], value: val };
-                      return next;
-                    });
-                  }}
-                />
-                
-                {!isExpanded && (
-                  <p className="range-desc">{description ? description.short : r.desc}</p>
-                )}
-              </div>
-            );
-          })}
-
-          <p className={`total-weight ${totalWeight === 100 ? "green" : "red"}`}>
-            Total Weight: {totalWeight}%
-          </p>
-        </div>
-
-        <div className="card">
-          <h2 className="section-title">System Settings</h2>
-          <p className="section-desc">Configure automated behavior and validation options</p>
-          <div className="switch-row">
-            <span>Automatically recalculate scores when rules change</span>
-            <input
-              type="checkbox"
-              checked={!!effectiveRules.autoRecalc}
-              onChange={() =>
-                setRulesField((cur) => ({ ...cur, autoRecalc: !cur.autoRecalc }))
-              }
-            />
-          </div>
-          <div className="switch-row">
-            <span>Cross-verify metrics for consistency and flag issues</span>
-            <input
-              type="checkbox"
-              checked={!!effectiveRules.crossVerify}
-              onChange={() =>
-                setRulesField((cur) => ({ ...cur, crossVerify: !cur.crossVerify }))
-              }
-            />
-          </div>
-        </div>
-
-        <div className="card">
-          <h2 className="section-title">Current Team Scores</h2>
-          <p className="section-desc">
-            Live scores based on your current rule settings ({scores?.team?.name || "No team selected"})
-          </p>
-
-          {loadingScores ? (
-            <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>
-              Loading scores...
-            </div>
-          ) : teamPreview.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px", color: "#64748b" }}>
-              No team data available. Upload documents and configure team settings.
-            </div>
-          ) : (
-            teamPreview.map((m, i) => (
-              <div key={i} className="team-row">
-                <div>
-                  <span className={`tag ${m.tagClass}`}>{m.tag}</span>
-                  <div>{m.name}</div>
-                </div>
-                <div>
-                  <div className="score">{m.score}%</div>
-                </div>
-              </div>
-            ))
-          )}
+    <div
+      style={{
+        background: theme.pageBg,
+        color: theme.text,
+        minHeight: "100vh",
+        padding: 40,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 30,
+        }}
+      >
+        <h1 style={{ color: theme.text, margin: 0 }}>Rule Settings</h1>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={fetchRules}
+            disabled={loading}
+            style={buttonStyle()}
+          >
+            {loading ? "Loading..." : "Reload"}
+          </button>
+          <button
+            onClick={saveSettings}
+            disabled={saving || loading || totalWeight !== 100}
+            style={buttonStyle()}
+          >
+            {saving ? "Saving..." : "Save Settings"}
+          </button>
         </div>
       </div>
 
-      <style>{`
-        .rule-settings-container { background: #f9fafb; padding: 40px; color: #333; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-black { background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
-        .btn-black:hover:not(:disabled) { background: #333; }
-        .btn-black:disabled { background: #666; cursor: not-allowed; opacity: 0.6; }
-        .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 24px; }
-        .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
-        .section-desc { color: #777; font-size: 0.9rem; margin-bottom: 16px; }
-        .range-group { margin-bottom: 20px; }
-        .range-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 500; }
-        .range-header.clickable:hover { color: #2563eb; }
-        .range-desc { font-size: 0.8rem; color: #666; margin-top: 6px; }
-        input[type=range] { width: 100%; accent-color: #000; }
-        .switch-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
-        .total-weight { text-align: right; font-weight: 600; margin-top: 16px; font-size: 1.1rem; }
-        .green { color: #16a34a; } .red { color: #dc2626; }
-        .team-row { display: flex; justify-content: space-between; border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
-        .tag { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; margin-bottom: 4px; }
-        .tag.high { background: #dcfce7; color: #166534; }
-        .tag.medium { background: #fef9c3; color: #854d0e; }
-        .tag.low { background: #fee2e2; color: #b91c1c; }
-        .score { font-weight: 600; font-size: 1.2rem; }
-      `}</style>
-    </>
+      {error && (
+        <div
+          style={{
+            background: darkMode ? "#3f1d1d" : "#fee2e2",
+            color: darkMode ? "#fecaca" : "#991b1b",
+            padding: 10,
+            borderRadius: 8,
+            marginBottom: 16,
+            border: `1px solid ${darkMode ? "#7f1d1d" : "#fecaca"}`,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {totalWeight !== 100 && (
+        <div
+          style={{
+            background: theme.warnBg,
+            color: theme.warnText,
+            padding: 10,
+            borderRadius: 8,
+            marginBottom: 16,
+            border: `1px solid ${theme.warnBorder}`,
+          }}
+        >
+          Total weight must equal 100% before saving. Current: {totalWeight}%
+        </div>
+      )}
+
+      {/* Assessment Rule Weights */}
+      <div style={card(theme)}>
+        <h2 style={{ color: theme.text, fontSize: "1.1rem", fontWeight: 600, marginBottom: 8, marginTop: 0 }}>
+          Assessment Rule Weights
+        </h2>
+        <p style={{ color: theme.subtext, fontSize: "0.9rem", marginBottom: 16 }}>
+          Adjust the importance of each contribution metric. Total must equal 100%. Click on any metric for a detailed explanation.
+        </p>
+
+        {(effectiveRules.rules || []).map((r, i) => {
+          const isExpanded = expandedMetric === r.name;
+          const description = METRIC_DESCRIPTIONS[r.name];
+
+          return (
+            <div key={`${r.name}-${i}`} style={{ marginBottom: 20 }}>
+              <div
+                onClick={() => setExpandedMetric(isExpanded ? null : r.name)}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: 6,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  userSelect: "none",
+                  color: theme.text,
+                }}
+              >
+                <span>
+                  {r.name}
+                  <span style={{ marginLeft: 8, color: theme.subtext, fontSize: "0.9em" }}>
+                    {isExpanded ? "▼" : "▶"}
+                  </span>
+                </span>
+                <span>{r.value}%</span>
+              </div>
+
+              {isExpanded && description && (
+                <div
+                  style={{
+                    background: theme.expandedBg,
+                    padding: "12px",
+                    borderRadius: "6px",
+                    marginBottom: "8px",
+                    fontSize: "0.85rem",
+                    color: theme.expandedText,
+                    lineHeight: "1.6",
+                    border: `1px solid ${theme.border}`,
+                  }}
+                >
+                  {description.detailed}
+                </div>
+              )}
+
+              <input
+                type="range"
+                min="0"
+                max="50"
+                value={r.value}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10) || 0;
+                  setRulesField((cur) => {
+                    const next = { ...cur, rules: [...(cur.rules || [])] };
+                    next.rules[i] = { ...next.rules[i], value: val };
+                    return next;
+                  });
+                }}
+                style={{ width: "100%", accentColor: "#000" }}
+              />
+
+              {!isExpanded && (
+                <p style={{ fontSize: "0.8rem", color: theme.subtext, marginTop: 6 }}>
+                  {description ? description.short : r.desc}
+                </p>
+              )}
+            </div>
+          );
+        })}
+
+        <p
+          style={{
+            textAlign: "right",
+            fontWeight: 600,
+            marginTop: 16,
+            fontSize: "1.1rem",
+            color: totalWeight === 100 ? theme.green : theme.red,
+          }}
+        >
+          Total Weight: {totalWeight}%
+        </p>
+      </div>
+
+      {/* System Settings */}
+      <div style={card(theme)}>
+        <h2 style={{ color: theme.text, fontSize: "1.1rem", fontWeight: 600, marginBottom: 8, marginTop: 0 }}>
+          System Settings
+        </h2>
+        <p style={{ color: theme.subtext, fontSize: "0.9rem", marginBottom: 16 }}>
+          Configure automated behavior and validation options
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "8px 0",
+            color: theme.text,
+          }}
+        >
+          <span>Automatically recalculate scores when rules change</span>
+          <input
+            type="checkbox"
+            checked={!!effectiveRules.autoRecalc}
+            onChange={() =>
+              setRulesField((cur) => ({ ...cur, autoRecalc: !cur.autoRecalc }))
+            }
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "8px 0",
+            color: theme.text,
+          }}
+        >
+          <span>Cross-verify metrics for consistency and flag issues</span>
+          <input
+            type="checkbox"
+            checked={!!effectiveRules.crossVerify}
+            onChange={() =>
+              setRulesField((cur) => ({ ...cur, crossVerify: !cur.crossVerify }))
+            }
+          />
+        </div>
+      </div>
+
+      {/* Current Team Scores */}
+      <div style={card(theme)}>
+        <h2 style={{ color: theme.text, fontSize: "1.1rem", fontWeight: 600, marginBottom: 8, marginTop: 0 }}>
+          Current Team Scores
+        </h2>
+        <p style={{ color: theme.subtext, fontSize: "0.9rem", marginBottom: 16 }}>
+          Live scores based on your current rule settings ({scores?.team?.name || "No team selected"})
+        </p>
+
+        {loadingScores ? (
+          <div style={{ textAlign: "center", padding: "20px", color: theme.subtext }}>
+            Loading scores...
+          </div>
+        ) : teamPreview.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "20px", color: theme.subtext }}>
+            No team data available. Upload documents and configure team settings.
+          </div>
+        ) : (
+          teamPreview.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                border: `1px solid ${theme.softBorder}`,
+                borderRadius: 10,
+                padding: "12px 16px",
+                marginBottom: 10,
+                background: theme.cardAlt,
+              }}
+            >
+              <div>
+                <span style={tagStyle(m.tagClass)}>{m.tag}</span>
+                <div style={{ color: theme.text }}>{m.name}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: "1.2rem", color: theme.text }}>
+                  {m.score}%
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
+}
+
+function card(theme) {
+  return {
+    background: theme.card,
+    borderRadius: 16,
+    padding: 24,
+    boxShadow: theme.shadow,
+    marginBottom: 24,
+    border: `1px solid ${theme.border}`,
+  };
+}
+
+function buttonStyle() {
+  return {
+    background: "#000",
+    color: "#fff",
+    border: "none",
+    padding: "10px 20px",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontWeight: 500,
+  };
+}
+
+function tagStyle(level) {
+  const base = {
+    display: "inline-block",
+    padding: "3px 8px",
+    borderRadius: 10,
+    fontSize: "0.75rem",
+    fontWeight: 500,
+    marginBottom: 4,
+  };
+  if (level === "high") return { ...base, background: "#dcfce7", color: "#166534" };
+  if (level === "medium") return { ...base, background: "#fef9c3", color: "#854d0e" };
+  return { ...base, background: "#fee2e2", color: "#b91c1c" };
 }

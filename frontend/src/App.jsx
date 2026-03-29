@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { isAuthed, setAuthed, clearAuthed } from "./utils/auth";
@@ -14,11 +15,15 @@ import LecturerSettings from "./pages/LecturerSettings";
 import { Login } from "./pages/Login";
 import ForgotUsername from "./pages/ForgotUsername";
 import ForgotPassword from "./pages/ForgotPassword";
+import ExportReport from "./pages/ExportReport";
 
 function Shell() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [authed, setAuthedState] = useState(() => isAuthed());
-  const [dark, setDark] = useState(false);
+
+  const [dark, setDark] = useState(() => {
+    return localStorage.getItem("p17_dark") === "1";
+  });
 
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
@@ -36,6 +41,7 @@ function Shell() {
     if (pathname.startsWith("/rules")) return "rules";
     if (pathname.startsWith("/upload")) return "upload";
     if (pathname.startsWith("/setup-team")) return "setup-team";
+    if (pathname.startsWith("/export")) return "export";
     if (pathname.startsWith("/student-dashboard")) return "student-dashboard";
     if (pathname.startsWith("/settings")) return "settings";
     if (pathname.startsWith("/lecturer-settings")) return "lecturer-settings";
@@ -47,6 +53,7 @@ function Shell() {
     else if (key === "rules") nav("/rules");
     else if (key === "upload") nav("/upload");
     else if (key === "setup-team") nav("/setup-team");
+    else if (key === "export") nav("/export");
     else if (key === "student-dashboard") nav("/student-dashboard");
     else if (key === "settings") nav("/settings");
     else if (key === "lecturer-settings") nav("/lecturer-settings");
@@ -54,8 +61,13 @@ function Shell() {
 
   useEffect(() => {
     const cl = document.body.classList;
-    if (dark) cl.add("p17-dark");
-    else cl.remove("p17-dark");
+    if (dark) {
+      cl.add("p17-dark");
+      localStorage.setItem("p17_dark", "1");
+    } else {
+      cl.remove("p17-dark");
+      localStorage.setItem("p17_dark", "0");
+    }
   }, [dark]);
 
   const handleLogin = (userData) => {
@@ -88,15 +100,23 @@ function Shell() {
           onNavigate={goto}
           onLogout={handleLogout}
           onToggleDark={() => setDark((d) => !d)}
+          darkMode={dark}
           user={user}
         />
-        <div style={{ paddingTop: 64 }}>
+        <div
+          style={{
+            paddingTop: 64,
+            minHeight: "100vh",
+            background: dark ? "#0b1120" : "#f8fafc",
+          }}
+        >
           <Routes>
             <Route
               path="/"
               element={
                 isTeacher ? (
                   <Dashboard
+                    darkMode={dark}
                     onViewStudent={(s) => {
                       setSelectedStudent(s);
                       nav("/student");
@@ -110,24 +130,28 @@ function Shell() {
 
             <Route
               path="/student-dashboard"
-              element={isStudent ? <StudentDashboard /> : <Navigate to="/" replace />}
+              element={isStudent ? <StudentDashboard darkMode={dark} /> : <Navigate to="/" replace />}
             />
 
             <Route
               path="/settings"
-              element={isStudent ? <StudentSettings /> : <Navigate to="/" replace />}
+              element={isStudent ? <StudentSettings darkMode={dark} /> : <Navigate to="/" replace />}
             />
 
             <Route
               path="/lecturer-settings"
-              element={isTeacher ? <LecturerSettings /> : <Navigate to="/student-dashboard" replace />}
+              element={isTeacher ? <LecturerSettings darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
             />
 
             <Route
               path="/student"
               element={
                 isTeacher ? (
-                  <StudentDetail student={selectedStudent} onBack={() => nav("/")} />
+                  <StudentDetail
+                    darkMode={dark}
+                    student={selectedStudent}
+                    onBack={() => nav("/")}
+                  />
                 ) : (
                   <Navigate to="/student-dashboard" replace />
                 )
@@ -136,15 +160,19 @@ function Shell() {
 
             <Route
               path="/upload"
-              element={isTeacher ? <UploadFile /> : <Navigate to="/student-dashboard" replace />}
+              element={isTeacher ? <UploadFile darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
             />
             <Route
               path="/rules"
-              element={isTeacher ? <RuleSettings /> : <Navigate to="/student-dashboard" replace />}
+              element={isTeacher ? <RuleSettings darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
             />
             <Route
               path="/setup-team"
-              element={isTeacher ? <SetupTeam /> : <Navigate to="/student-dashboard" replace />}
+              element={isTeacher ? <SetupTeam darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
+            />
+            <Route
+              path="/export"
+              element={isTeacher ? <ExportReport darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
             />
 
             <Route
