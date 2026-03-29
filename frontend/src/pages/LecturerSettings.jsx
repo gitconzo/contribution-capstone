@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { changeCurrentUserPassword } from "../utils/cognitoAuth";
 
 export default function LecturerSettings() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [currentStudentDefaultPassword, setCurrentStudentDefaultPassword] = useState("");
-  const [studentDefaultPassword, setStudentDefaultPassword] = useState("");
-  const [studentConfirmPassword, setStudentConfirmPassword] = useState("");
+  const [defaultPassword, setDefaultPassword] = useState("");
+  const [newDefaultPassword, setNewDefaultPassword] = useState("");
+  const [confirmDefaultPassword, setConfirmDefaultPassword] = useState("");
+  const [showDefaultPassword, setShowDefaultPassword] = useState(false);
 
   const [teacherMessage, setTeacherMessage] = useState("");
   const [teacherError, setTeacherError] = useState("");
@@ -16,6 +18,31 @@ export default function LecturerSettings() {
 
   const [loadingTeacher, setLoadingTeacher] = useState(false);
   const [loadingStudent, setLoadingStudent] = useState(false);
+  const [loadingDefault, setLoadingDefault] = useState(true);
+
+  useEffect(() => {
+    fetchCurrentDefaultPassword();
+  }, []);
+
+  async function fetchCurrentDefaultPassword() {
+    try {
+      setLoadingDefault(true);
+      const response = await fetch("http://localhost:5002/api/settings");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setStudentError(data.error || "Failed to load current default password.");
+        return;
+      }
+
+      setDefaultPassword(data.studentDefaultPassword || "");
+    } catch (error) {
+      console.error(error);
+      setStudentError("Cannot load current default password.");
+    } finally {
+      setLoadingDefault(false);
+    }
+  }
 
   async function handleTeacherPasswordChange(e) {
     e.preventDefault();
@@ -23,43 +50,24 @@ export default function LecturerSettings() {
     setTeacherError("");
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setTeacherError("Please fill in all fields.");
+      setTeacherError("Please fill in all lecturer password fields.");
       return;
     }
 
-    if (newPassword.length < 6) {
-      setTeacherError("New password must be at least 6 characters.");
+    if (newPassword.length < 8) {
+      setTeacherError("New lecturer password must be at least 8 characters.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setTeacherError("New password and confirm password do not match.");
+      setTeacherError("New lecturer passwords do not match.");
       return;
     }
 
     try {
       setLoadingTeacher(true);
-      const token = localStorage.getItem("token");
 
-      const response = await fetch("http://localhost:5002/api/auth/change-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-          confirmPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setTeacherError(data.message || "Failed to update password.");
-        return;
-      }
+      await changeCurrentUserPassword(currentPassword, newPassword);
 
       setTeacherMessage("Lecturer password updated successfully.");
       setCurrentPassword("");
@@ -67,63 +75,56 @@ export default function LecturerSettings() {
       setConfirmPassword("");
     } catch (error) {
       console.error(error);
-      setTeacherError("Cannot connect to server.");
+      setTeacherError(error?.message || "Failed to update lecturer password.");
     } finally {
       setLoadingTeacher(false);
     }
   }
 
-  async function handleStudentDefaultPasswordChange(e) {
+  async function handleDefaultPasswordChange(e) {
     e.preventDefault();
     setStudentMessage("");
     setStudentError("");
 
-    if (!currentStudentDefaultPassword || !studentDefaultPassword || !studentConfirmPassword) {
-      setStudentError("Please fill in all student password fields.");
+    if (!newDefaultPassword || !confirmDefaultPassword) {
+      setStudentError("Please fill in all default password fields.");
       return;
     }
 
-    if (studentDefaultPassword.length < 6) {
-      setStudentError("Student default password must be at least 6 characters.");
+    if (newDefaultPassword.length < 8) {
+      setStudentError("Default password must be at least 8 characters.");
       return;
     }
 
-    if (studentDefaultPassword !== studentConfirmPassword) {
-      setStudentError("Student password and confirm password do not match.");
+    if (newDefaultPassword !== confirmDefaultPassword) {
+      setStudentError("Default passwords do not match.");
       return;
     }
 
     try {
       setLoadingStudent(true);
-      const token = localStorage.getItem("token");
 
-      const response = await fetch("http://localhost:5002/api/auth/student-default-password", {
-        method: "POST",
+      const response = await fetch("http://localhost:5002/api/settings/student-default-password", {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          currentDefaultPassword: currentStudentDefaultPassword,
-          newPassword: studentDefaultPassword,
-          confirmPassword: studentConfirmPassword,
+          newPassword: newDefaultPassword,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setStudentError(data.message || "Failed to update student default password.");
+        setStudentError(data.error || "Failed to update default password.");
         return;
       }
 
-      setStudentMessage(
-        `Student default password updated successfully. ${data.updatedStudents || 0} student account(s) were updated.`
-      );
-
-      setCurrentStudentDefaultPassword("");
-      setStudentDefaultPassword("");
-      setStudentConfirmPassword("");
+      setStudentMessage("Student default password updated successfully.");
+      setNewDefaultPassword("");
+      setConfirmDefaultPassword("");
+      setDefaultPassword(data.studentDefaultPassword || "");
     } catch (error) {
       console.error(error);
       setStudentError("Cannot connect to server.");
@@ -145,7 +146,7 @@ export default function LecturerSettings() {
       >
         <h1 style={{ marginTop: 0, fontSize: 30, color: "#111827" }}>Lecturer Settings</h1>
         <p style={{ color: "#6b7280", marginBottom: 24 }}>
-          Manage your account password and student default login password.
+          Manage your lecturer password and the active student default password.
         </p>
 
         <div
@@ -190,32 +191,54 @@ export default function LecturerSettings() {
           </div>
 
           <div style={cardStyle}>
-            <h3 style={titleStyle}>Change Student Default Password</h3>
-            <p style={{ color: "#6b7280", fontSize: 14, marginTop: 0 }}>
-              Only student accounts still using the current default password will be updated.
-              Students who already changed their own password will not be affected.
+            <h3 style={titleStyle}>Student Default Password</h3>
+
+            <div style={activeBoxStyle}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <span style={activeDotStyle}></span>
+                <span style={{ fontWeight: 600, color: "#166534" }}>Active</span>
+              </div>
+
+              <div style={{ fontSize: 14, color: "#374151", marginBottom: 8 }}>
+                Current default password
+              </div>
+
+              <div style={passwordDisplayStyle}>
+                <span>
+                  {loadingDefault
+                    ? "Loading..."
+                    : showDefaultPassword
+                    ? defaultPassword
+                    : "•".repeat(Math.max(defaultPassword.length, 8))}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setShowDefaultPassword((s) => !s)}
+                  style={secondaryButtonStyle}
+                >
+                  {showDefaultPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+
+            <p style={{ color: "#6b7280", fontSize: 14 }}>
+              Every newly created student account will use this password.
             </p>
 
-            <form onSubmit={handleStudentDefaultPasswordChange} style={{ display: "grid", gap: 14 }}>
-              <input
-                type="password"
-                placeholder="Current default student password"
-                value={currentStudentDefaultPassword}
-                onChange={(e) => setCurrentStudentDefaultPassword(e.target.value)}
-                style={inputStyle}
-              />
+            <form onSubmit={handleDefaultPasswordChange} style={{ display: "grid", gap: 14 }}>
               <input
                 type="password"
                 placeholder="New default student password"
-                value={studentDefaultPassword}
-                onChange={(e) => setStudentDefaultPassword(e.target.value)}
+                value={newDefaultPassword}
+                onChange={(e) => setNewDefaultPassword(e.target.value)}
                 style={inputStyle}
               />
               <input
                 type="password"
                 placeholder="Confirm new default student password"
-                value={studentConfirmPassword}
-                onChange={(e) => setStudentConfirmPassword(e.target.value)}
+                value={confirmDefaultPassword}
+                onChange={(e) => setConfirmDefaultPassword(e.target.value)}
                 style={inputStyle}
               />
 
@@ -223,7 +246,7 @@ export default function LecturerSettings() {
               {studentMessage && <div style={successStyle}>{studentMessage}</div>}
 
               <button type="submit" style={buttonStyle} disabled={loadingStudent}>
-                {loadingStudent ? "Updating..." : "Update Student Default Password"}
+                {loadingStudent ? "Updating..." : "Update Default Password"}
               </button>
             </form>
           </div>
@@ -265,6 +288,44 @@ const buttonStyle = {
   fontSize: 14,
   fontWeight: 600,
   cursor: "pointer",
+};
+
+const secondaryButtonStyle = {
+  border: "1px solid #d1d5db",
+  background: "#fff",
+  color: "#111827",
+  borderRadius: 8,
+  padding: "6px 12px",
+  fontSize: 13,
+  cursor: "pointer",
+};
+
+const activeBoxStyle = {
+  background: "#f0fdf4",
+  border: "1px solid #bbf7d0",
+  borderRadius: 12,
+  padding: 14,
+  marginBottom: 16,
+};
+
+const activeDotStyle = {
+  width: 10,
+  height: 10,
+  borderRadius: "50%",
+  background: "#22c55e",
+  display: "inline-block",
+};
+
+const passwordDisplayStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  padding: "12px 14px",
+  borderRadius: 10,
+  border: "1px solid #d1d5db",
+  background: "#fff",
+  fontSize: 14,
 };
 
 const errorStyle = {

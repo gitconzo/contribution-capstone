@@ -1,6 +1,46 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { loginWithCognito } from "../utils/cognitoAuth";
 import "./login.css";
+
+function parseJwt(token) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Failed to parse JWT:", error);
+    return null;
+  }
+}
+
+const LECTURER_EMAILS = [
+  "kavindubweragoda@gmail.com",
+];
+
+const STUDENT_EMAILS = [
+  "kavinduweragoda0@gmail.com",
+];
+
+function getRoleFromEmail(email) {
+  const safeEmail = String(email || "").trim().toLowerCase();
+
+  if (LECTURER_EMAILS.includes(safeEmail)) {
+    return "teacher";
+  }
+
+  if (STUDENT_EMAILS.includes(safeEmail)) {
+    return "student";
+  }
+
+  return "student";
+}
 
 export function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -21,33 +61,55 @@ export function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5002/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email,
-          password
-        })
-      });
+      const result = await loginWithCognito(email.trim(), password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Login failed.");
-        setLoading(false);
+      if (result.type === "NEW_PASSWORD_REQUIRED") {
+        sessionStorage.setItem("newPasswordEmail", email.trim().toLowerCase());
+        sessionStorage.setItem(
+          "newPasswordUserAttributes",
+          JSON.stringify(result.userAttributes || {})
+        );
+        window.__cognitoNewPasswordUser = result.cognitoUser;
+        window.location.href = "/set-new-password";
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      const payload = parseJwt(result.idToken);
+      const emailFromToken = (payload?.email || email.trim()).toLowerCase();
+
+      const role =
+        payload?.["custom:role"] ||
+        payload?.role ||
+        getRoleFromEmail(emailFromToken);
+
+      const user = {
+        email: emailFromToken,
+        name: payload?.name || payload?.email || email.trim(),
+        role,
+      };
+
+      localStorage.setItem("token", result.accessToken);
+      localStorage.setItem("idToken", result.idToken);
+      localStorage.setItem("accessToken", result.accessToken);
+      localStorage.setItem("refreshToken", result.refreshToken);
+      localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("p17_authed", "1");
 
-      onLogin?.(data.user);
+      onLogin?.(user);
     } catch (err) {
       console.error("Login error:", err);
-      setError("Cannot connect to server.");
+
+      const message = err?.message || err?.code || "Login failed.";
+
+      if (message.includes("User does not exist")) {
+        setError("No account found with this email.");
+      } else if (message.includes("Incorrect username or password")) {
+        setError("Incorrect email or password.");
+      } else if (message.includes("User is not confirmed")) {
+        setError("This account is not confirmed yet.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -118,10 +180,6 @@ export function Login({ onLogin }) {
         </form>
 
         <div style={{ marginTop: 14, textAlign: "center", fontSize: 14 }}>
-          <Link to="/forgot-username" style={{ color: "#2563eb", textDecoration: "none" }}>
-            Forgot Username?
-          </Link>
-          <span style={{ margin: "0 8px", color: "#9ca3af" }}>|</span>
           <Link to="/forgot-password" style={{ color: "#2563eb", textDecoration: "none" }}>
             Forgot Password?
           </Link>

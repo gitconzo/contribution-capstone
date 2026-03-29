@@ -7,3 +7,6 @@ package-lock.json
 
 # AWS SSL certificate
 /certs/
+backend/.env
+frontend/.env
+.env

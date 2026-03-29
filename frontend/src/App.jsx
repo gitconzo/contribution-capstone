@@ -12,8 +12,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import StudentSettings from "./pages/StudentSettings";
 import LecturerSettings from "./pages/LecturerSettings";
 import { Login } from "./pages/Login";
-import ForgotUsername from "./pages/ForgotUsername";
 import ForgotPassword from "./pages/ForgotPassword";
+import SetNewPassword from "./pages/SetNewPassword";
 
 function Shell() {
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -172,9 +172,9 @@ function Shell() {
   return (
     <Routes>
       <Route path="/login" element={<Login onLogin={handleLogin} />} />
-      <Route path="/forgot-username" element={<ForgotUsername />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="/set-new-password" element={<SetNewPassword onLogin={handleLogin} />} />
     </Routes>
   );
 }

@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const settingsRouter = require("./routes/settings");
+
 
 const { PORT, DATA_DIR, UPLOAD_DIR, PARSED_DIR, REGISTRY_PATH, TEAMS_PATH, ACTIVE_TEAM_PATH } = require("./utils/config");
 const { ensureFile, ensureDir } = require("./utils/fileUtils");
@@ -9,6 +11,7 @@ const authRoutes = require("./routes/authentication");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/api/settings", settingsRouter);
 
 // Check dirs/files exist on startup
 ensureDir(DATA_DIR);
