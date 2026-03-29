@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-
-const API = "http://localhost:5002";
+import { API_URL as API } from "../utils/api";
 
 export default function ExportReport({ darkMode }) {
   const [selectedFormat, setSelectedFormat] = useState("pdf");

@@ -85,35 +85,48 @@ export default function UploadFile({ darkMode }) {
   const handleUpload = async () => {
     if (!file) return;
 
-    // Get presigned URL + S3 key from the backend
-    const presignRes = await apiFetch(
-      `/api/uploads/presign?filename=${encodeURIComponent(file.name)}&teamId=${encodeURIComponent(localStorage.getItem("activeTeamId") || "unknown")}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}`
-    );
-    const { url, s3Key, storedName } = await presignRes.json();
+    try {
+      // Get presigned URL + S3 key from the backend
+      const presignRes = await apiFetch(
+        `/api/uploads/presign?filename=${encodeURIComponent(file.name)}&teamId=${encodeURIComponent(localStorage.getItem("activeTeamId") || "unknown")}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}`
+      );
+      if (!presignRes.ok) {
+        const err = await presignRes.json();
+        setUploadResult({ error: err.error || "Failed to get upload URL." });
+        return;
+      }
+      const { url, s3Key, storedName } = await presignRes.json();
 
-    // Upload directly to S3 using the presigned URL
-    await fetch(url, {
-      method: "PUT",
-      body: file,
-      headers: { "Content-Type": file.type || "application/octet-stream" },
-    });
+      // Upload directly to S3 using the presigned URL
+      const s3Res = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+      });
+      if (!s3Res.ok) {
+        setUploadResult({ error: `S3 upload failed (${s3Res.status}). Check CORS policy on the bucket.` });
+        return;
+      }
 
-    // Register the upload in the backend
-    const res = await apiFetch("/api/uploads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        s3Key,
-        storedName,
-        originalName: file.name,
-        size: file.size,
-        mimetype: file.type,
-        teamId: localStorage.getItem("activeTeamId") || "unknown",
-        userType: overrideType,
-      }),
-    });
-    const json = await res.json();
-    setUploadResult(json);
+      // Register the upload in the backend
+      const res = await apiFetch("/api/uploads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          s3Key,
+          storedName,
+          originalName: file.name,
+          size: file.size,
+          mimetype: file.type,
+          teamId: localStorage.getItem("activeTeamId") || "unknown",
+          userType: overrideType,
+        }),
+      });
+      const json = await res.json();
+      setUploadResult(json);
+    } catch (e) {
+      setUploadResult({ error: e.message || "Upload failed. Check your connection." });
+    }
   };
 
   const handleConfirm = async () => {
@@ -409,7 +422,13 @@ export default function UploadFile({ darkMode }) {
           Upload
         </button>
 
-        {uploadResult && (
+        {uploadResult?.error && (
+          <div style={{ marginTop: 10, padding: "10px 12px", background: "#fee2e2", color: "#b91c1c", borderRadius: 8, fontSize: 14 }}>
+            {uploadResult.error}
+          </div>
+        )}
+
+        {uploadResult && !uploadResult.error && (
           <div style={confirmBoxStyle}>
             Uploaded: {uploadResult.originalName}
             <br />

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { User } from "lucide-react";
-
-const API = "http://localhost:5002";
+import { API_URL as API } from "../utils/api";
 
 // Temporary mapping between student login accounts and GitHub contribution authors
 const AUTHOR_MAP = {

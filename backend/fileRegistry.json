@@ -1205,5 +1205,77 @@
       "jsonPath": "data/parsed/attendance.json",
       "message": "Attendance parsed successfully"
     }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773360674.docx",
+    "originalName": "COS40005 Sprint 2 Report.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773360674.docx",
+    "s3Key": "team_1773736993653/uploads/COS40005 Sprint 2 Report__1774773360674.docx",
+    "teamId": "team_1773736993653",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T08:36:02.533Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 2 Report-parsed.json",
+      "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "team_attendance__1774773394342.xlsx",
+    "originalName": "team_attendance.xlsx",
+    "storedName": "team_attendance__1774773394342.xlsx",
+    "s3Key": "team_1773736993653/uploads/team_attendance__1774773394342.xlsx",
+    "teamId": "team_1773736993653",
+    "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 9657,
+    "uploadDate": "2026-03-29T08:36:34.544Z",
+    "detectedType": "attendance",
+    "userType": "attendance",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1773736993653/parsed/team_attendance-parsed.json",
+      "jsonPath": "data/parsed/team_attendance-parsed.json",
+      "message": "Attendance parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773503407.docx",
+    "originalName": "COS40005 Sprint 2 Report.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773503407.docx",
+    "s3Key": "team_1773736993653/uploads/COS40005 Sprint 2 Report__1774773503407.docx",
+    "teamId": "team_1773736993653",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T08:38:24.994Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 2 Report-parsed.json",
+      "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773524285.docx",
+    "originalName": "COS40005 Sprint 2 Report.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773524285.docx",
+    "s3Key": "team_1773736993653/uploads/COS40005 Sprint 2 Report__1774773524285.docx",
+    "teamId": "team_1773736993653",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T08:38:46.801Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 2 Report-parsed.json",
+      "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
   }
 ]

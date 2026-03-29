@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiFetch } from "../utils/api";
 
 export default function LecturerSettings({ darkMode }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -66,7 +67,7 @@ export default function LecturerSettings({ darkMode }) {
     try {
       setLoadingTeacher(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5002/api/auth/change-password", {
+      const response = await apiFetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
@@ -104,7 +105,7 @@ export default function LecturerSettings({ darkMode }) {
     try {
       setLoadingStudent(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5002/api/auth/student-default-password", {
+      const response = await apiFetch("/api/auth/student-default-password", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({

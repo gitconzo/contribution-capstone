@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
+import { apiFetch } from "../utils/api";
 
 export default function StudentSettings({ darkMode }) {
   const theme = darkMode
@@ -82,7 +83,7 @@ export default function StudentSettings({ darkMode }) {
 
       const token = localStorage.getItem("token");
 
-      const response = await fetch("http://localhost:5002/api/auth/change-password", {
+      const response = await apiFetch("/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

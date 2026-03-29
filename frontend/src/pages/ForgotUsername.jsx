@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../utils/api";
 
 export default function ForgotUsername() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ export default function ForgotUsername() {
     try {
       setLoading(true);
 
-      const response = await fetch("http://localhost:5002/api/auth/forgot-username", {
+      const response = await apiFetch("/api/auth/forgot-username", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
