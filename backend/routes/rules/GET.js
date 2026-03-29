@@ -18,23 +18,23 @@ router.get("/", async (req, res) => {
       db.query("SELECT name, weight, description FROM rules WHERE team_id = $1 ORDER BY id", [teamId]),
     ]);
 
-    const s = settingsResult.rows[0];
+    const settings = settingsResult.rows[0];
 
     const rules = rulesResult.rows.length
-      ? rulesResult.rows.map(r => ({ name: r.name, value: r.weight, desc: r.description }))
+      ? rulesResult.rows.map(row => ({ name: row.name, value: row.weight, desc: row.description }))
       : DEFAULT_RULES.rules;
 
     const payload = {
       rules,
-      autoRecalc: s?.auto_recalc ?? DEFAULT_RULES.autoRecalc,
+      autoRecalc: settings?.auto_recalc ?? DEFAULT_RULES.autoRecalc,
       // crossVerify and triangulation stored in DB but not yet implemented in scoring
-      // crossVerify:    s?.cross_verify ?? DEFAULT_RULES.crossVerify,
-      // triangulation: s ? {
-      //   codeWorklog:  s.triangulation_code_worklog  ?? DEFAULT_RULES.triangulation.codeWorklog,
-      //   meetingDoc:   s.triangulation_meeting_doc   ?? DEFAULT_RULES.triangulation.meetingDoc,
-      //   activityDist: s.triangulation_activity_dist ?? DEFAULT_RULES.triangulation.activityDist,
+      // crossVerify:    settings?.cross_verify ?? DEFAULT_RULES.crossVerify,
+      // triangulation: settings ? {
+      //   codeWorklog:  settings.triangulation_code_worklog  ?? DEFAULT_RULES.triangulation.codeWorklog,
+      //   meetingDoc:   settings.triangulation_meeting_doc   ?? DEFAULT_RULES.triangulation.meetingDoc,
+      //   activityDist: settings.triangulation_activity_dist ?? DEFAULT_RULES.triangulation.activityDist,
       // } : DEFAULT_RULES.triangulation,
-      peerValidation: s?.peer_validation ?? DEFAULT_RULES.peerValidation,
+      peerValidation: settings?.peer_validation ?? DEFAULT_RULES.peerValidation,
     };
 
     res.json({ teamId, ...payload, weights: weightsFromRules(payload.rules) || {} });

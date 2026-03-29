@@ -1277,5 +1277,59 @@
       "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
       "message": "Sprint report parsed successfully"
     }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report__1774774920654.docx",
+    "originalName": "COS40005 Sprint 1 Report.docx",
+    "storedName": "COS40005 Sprint 1 Report__1774774920654.docx",
+    "s3Key": "team_1773736993653/uploads/COS40005 Sprint 1 Report__1774774920654.docx",
+    "teamId": "team_1773736993653",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:02:01.216Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 1 Report-parsed.json",
+      "jsonPath": "data/parsed/COS40005 Sprint 1 Report-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report__1774774939589.docx",
+    "originalName": "COS40005 Sprint 1 Report.docx",
+    "storedName": "COS40005 Sprint 1 Report__1774774939589.docx",
+    "s3Key": "team_1773736993653/uploads/COS40005 Sprint 1 Report__1774774939589.docx",
+    "teamId": "team_1773736993653",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:02:20.141Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 1 Report-parsed.json",
+      "jsonPath": "data/parsed/COS40005 Sprint 1 Report-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report__1774776167210.docx",
+    "originalName": "COS40005 Sprint 1 Report.docx",
+    "storedName": "COS40005 Sprint 1 Report__1774776167210.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report__1774776167210.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:22:47.705Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1774770983553/parsed/COS40005 Sprint 1 Report-parsed.json",
+      "jsonPath": "data/parsed/COS40005 Sprint 1 Report-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
   }
 ]
