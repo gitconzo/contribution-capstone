@@ -1,5 +1,4 @@
 // backend/services/aggregator.js
-// Orchestrates the full aggregation pipeline:
 // fetches team/student/rules data from the DB, loads all parsed artifacts,
 // matches data to students, and produces a final ranked score for each student
 
