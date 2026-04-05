@@ -231,7 +231,15 @@ export default function RuleSettings({ darkMode }) {
 
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: theme.pageBg }}>
-      <div style={{ color: theme.subtext, fontSize: 16 }}>Loading...</div>
+      <div style={{
+        width: 40,
+        height: 40,
+        border: `4px solid ${theme.border}`,
+        borderTop: `4px solid ${darkMode ? "#f8fafc" : "#111827"}`,
+        borderRadius: "50%",
+        animation: "spin 0.8s linear infinite",
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 

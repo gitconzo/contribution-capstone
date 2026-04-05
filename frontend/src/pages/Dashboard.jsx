@@ -1,15 +1,9 @@
 // frontend/src/components/dashboard.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../utils/api";
+import React, { useMemo, useState } from "react";
 import { Users, Link as LinkIcon, BarChart3, UserRound, GitCommitHorizontal, Eye, ChevronDown, Search } from "lucide-react";
 
-export default function Dashboard({ onViewStudent, darkMode }) {
-  const [teamId, setTeamId] = useState("");
-  const [teams, setTeams] = useState([]);
-  const [scores, setScores] = useState(null);
-  const [teamStudents, setTeamStudents] = useState([]);
+export default function Dashboard({ onViewStudent, darkMode, teams = [], teamId = "", scores = null, teamStudents = [], onTeamChange }) {
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
 
   const theme = darkMode
     ? {
@@ -38,31 +32,6 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         shadow: "0 6px 14px rgba(0,0,0,.04)",
         buttonBg: "#ffffff",
       };
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const [allTeams, activeTeam] = await Promise.all([
-        apiFetch("/api/teams").then(r => r.json()),
-        apiFetch("/api/teams/active").then(r => r.json()),
-      ]);
-      setTeams(allTeams || []);
-      setTeamId(activeTeam?.id || allTeams?.[0]?.id || "");
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (!teamId) return;
-    setLoading(true);
-    Promise.all([
-      apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`).then(r => r.json()).catch(() => null),
-      apiFetch(`/api/teams/${encodeURIComponent(teamId)}`).then(r => r.json()).catch(() => null),
-    ]).then(([scoreData, teamData]) => {
-      setScores(scoreData);
-      setTeamStudents(teamData?.students || []);
-      setLoading(false);
-    });
-  }, [teamId]);
 
   const students = useMemo(() => {
     // Use scored ranking if available, otherwise fall back to raw team students
@@ -118,12 +87,6 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     return { avg, high, commits: 0 };
   }, [scores]);
 
-  if (loading) return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: theme.pageBg }}>
-      <div style={{ color: theme.subtext, fontSize: 16 }}>Loading...</div>
-    </div>
-  );
-
   return (
     <div
       style={{
@@ -148,15 +111,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
         <select
           value={teamId}
-          onChange={async (e) => {
+          onChange={(e) => {
             const newTeamId = e.target.value;
-            setTeamId(newTeamId);
             localStorage.setItem("activeTeamId", newTeamId);
-            await apiFetch("/api/teams/active", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id: newTeamId }),
-            });
+            onTeamChange?.(newTeamId);
           }}
           style={selectBox(theme)}
           title="Select project or team"

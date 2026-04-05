@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { apiFetch } from "../utils/api";
 
 const EMPTY_STUDENT = { name: "", email: "", github: "", aliases: "" };
 
-export default function SetupTeam({ darkMode }) {
+export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [newStudents, setNewStudents] = useState([{ ...EMPTY_STUDENT }]);
-  const [teams, setTeams] = useState([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
@@ -86,13 +85,11 @@ export default function SetupTeam({ darkMode }) {
       const res = await apiFetch("/api/teams");
       if (!res.ok) throw new Error(`Load teams failed (${res.status})`);
       const data = await res.json();
-      setTeams(Array.isArray(data) ? data : []);
+      onTeamsChange(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(e.message || "Unable to load teams");
     }
   };
-
-  useEffect(() => { loadTeams(); }, []);
 
   const toggleExpand = (id) => {
     if (expandedId === id) {

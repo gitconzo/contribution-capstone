@@ -1,6 +1,7 @@
 // frontend/src/App.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
+import { apiFetch } from "./utils/api";
 import { isAuthed, setAuthed, clearAuthed } from "./utils/auth";
 
 import Navigation from "./components/Navigation";
@@ -20,6 +21,47 @@ import ExportReport from "./pages/ExportReport";
 function Shell() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [authed, setAuthedState] = useState(() => isAuthed());
+
+  const [teams, setTeams] = useState([]);
+  const [teamId, setTeamId] = useState("");
+  const [scores, setScores] = useState(null);
+  const [teamStudents, setTeamStudents] = useState([]);
+
+  // Fetch scores and students for a given team
+  const refreshDashboard = useCallback(async (id) => {
+    if (!id) return;
+    const [scoreData, teamData] = await Promise.all([
+      apiFetch(`/api/scores?teamId=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null),
+      apiFetch(`/api/teams/${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null),
+    ]);
+    setScores(scoreData);
+    setTeamStudents(teamData?.students || []);
+  }, []);
+
+  // when user switches teams update active team on server + refresh dashboard data
+  const handleTeamChange = useCallback(async (id) => {
+    setTeamId(id);
+    await apiFetch("/api/teams/active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    refreshDashboard(id);
+  }, [refreshDashboard]);
+
+  // Fetch all teams and the active team, then load dashboard data (on first load)
+  useEffect(() => {
+    (async () => {
+      const [allTeams, activeTeam] = await Promise.all([
+        apiFetch("/api/teams").then(r => r.json()).catch(() => []),
+        apiFetch("/api/teams/active").then(r => r.json()).catch(() => null),
+      ]);
+      const activeId = activeTeam?.id || allTeams?.[0]?.id || "";
+      setTeams(allTeams || []);
+      setTeamId(activeId);
+      refreshDashboard(activeId);
+    })();
+  }, [refreshDashboard]);
 
   const [dark, setDark] = useState(() => {
     return localStorage.getItem("p17_dark") === "1";
@@ -117,6 +159,12 @@ function Shell() {
                 isTeacher ? (
                   <Dashboard
                     darkMode={dark}
+                    teams={teams}
+                    teamId={teamId}
+                    scores={scores}
+                    teamStudents={teamStudents}
+                    onTeamChange={handleTeamChange}
+                    onTeamsChange={setTeams}
                     onViewStudent={(s) => {
                       setSelectedStudent(s);
                       nav("/student");
@@ -168,7 +216,7 @@ function Shell() {
             />
             <Route
               path="/setup-team"
-              element={isTeacher ? <SetupTeam darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
+              element={isTeacher ? <SetupTeam darkMode={dark} teams={teams} onTeamsChange={setTeams} /> : <Navigate to="/student-dashboard" replace />}
             />
             <Route
               path="/export"
