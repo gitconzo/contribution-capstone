@@ -9,6 +9,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   const [scores, setScores] = useState(null);
   const [teamStudents, setTeamStudents] = useState([]);
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const theme = darkMode
     ? {
@@ -40,6 +41,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       const [allTeams, activeTeam] = await Promise.all([
         apiFetch("/api/teams").then(r => r.json()),
         apiFetch("/api/teams/active").then(r => r.json()),
@@ -51,15 +53,15 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
   useEffect(() => {
     if (!teamId) return;
-    apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`)
-      .then(r => r.json())
-      .then(setScores)
-      .catch(() => setScores(null));
-
-    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
-      .then(r => r.json())
-      .then(data => setTeamStudents(data.students || []))
-      .catch(() => setTeamStudents([]));
+    setLoading(true);
+    Promise.all([
+      apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`).then(r => r.json()).catch(() => null),
+      apiFetch(`/api/teams/${encodeURIComponent(teamId)}`).then(r => r.json()).catch(() => null),
+    ]).then(([scoreData, teamData]) => {
+      setScores(scoreData);
+      setTeamStudents(teamData?.students || []);
+      setLoading(false);
+    });
   }, [teamId]);
 
   const students = useMemo(() => {
@@ -115,6 +117,12 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     const high = `${list.filter(r => r.score >= 80).length}/${list.length}`;
     return { avg, high, commits: 0 };
   }, [scores]);
+
+  if (loading) return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: theme.pageBg }}>
+      <div style={{ color: theme.subtext, fontSize: 16 }}>Loading...</div>
+    </div>
+  );
 
   return (
     <div

@@ -229,6 +229,12 @@ export default function RuleSettings({ darkMode }) {
     }).sort((a, b) => b.score - a.score);
   }, [scores]);
 
+  if (loading) return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: theme.pageBg }}>
+      <div style={{ color: theme.subtext, fontSize: 16 }}>Loading...</div>
+    </div>
+  );
+
   return (
     <div
       style={{
