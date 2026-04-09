@@ -1,6 +1,13 @@
 // backend/routes/teams/POST.js
 const router = require("express").Router();
 const db = require("../../utils/db");
+const { createOrUpdateStudentUser } = require("../../utils/cognitoAdmin");
+
+const DEFAULT_STUDENT_PASSWORD = "Test@123456";
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
 
 // POST /api/teams/active  { id }
 router.post("/active", async (req, res) => {
@@ -18,7 +25,9 @@ router.post("/active", async (req, res) => {
 // POST /api/teams
 router.post("/", async (req, res) => {
   const { name, code, repo, students } = req.body || {};
-  if (!name || !code) return res.status(400).json({ error: "Missing required fields: name, code" });
+  if (!name || !code) {
+    return res.status(400).json({ error: "Missing required fields: name, code" });
+  }
 
   try {
     // Find or create the unit by code
@@ -32,9 +41,9 @@ router.post("/", async (req, res) => {
     const unitId = unitResult.rows[0].id;
 
     const id = `team_${Date.now()}`;
-    const repoUrl   = repo?.url   || null;
+    const repoUrl = repo?.url || null;
     const repoOwner = repo?.owner || null;
-    const repoName  = repo?.repo  || null;
+    const repoName = repo?.repo || null;
 
     await db.query(
       `INSERT INTO teams (id, unit_id, name, repo_url, repo_owner, repo_name)
@@ -42,60 +51,150 @@ router.post("/", async (req, res) => {
       [id, unitId, name, repoUrl, repoOwner, repoName]
     );
 
-    // Insert students if provided
     const studentList = Array.isArray(students) ? students : [];
+    const cognitoResults = [];
+
     for (const s of studentList) {
+      const safeEmail = normalizeEmail(s.email);
+
       await db.query(
         `INSERT INTO students (team_id, name, email, github, aliases)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT DO NOTHING`,
-        [id, s.name, s.email || null, s.github || null, s.aliases ? JSON.stringify(s.aliases) : null]
+        [
+          id,
+          s.name,
+          safeEmail || null,
+          s.github || null,
+          s.aliases ? JSON.stringify(s.aliases) : null,
+        ]
       );
+
+      if (safeEmail) {
+        try {
+          console.log("Creating/updating Cognito user for:", safeEmail);
+
+          const result = await createOrUpdateStudentUser(
+            safeEmail,
+            DEFAULT_STUDENT_PASSWORD,
+            s.name || ""
+          );
+
+          cognitoResults.push({
+            email: safeEmail,
+            success: true,
+            created: result.created,
+          });
+        } catch (err) {
+          console.error(`Failed to create Cognito user for ${safeEmail}:`, err);
+          cognitoResults.push({
+            email: safeEmail,
+            success: false,
+            error: err.message,
+          });
+        }
+      }
     }
 
-    res.status(201).json({ id, name, code, repo: repo || null, students: studentList });
+    res.status(201).json({
+      id,
+      name,
+      code,
+      repo: repo || null,
+      students: studentList,
+      defaultStudentPassword: DEFAULT_STUDENT_PASSWORD,
+      cognitoResults,
+    });
   } catch (e) {
     console.error("POST /api/teams error:", e);
     res.status(500).json({ error: e.message });
   }
 });
 
-// POST /api/teams/:id/students - adding students
+// POST /api/teams/:id/students
 router.post("/:id/students", async (req, res) => {
-  const { name, email, github } = req.body || {};
-  if (!name || !email) return res.status(400).json({ error: "Name and email required" });
+  const { name, email, github, aliases } = req.body || {};
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email required" });
+  }
 
   try {
-    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
-    if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
+    const safeEmail = normalizeEmail(email);
 
-    const exists = await db.query("SELECT id FROM students WHERE team_id = $1 AND email = $2", [req.params.id, email]);
-    if (exists.rows.length) return res.status(400).json({ error: "Student with this email already exists" });
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
+    if (!teamCheck.rows.length) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const exists = await db.query(
+      "SELECT id FROM students WHERE team_id = $1 AND email = $2",
+      [req.params.id, safeEmail]
+    );
+    if (exists.rows.length) {
+      return res.status(400).json({ error: "Student with this email already exists" });
+    }
 
     await db.query(
-      "INSERT INTO students (team_id, name, email, github) VALUES ($1, $2, $3, $4)",
-      [req.params.id, name, email, github || null]
+      `INSERT INTO students (team_id, name, email, github, aliases)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        req.params.id,
+        name,
+        safeEmail,
+        github || null,
+        aliases ? JSON.stringify(aliases) : null,
+      ]
     );
 
-    const teamRes     = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
-    const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [req.params.id]);
-    res.json({ ...teamRes.rows[0], students: studentsRes.rows });
+    let cognitoResult = null;
+    try {
+      console.log("Creating/updating Cognito user for added student:", safeEmail);
+
+      const result = await createOrUpdateStudentUser(
+        safeEmail,
+        DEFAULT_STUDENT_PASSWORD,
+        name
+      );
+
+      cognitoResult = {
+        success: true,
+        created: result.created,
+      };
+    } catch (err) {
+      console.error(`Failed to create Cognito user for ${safeEmail}:`, err);
+      cognitoResult = {
+        success: false,
+        error: err.message,
+      };
+    }
+
+    const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
+    const studentsRes = await db.query(
+      "SELECT * FROM students WHERE team_id = $1",
+      [req.params.id]
+    );
+
+    res.json({
+      ...teamRes.rows[0],
+      students: studentsRes.rows,
+      defaultStudentPassword: DEFAULT_STUDENT_PASSWORD,
+      cognitoResult,
+    });
   } catch (e) {
     console.error("POST /api/teams/:id/students error:", e);
     res.status(500).json({ error: e.message });
   }
-})
+});
 
 // POST /api/teams/:id/rules
 router.post("/:id/rules", async (req, res) => {
   const { id } = req.params;
-  const { rules, autoRecalc /*, crossVerify, triangulation, peerValidation */ } = req.body || {};
+  const { rules, autoRecalc } = req.body || {};
 
   try {
     const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [id]);
     if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });
 
-    // Upsert rule_settings — crossVerify/triangulation/peerValidation not yet implemented in scoring
     await db.query(
       `INSERT INTO rule_settings (team_id, auto_recalc)
        VALUES ($1, $2)
@@ -104,7 +203,6 @@ router.post("/:id/rules", async (req, res) => {
       [id, autoRecalc ?? true]
     );
 
-    // Upsert individual rules
     if (Array.isArray(rules)) {
       for (const r of rules) {
         await db.query(
@@ -124,7 +222,5 @@ router.post("/:id/rules", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-
-
 
 module.exports = router;

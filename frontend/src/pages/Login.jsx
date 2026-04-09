@@ -1,7 +1,24 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "./login.css";
-import { apiFetch } from "../utils/api";
+import { loginWithCognito } from "../utils/cognitoAuth";
+
+function parseJwt(token) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Failed to parse JWT:", error);
+    return null;
+  }
+}
 
 export function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -22,33 +39,51 @@ export function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await apiFetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email,
-          password
-        })
-      });
+      const result = await loginWithCognito(email.trim().toLowerCase(), password);
 
-      const data = await response.json();
+      const idToken = result.getIdToken().getJwtToken();
+      const accessToken = result.getAccessToken().getJwtToken();
+      const refreshToken = result.getRefreshToken().getToken();
 
-      if (!response.ok) {
-        setError(data.message || "Login failed.");
-        setLoading(false);
-        return;
+      const payload = parseJwt(idToken);
+
+      const role = payload?.["custom:role"] || payload?.role;
+
+      if (!role) {
+        throw new Error("This account does not have a role assigned. Please contact the administrator.");
       }
+      
+      const user = {
+        email: payload?.email || email.trim().toLowerCase(),
+        name: payload?.name || payload?.email || email.trim().toLowerCase(),
+        role,
+      };
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("idToken", idToken);
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("p17_authed", "1");
+      localStorage.setItem("capstone_authed", "1");
 
-      onLogin?.(data.user);
+      onLogin?.(user);
     } catch (err) {
       console.error("Login error:", err);
-      setError("Cannot connect to server.");
+
+      const message = err?.message || err?.code || "Login failed.";
+
+      if (message.includes("Incorrect username or password")) {
+        setError("Incorrect email or password.");
+      } else if (message.includes("User does not exist")) {
+        setError("No account found with this email.");
+      } else if (message.includes("User is not confirmed")) {
+        setError("This account is not confirmed yet.");
+      } else if (message.includes("Password attempts exceeded")) {
+        setError("Too many failed attempts. Please try again later.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -119,10 +154,6 @@ export function Login({ onLogin }) {
         </form>
 
         <div style={{ marginTop: 14, textAlign: "center", fontSize: 14 }}>
-          <Link to="/forgot-username" style={{ color: "#2563eb", textDecoration: "none" }}>
-            Forgot Username?
-          </Link>
-          <span style={{ margin: "0 8px", color: "#9ca3af" }}>|</span>
           <Link to="/forgot-password" style={{ color: "#2563eb", textDecoration: "none" }}>
             Forgot Password?
           </Link>
