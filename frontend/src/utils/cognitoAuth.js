@@ -14,14 +14,19 @@ import {
   
   const userPool = new CognitoUserPool(poolData);
   
+  function getCognitoUser(email) {
+    const safeEmail = String(email || "").trim().toLowerCase();
+  
+    return new CognitoUser({
+      Username: safeEmail,
+      Pool: userPool,
+    });
+  }
+  
   export function loginWithCognito(email, password) {
     return new Promise((resolve, reject) => {
       const safeEmail = String(email || "").trim().toLowerCase();
-  
-      const user = new CognitoUser({
-        Username: safeEmail,
-        Pool: userPool,
-      });
+      const user = getCognitoUser(safeEmail);
   
       const authDetails = new AuthenticationDetails({
         Username: safeEmail,
@@ -31,6 +36,58 @@ import {
       user.authenticateUser(authDetails, {
         onSuccess: (result) => resolve(result),
         onFailure: (err) => reject(err),
+      });
+    });
+  }
+  
+  export function forgotPasswordRequest(email) {
+    return new Promise((resolve, reject) => {
+      const user = getCognitoUser(email);
+  
+      user.forgotPassword({
+        onSuccess: (result) => resolve(result),
+        onFailure: (err) => reject(err),
+        inputVerificationCode: () => {
+          resolve({ message: "Verification code sent." });
+        },
+      });
+    });
+  }
+  
+  export function forgotPasswordConfirm(email, code, newPassword) {
+    return new Promise((resolve, reject) => {
+      const user = getCognitoUser(email);
+  
+      user.confirmPassword(code, newPassword, {
+        onSuccess: () => resolve({ message: "Password reset successful." }),
+        onFailure: (err) => reject(err),
+      });
+    });
+  }
+  
+  export function changeCurrentUserPassword(oldPassword, newPassword) {
+    return new Promise((resolve, reject) => {
+      const cognitoUser = userPool.getCurrentUser();
+  
+      if (!cognitoUser) {
+        reject(new Error("No logged-in user found."));
+        return;
+      }
+  
+      cognitoUser.getSession((sessionErr) => {
+        if (sessionErr) {
+          reject(sessionErr);
+          return;
+        }
+  
+        cognitoUser.changePassword(oldPassword, newPassword, (err, result) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+  
+          resolve(result);
+        });
       });
     });
   }

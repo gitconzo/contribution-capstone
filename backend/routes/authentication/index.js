@@ -5,6 +5,7 @@ const {
   login,
   getMe,
   changePassword,
+  getStudentDefaultPassword,
   updateStudentDefaultPassword,
   forgotUsername,
   forgotPassword,
@@ -16,12 +17,9 @@ router.post("/login", login);
 router.get("/me", protect, getMe);
 router.post("/change-password", protect, changePassword);
 
-router.post(
-  "/student-default-password",
-  protect,
-  authorizeRoles("teacher"),
-  updateStudentDefaultPassword
-);
+
+router.get("/student-default-password", getStudentDefaultPassword);
+router.post("/student-default-password", updateStudentDefaultPassword);
 
 router.post("/forgot-username", forgotUsername);
 router.post("/forgot-password", forgotPassword);

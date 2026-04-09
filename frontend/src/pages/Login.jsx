@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "./login.css";
 import { loginWithCognito } from "../utils/cognitoAuth";
+import { apiFetch } from "../utils/api";
 
 function parseJwt(token) {
   try {
@@ -39,7 +40,8 @@ export function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const result = await loginWithCognito(email.trim().toLowerCase(), password);
+      const safeEmail = email.trim().toLowerCase();
+      const result = await loginWithCognito(safeEmail, password);
 
       const idToken = result.getIdToken().getJwtToken();
       const accessToken = result.getAccessToken().getJwtToken();
@@ -52,11 +54,30 @@ export function Login({ onLogin }) {
       if (!role) {
         throw new Error("This account does not have a role assigned. Please contact the administrator.");
       }
-      
+
+      let usingDefaultPassword = false;
+
+      if (role === "student") {
+        try {
+          const response = await apiFetch("/api/auth/student-default-password", {
+            method: "GET",
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data?.studentDefaultPassword) {
+            usingDefaultPassword = password === data.studentDefaultPassword;
+          }
+        } catch (checkError) {
+          console.error("Failed to check default student password:", checkError);
+        }
+      }
+
       const user = {
-        email: payload?.email || email.trim().toLowerCase(),
-        name: payload?.name || payload?.email || email.trim().toLowerCase(),
+        email: payload?.email || safeEmail,
+        name: payload?.name || payload?.email || safeEmail,
         role,
+        usingDefaultPassword,
       };
 
       localStorage.setItem("token", accessToken);

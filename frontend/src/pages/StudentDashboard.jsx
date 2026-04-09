@@ -175,9 +175,7 @@ export default function StudentDashboard({ darkMode }) {
   const [loading, setLoading] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState("");
-  const [showSecurityNotice, setShowSecurityNotice] = useState(
-    savedUser?.usingDefaultPassword === true
-  );
+
 
   useEffect(() => {
     const savedPhoto = localStorage.getItem("student_profile_photo");
@@ -185,16 +183,6 @@ export default function StudentDashboard({ darkMode }) {
       setProfilePhoto(savedPhoto);
     }
   }, []);
-
-  useEffect(() => {
-    if (!showSecurityNotice) return;
-
-    const timer = setTimeout(() => {
-      setShowSecurityNotice(false);
-    }, 25000);
-
-    return () => clearTimeout(timer);
-  }, [showSecurityNotice]);
 
   useEffect(() => {
     async function loadData() {
@@ -337,111 +325,6 @@ export default function StudentDashboard({ darkMode }) {
 
   return (
     <div style={{ padding: 24, background: theme.pageBg, minHeight: "100vh" }}>
-      <style>{`
-        @keyframes slideInToast {
-          from {
-            opacity: 0;
-            transform: translateY(-10px) translateX(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) translateX(0);
-          }
-        }
-      `}</style>
-
-      {showSecurityNotice && (
-        <div
-          style={{
-            position: "fixed",
-            top: 86,
-            right: 24,
-            width: 360,
-            maxWidth: "calc(100vw - 32px)",
-            background: darkMode ? "rgba(17,24,39,0.96)" : "rgba(255,255,255,0.96)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid #fca5a5",
-            borderLeft: "5px solid #dc2626",
-            borderRadius: 16,
-            boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
-            padding: "14px 14px 14px 16px",
-            zIndex: 1200,
-            animation: "slideInToast 0.28s ease-out",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", gap: 12 }}>
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  background: "#fef2f2",
-                  color: "#dc2626",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                  flexShrink: 0,
-                  border: "1px solid #fecaca",
-                }}
-              >
-                ⚠
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#111827",
-                    marginBottom: 4,
-                  }}
-                >
-                  Security Reminder
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                    color: "#4b5563",
-                  }}
-                >
-                  Your account is still using the default password. Please update it in{" "}
-                  <strong style={{ color: "#111827" }}>Settings</strong> for better security.
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowSecurityNotice(false)}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "#6b7280",
-                cursor: "pointer",
-                fontSize: 16,
-                lineHeight: 1,
-                padding: 2,
-                flexShrink: 0,
-              }}
-              aria-label="Close notification"
-              title="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
 
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <div

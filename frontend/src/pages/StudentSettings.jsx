@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
-import { apiFetch } from "../utils/api";
+import { changeCurrentUserPassword } from "../utils/cognitoAuth";
 
 export default function StudentSettings({ darkMode }) {
   const theme = darkMode
@@ -38,6 +38,7 @@ export default function StudentSettings({ darkMode }) {
         menuBg: "#ffffff",
         menuText: "#111827",
       };
+
   const [activeSection, setActiveSection] = useState("security");
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -68,8 +69,8 @@ export default function StudentSettings({ darkMode }) {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("New password must be at least 6 characters.");
+    if (newPassword.length < 8) {
+      setError("New password must be at least 8 characters.");
       return;
     }
 
@@ -81,33 +82,13 @@ export default function StudentSettings({ darkMode }) {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
-
-      const response = await apiFetch("/api/auth/change-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-          confirmPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Failed to update password.");
-        return;
-      }
+      await changeCurrentUserPassword(currentPassword, newPassword);
 
       setMessage("Password updated successfully.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      
+
       const savedUser = localStorage.getItem("user");
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
@@ -116,7 +97,19 @@ export default function StudentSettings({ darkMode }) {
       }
     } catch (err) {
       console.error(err);
-      setError("Cannot connect to server.");
+      const msg = err?.message || err?.code || "Failed to update password.";
+
+      if (msg.includes("Incorrect username or password")) {
+        setError("Current password is incorrect.");
+      } else if (msg.includes("InvalidPasswordException")) {
+        setError("New password does not meet the password policy.");
+      } else if (msg.includes("LimitExceededException")) {
+        setError("Too many attempts. Please try again later.");
+      } else if (msg.includes("No logged-in user found")) {
+        setError("No logged-in user found. Please log in again.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -154,16 +147,55 @@ export default function StudentSettings({ darkMode }) {
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: 1100, margin: "0 auto", background: theme.pageBg, minHeight: "100vh" }}>
-      <div style={{ background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 18, padding: 24, boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+    <div
+      style={{
+        padding: "24px",
+        maxWidth: 1100,
+        margin: "0 auto",
+        background: theme.pageBg,
+        minHeight: "100vh",
+      }}
+    >
+      <div
+        style={{
+          background: theme.card,
+          border: `1px solid ${theme.border}`,
+          borderRadius: 18,
+          padding: 24,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
+        }}
+      >
         <h1 style={{ marginTop: 0, fontSize: 28, color: theme.text }}>Settings</h1>
         <p style={{ color: theme.subtext, marginBottom: 24 }}>
           Manage your student account settings.
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 24, alignItems: "start" }}>
-          <div style={{ border: `1px solid ${theme.border}`, borderRadius: 16, padding: 16, background: theme.cardSoft }}>
-            <h3 style={{ marginTop: 0, marginBottom: 14, fontSize: 18, color: theme.text }}>Options</h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "260px 1fr",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          <div
+            style={{
+              border: `1px solid ${theme.border}`,
+              borderRadius: 16,
+              padding: 16,
+              background: theme.cardSoft,
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: 14,
+                fontSize: 18,
+                color: theme.text,
+              }}
+            >
+              Options
+            </h3>
 
             <button
               onClick={() => {
@@ -199,10 +231,20 @@ export default function StudentSettings({ darkMode }) {
             </button>
           </div>
 
-          <div style={{ border: `1px solid ${theme.border}`, borderRadius: 16, padding: 20, background: theme.cardSoft, minHeight: 360 }}>
+          <div
+            style={{
+              border: `1px solid ${theme.border}`,
+              borderRadius: 16,
+              padding: 20,
+              background: theme.cardSoft,
+              minHeight: 360,
+            }}
+          >
             {activeSection === "photo" && (
               <div>
-                <h3 style={{ marginTop: 0, marginBottom: 12, color: theme.text }}>Profile Photo</h3>
+                <h3 style={{ marginTop: 0, marginBottom: 12, color: theme.text }}>
+                  Profile Photo
+                </h3>
                 <p style={{ color: theme.subtext, marginBottom: 18 }}>
                   Upload or change your profile photo.
                 </p>
@@ -248,10 +290,35 @@ export default function StudentSettings({ darkMode }) {
                   <div style={{ display: "grid", gap: 12 }}>
                     <input type="file" accept="image/*" onChange={handlePhotoChange} />
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button type="button" style={{ border: "none", background: theme.btnBg, color: theme.btnText, borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                      <button
+                        type="button"
+                        style={{
+                          border: "none",
+                          background: theme.btnBg,
+                          color: theme.btnText,
+                          borderRadius: 10,
+                          padding: "12px 16px",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
                         Upload Photo
                       </button>
-                      <button type="button" onClick={removePhoto} style={{ border: `1px solid ${theme.border}`, background: theme.cardSoft, color: theme.text, borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                      <button
+                        type="button"
+                        onClick={removePhoto}
+                        style={{
+                          border: `1px solid ${theme.border}`,
+                          background: theme.cardSoft,
+                          color: theme.text,
+                          borderRadius: 10,
+                          padding: "12px 16px",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
                         Remove Photo
                       </button>
                     </div>
@@ -292,7 +359,9 @@ export default function StudentSettings({ darkMode }) {
 
             {activeSection === "documents" && (
               <div>
-                <h3 style={{ marginTop: 0, marginBottom: 12, color: theme.text }}>Document Upload (Beta)</h3>
+                <h3 style={{ marginTop: 0, marginBottom: 12, color: theme.text }}>
+                  Document Upload (Beta)
+                </h3>
                 <p style={{ color: theme.subtext, marginBottom: 18 }}>
                   Upload supporting documents or progress files. This feature is currently in beta.
                 </p>
@@ -304,53 +373,139 @@ export default function StudentSettings({ darkMode }) {
                 />
 
                 <div>
-                  <button style={{ border: "none", background: theme.btnBg, color: theme.btnText, borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Upload Document</button>
+                  <button
+                    style={{
+                      border: "none",
+                      background: theme.btnBg,
+                      color: theme.btnText,
+                      borderRadius: 10,
+                      padding: "12px 16px",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Upload Document
+                  </button>
                 </div>
               </div>
             )}
 
             {activeSection === "security" && (
               <div>
-                <h3 style={{ marginTop: 0, marginBottom: 16, color: theme.text }}>Change Password</h3>
+                <h3 style={{ marginTop: 0, marginBottom: 16, color: theme.text }}>
+                  Change Password
+                </h3>
 
-                <form onSubmit={handleChangePassword} style={{ display: "grid", gap: 14, maxWidth: 520 }}>
+                <form
+                  onSubmit={handleChangePassword}
+                  style={{ display: "grid", gap: 14, maxWidth: 520 }}
+                >
                   <div>
-                    <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: theme.text }}>Current Password</label>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: 6,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: theme.text,
+                      }}
+                    >
+                      Current Password
+                    </label>
                     <input
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"
-                      style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${theme.inputBorder}`, fontSize: 14, background: theme.inputBg, color: theme.inputText, outline: "none", boxSizing: "border-box" }}
+                      style={inputField(theme)}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: theme.text }}>New Password</label>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: 6,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: theme.text,
+                      }}
+                    >
+                      New Password
+                    </label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password"
-                      style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${theme.inputBorder}`, fontSize: 14, background: theme.inputBg, color: theme.inputText, outline: "none", boxSizing: "border-box" }}
+                      style={inputField(theme)}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: theme.text }}>Confirm New Password</label>
+                    <label
+                      style={{
+                        display: "block",
+                        marginBottom: 6,
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: theme.text,
+                      }}
+                    >
+                      Confirm New Password
+                    </label>
                     <input
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
-                      style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${theme.inputBorder}`, fontSize: 14, background: theme.inputBg, color: theme.inputText, outline: "none", boxSizing: "border-box" }}
+                      style={inputField(theme)}
                     />
                   </div>
 
-                  {error && <div style={{ background: "#fee2e2", color: "#b91c1c", padding: "10px 12px", borderRadius: 10, fontSize: 14 }}>{error}</div>}
-                  {message && <div style={{ background: "#dcfce7", color: "#166534", padding: "10px 12px", borderRadius: 10, fontSize: 14 }}>{message}</div>}
+                  {error && (
+                    <div
+                      style={{
+                        background: "#fee2e2",
+                        color: "#b91c1c",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        fontSize: 14,
+                      }}
+                    >
+                      {error}
+                    </div>
+                  )}
 
-                  <button type="submit" disabled={loading} style={{ border: "none", background: theme.btnBg, color: theme.btnText, borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                  {message && (
+                    <div
+                      style={{
+                        background: "#dcfce7",
+                        color: "#166534",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        fontSize: 14,
+                      }}
+                    >
+                      {message}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      border: "none",
+                      background: theme.btnBg,
+                      color: theme.btnText,
+                      borderRadius: 10,
+                      padding: "12px 16px",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
                     {loading ? "Updating..." : "Update Password"}
                   </button>
                 </form>
@@ -376,5 +531,19 @@ function menuButton(active, theme) {
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
+  };
+}
+
+function inputField(theme) {
+  return {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 10,
+    border: `1px solid ${theme.inputBorder}`,
+    fontSize: 14,
+    background: theme.inputBg,
+    color: theme.inputText,
+    outline: "none",
+    boxSizing: "border-box",
   };
 }

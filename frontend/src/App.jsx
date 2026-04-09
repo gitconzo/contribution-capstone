@@ -17,15 +17,18 @@ import { Login } from "./pages/Login";
 import ForgotUsername from "./pages/ForgotUsername";
 import ForgotPassword from "./pages/ForgotPassword";
 import ExportReport from "./pages/ExportReport";
+import DefaultPasswordNotice from "./components/DefaultPasswordNotice";
 
 function Shell() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [authed, setAuthedState] = useState(() => isAuthed());
-
+  
   const [teams, setTeams] = useState([]);
   const [teamId, setTeamId] = useState("");
   const [scores, setScores] = useState(null);
   const [teamStudents, setTeamStudents] = useState([]);
+  const [showDefaultPasswordNotice, setShowDefaultPasswordNotice] = useState(false);
+
 
   // Fetch scores and students for a given team
   const refreshDashboard = useCallback(async (id) => {
@@ -71,6 +74,14 @@ function Shell() {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
+
+  useEffect(() => {
+    if (authed && user?.role === "student" && user?.usingDefaultPassword) {
+      setShowDefaultPasswordNotice(true);
+    } else {
+      setShowDefaultPasswordNotice(false);
+    }
+  }, [authed, user]);
 
   const isStudent = user?.role === "student";
   const isTeacher = !isStudent; // default to teacher if no role set (backwards compat)
@@ -137,6 +148,14 @@ function Shell() {
   if (authed) {
     return (
       <>
+  <DefaultPasswordNotice
+    visible={showDefaultPasswordNotice}
+    onClose={() => setShowDefaultPasswordNotice(false)}
+    onChangePassword={() => {
+      setShowDefaultPasswordNotice(false);
+      nav("/settings");
+    }}
+  />
         <Navigation
           currentPage={current}
           onNavigate={goto}

@@ -2,8 +2,7 @@
 const router = require("express").Router();
 const db = require("../../utils/db");
 const { createOrUpdateStudentUser } = require("../../utils/cognitoAdmin");
-
-const DEFAULT_STUDENT_PASSWORD = "Test@123456";
+const { readAppSettings } = require("../../utils/appSettings");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -30,6 +29,13 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    const settings = readAppSettings();
+    const defaultStudentPassword = settings.studentDefaultPassword;
+
+    if (!defaultStudentPassword) {
+      return res.status(500).json({ error: "Student default password is not configured." });
+    }
+
     // Find or create the unit by code
     let unitResult = await db.query("SELECT id FROM units WHERE code = $1", [code]);
     if (!unitResult.rows.length) {
@@ -76,7 +82,7 @@ router.post("/", async (req, res) => {
 
           const result = await createOrUpdateStudentUser(
             safeEmail,
-            DEFAULT_STUDENT_PASSWORD,
+            defaultStudentPassword,
             s.name || ""
           );
 
@@ -102,7 +108,7 @@ router.post("/", async (req, res) => {
       code,
       repo: repo || null,
       students: studentList,
-      defaultStudentPassword: DEFAULT_STUDENT_PASSWORD,
+      defaultStudentPassword,
       cognitoResults,
     });
   } catch (e) {
@@ -119,6 +125,13 @@ router.post("/:id/students", async (req, res) => {
   }
 
   try {
+    const settings = readAppSettings();
+    const defaultStudentPassword = settings.studentDefaultPassword;
+
+    if (!defaultStudentPassword) {
+      return res.status(500).json({ error: "Student default password is not configured." });
+    }
+
     const safeEmail = normalizeEmail(email);
 
     const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
@@ -152,7 +165,7 @@ router.post("/:id/students", async (req, res) => {
 
       const result = await createOrUpdateStudentUser(
         safeEmail,
-        DEFAULT_STUDENT_PASSWORD,
+        defaultStudentPassword,
         name
       );
 
@@ -177,7 +190,7 @@ router.post("/:id/students", async (req, res) => {
     res.json({
       ...teamRes.rows[0],
       students: studentsRes.rows,
-      defaultStudentPassword: DEFAULT_STUDENT_PASSWORD,
+      defaultStudentPassword,
       cognitoResult,
     });
   } catch (e) {
