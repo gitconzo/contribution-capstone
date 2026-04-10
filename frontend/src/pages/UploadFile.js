@@ -11,17 +11,97 @@ const TYPE_OPTIONS = [
   { value: "unknown", label: "Unknown Type" }
 ];
 
+const GROUP_VIEW_OPTIONS = [
+  { value: "active", label: "Active Group" },
+  { value: "all", label: "All Groups" }
+];
+
+function normalizeUploadRecord(fileItem = {}) {
+  return {
+    id: fileItem.id,
+    teamId: fileItem.team_id || fileItem.teamId || "unknown",
+    originalName: fileItem.original_name || fileItem.originalName || "unknown",
+    storedName: fileItem.stored_name || fileItem.storedName || "",
+    s3Key: fileItem.s3_key || fileItem.s3Key || "",
+    s3ParsedKey: fileItem.s3_parsed_key || fileItem.s3ParsedKey || null,
+    jsonPath: fileItem.json_path || fileItem.jsonPath || null,
+    mimetype: fileItem.mimetype || "",
+    size: Number(fileItem.size || 0),
+    uploadDate: fileItem.upload_date || fileItem.uploadDate || null,
+    detectedType: fileItem.detected_type || fileItem.detectedType || "unknown",
+    userType: fileItem.user_type || fileItem.userType || "unknown",
+    status: fileItem.status || "unknown",
+    parseMessage: fileItem.parse_message || fileItem.parseMessage || "",
+    uploadedByName: fileItem.uploaded_by_name || fileItem.uploadedByName || null,
+    uploadedByEmail: fileItem.uploaded_by_email || fileItem.uploadedByEmail || null,
+  };
+}
+
+function getStatusBadgeStyle(status = "") {
+  const value = String(status).toLowerCase();
+
+  if (value.includes("parsed") || value.includes("complete") || value.includes("confirmed")) {
+    return {
+      background: "#dcfce7",
+      color: "#166534",
+      border: "1px solid #86efac",
+    };
+  }
+
+  if (value.includes("pending") || value.includes("uploaded") || value.includes("processing")) {
+    return {
+      background: "#fef3c7",
+      color: "#92400e",
+      border: "1px solid #fcd34d",
+    };
+  }
+
+  if (value.includes("fail") || value.includes("error") || value.includes("rejected")) {
+    return {
+      background: "#fee2e2",
+      color: "#b91c1c",
+      border: "1px solid #fca5a5",
+    };
+  }
+
+  return {
+    background: "#e5e7eb",
+    color: "#374151",
+    border: "1px solid #d1d5db",
+  };
+}
+
+function formatFileSize(bytes) {
+  const value = Number(bytes || 0);
+  if (!value) return "-";
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDisplayDate(dateValue) {
+  if (!dateValue) return "Unknown";
+  const date = new Date(dateValue);
+  return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
+}
+
 export default function UploadFile({ darkMode }) {
   const [file, setFile] = useState(null);
   const [uploadResult, setUploadResult] = useState(null);
   const [files, setFiles] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [overrideType, setOverrideType] = useState("unknown");
   const [confirming, setConfirming] = useState(false);
 
-  // repo analysis UI state
   const [repoUrl, setRepoUrl] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeMsg, setAnalyzeMsg] = useState("");
+
+  const [groupView, setGroupView] = useState("active");
+  const [selectedGroup, setSelectedGroup] = useState("all");
+  const [selectedType, setSelectedType] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const theme = darkMode
     ? {
@@ -34,8 +114,9 @@ export default function UploadFile({ darkMode }) {
         softBorder: "#334155",
         inputBg: "#0f172a",
         shadow: "0 8px 20px rgba(0,0,0,.28)",
-        buttonBg: "#111827",
         tableRow: "#0f172a",
+        groupBadgeBg: "#1e293b",
+        groupBadgeText: "#e2e8f0",
       }
     : {
         pageBg: "#f8fafc",
@@ -47,8 +128,9 @@ export default function UploadFile({ darkMode }) {
         softBorder: "#d1d5db",
         inputBg: "#ffffff",
         shadow: "0 2px 10px rgba(0,0,0,0.1)",
-        buttonBg: "#ffffff",
         tableRow: "#f9f9f9",
+        groupBadgeBg: "#eef2ff",
+        groupBadgeText: "#3730a3",
       };
 
   const detectedType = uploadResult?.detectedType || "unknown";
@@ -56,21 +138,106 @@ export default function UploadFile({ darkMode }) {
     return overrideType !== "unknown" ? overrideType : detectedType;
   }, [overrideType, detectedType]);
 
+  const activeTeamId = localStorage.getItem("activeTeamId") || "";
+
   const fetchFiles = () => {
     apiFetch("/api/uploads")
-      .then(res => res.json())
-      .then(setFiles)
+      .then((res) => res.json())
+      .then((data) => {
+        const normalized = Array.isArray(data) ? data.map(normalizeUploadRecord) : [];
+        setFiles(normalized);
+      })
+      .catch(console.error);
+  };
+
+  const fetchTeams = () => {
+    apiFetch("/api/teams")
+      .then((res) => res.json())
+      .then((data) => setTeams(Array.isArray(data) ? data : []))
       .catch(console.error);
   };
 
   useEffect(() => {
     fetchFiles();
+    fetchTeams();
   }, []);
+
+  const teamNameMap = useMemo(() => {
+    const map = {};
+    teams.forEach((team) => {
+      map[team.id] = team.name || team.code || team.id;
+    });
+    return map;
+  }, [teams]);
+
+  const uploaderLabel = (fileItem) => {
+    return fileItem.uploadedByName || fileItem.uploadedByEmail || "Unknown";
+  };
+
+  const groupedFiles = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const grouped = {};
+
+    files.forEach((f) => {
+      const teamId = f.teamId || "unknown";
+      const fileType = f.userType || f.detectedType || "unknown";
+      const fileStatus = String(f.status || "").toLowerCase();
+      const fileName = String(f.originalName || "").toLowerCase();
+      const uploader = uploaderLabel(f).toLowerCase();
+
+      if (groupView === "active" && activeTeamId && teamId !== activeTeamId) return;
+      if (groupView === "all" && selectedGroup !== "all" && teamId !== selectedGroup) return;
+      if (selectedType !== "all" && fileType !== selectedType) return;
+      if (selectedStatus !== "all" && fileStatus !== selectedStatus) return;
+
+      if (
+        normalizedSearch &&
+        !fileName.includes(normalizedSearch) &&
+        !uploader.includes(normalizedSearch)
+      ) {
+        return;
+      }
+
+      if (!grouped[teamId]) grouped[teamId] = [];
+      grouped[teamId].push(f);
+    });
+
+    const groups = Object.entries(grouped).map(([teamId, groupFiles]) => {
+      const sortedFiles = [...groupFiles].sort((a, b) => {
+        const dateA = new Date(a.uploadDate || 0).getTime();
+        const dateB = new Date(b.uploadDate || 0).getTime();
+        return dateB - dateA;
+      });
+
+      return {
+        teamId,
+        teamName: teamNameMap[teamId] || (teamId === "unknown" ? "Unknown Group" : teamId),
+        files: sortedFiles,
+      };
+    });
+
+    groups.sort((a, b) => {
+      if (a.teamId === activeTeamId) return -1;
+      if (b.teamId === activeTeamId) return 1;
+      return a.teamName.localeCompare(b.teamName);
+    });
+
+    return groups;
+  }, [files, teamNameMap, activeTeamId, groupView, selectedGroup, selectedType, selectedStatus, searchTerm]);
+
+  const availableStatuses = useMemo(() => {
+    const values = new Set();
+    files.forEach((f) => {
+      if (f.status) values.add(String(f.status).toLowerCase());
+    });
+    return Array.from(values);
+  }, [files]);
 
   const handleFileSelect = (e) => {
     const selected = e.target.files?.[0] || null;
     setFile(selected);
     setUploadResult(null);
+
     if (selected) {
       const lower = selected.name.toLowerCase();
       if (lower.includes("attendance")) setOverrideType("attendance");
@@ -86,29 +253,34 @@ export default function UploadFile({ darkMode }) {
     if (!file) return;
 
     try {
-      // Get presigned URL + S3 key from the backend
+      const teamIdForUpload = localStorage.getItem("activeTeamId") || "unknown";
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+
       const presignRes = await apiFetch(
-        `/api/uploads/presign?filename=${encodeURIComponent(file.name)}&teamId=${encodeURIComponent(localStorage.getItem("activeTeamId") || "unknown")}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}`
+        `/api/uploads/presign?filename=${encodeURIComponent(file.name)}&teamId=${encodeURIComponent(teamIdForUpload)}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}`
       );
+
       if (!presignRes.ok) {
         const err = await presignRes.json();
         setUploadResult({ error: err.error || "Failed to get upload URL." });
         return;
       }
+
       const { url, s3Key, storedName } = await presignRes.json();
 
-      // Upload directly to S3 using the presigned URL
       const s3Res = await fetch(url, {
         method: "PUT",
         body: file,
         headers: { "Content-Type": file.type || "application/octet-stream" },
       });
+
       if (!s3Res.ok) {
-        setUploadResult({ error: `S3 upload failed (${s3Res.status}). Check CORS policy on the bucket.` });
+        setUploadResult({
+          error: `S3 upload failed (${s3Res.status}). Check CORS policy on the bucket.`,
+        });
         return;
       }
 
-      // Register the upload in the backend
       const res = await apiFetch("/api/uploads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,12 +290,16 @@ export default function UploadFile({ darkMode }) {
           originalName: file.name,
           size: file.size,
           mimetype: file.type,
-          teamId: localStorage.getItem("activeTeamId") || "unknown",
+          teamId: teamIdForUpload,
           userType: overrideType,
+          uploadedByName: currentUser?.name || null,
+          uploadedByEmail: currentUser?.email || null,
         }),
       });
+
       const json = await res.json();
-      setUploadResult(json);
+      setUploadResult(normalizeUploadRecord(json));
+      fetchFiles();
     } catch (e) {
       setUploadResult({ error: e.message || "Upload failed. Check your connection." });
     }
@@ -133,36 +309,44 @@ export default function UploadFile({ darkMode }) {
     if (!uploadResult?.id) return;
     setConfirming(true);
 
-    const res = await apiFetch("/api/uploads/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: uploadResult.id, type: effectiveType })
-    });
+    try {
+      const res = await apiFetch("/api/uploads/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: uploadResult.id, type: effectiveType }),
+      });
 
-    const json = await res.json();
-    setUploadResult(json);
-    setConfirming(false);
-    fetchFiles();
+      const json = await res.json();
+      setUploadResult(normalizeUploadRecord(json));
+      setFile(null);
+      fetchFiles();
+    } finally {
+      setConfirming(false);
+    }
   };
 
-  // Analyze (fetch commits + run main.py)
   const handleAnalyzeRepo = async () => {
     setAnalyzeMsg("");
+
     if (!repoUrl.trim()) {
       setAnalyzeMsg("Please paste a GitHub repository URL first.");
       return;
     }
+
     setAnalyzing(true);
+
     try {
       await apiFetch("/api/github/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: repoUrl.trim() })
+        body: JSON.stringify({ url: repoUrl.trim() }),
       });
+
       let attempts = 0;
       const poll = setInterval(async () => {
         attempts++;
-        const st = await apiFetch("/api/github/status").then(r => r.json());
+        const st = await apiFetch("/api/github/status").then((r) => r.json());
+
         if (st.finalStatsExists) {
           clearInterval(poll);
           setAnalyzing(false);
@@ -177,9 +361,9 @@ export default function UploadFile({ darkMode }) {
       }, 5000);
     } catch (e) {
       try {
-        const st = await apiFetch("/api/github/status").then(r => r.json());
+        const st = await apiFetch("/api/github/status").then((r) => r.json());
         if (st.finalStatsExists) {
-          setAnalyzeMsg("Analysis finished, but the browser couldn't read the response (likely CORS/mixed-content). Data is ready.");
+          setAnalyzeMsg("Analysis finished, but the browser couldn't read the response. Data is ready.");
         } else if (st.commitsExists) {
           setAnalyzeMsg("Commits fetched, but analysis response failed. Try again or refresh dashboard.");
         } else {
@@ -190,6 +374,26 @@ export default function UploadFile({ darkMode }) {
       }
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleDownload = async (fileId) => {
+    try {
+      const res = await apiFetch(`/api/uploads/${fileId}/download`);
+      const { url } = await res.json();
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
+
+  const handleView = async (fileId) => {
+    try {
+      const res = await apiFetch(`/api/uploads/${fileId}/download`);
+      const { url } = await res.json();
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("View failed:", error);
     }
   };
 
@@ -277,6 +481,19 @@ export default function UploadFile({ darkMode }) {
     fontWeight: 600,
   };
 
+  const analyzeBtnStyle = {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#111827",
+    color: "white",
+    cursor: "pointer",
+    marginTop: "10px",
+    fontWeight: 600,
+    opacity: analyzing || !repoUrl.trim() ? 0.6 : 1,
+  };
+
   const tableStyle = {
     width: "100%",
     borderCollapse: "separate",
@@ -303,37 +520,26 @@ export default function UploadFile({ darkMode }) {
     color: theme.text,
     borderTop: `1px solid ${theme.border}`,
     borderBottom: `1px solid ${theme.border}`,
+    verticalAlign: "middle",
   };
 
-  const downloadBtnStyle = {
+  const actionBtnStyle = {
     background: "#000",
     color: "white",
-    padding: "8px 14px",
+    padding: "8px 12px",
     borderRadius: "6px",
     textDecoration: "none",
     cursor: "pointer",
     fontWeight: "bold",
     display: "inline-block",
     border: "none",
-  };
-
-  const analyzeBtnStyle = {
-    width: "100%",
-    padding: "10px",
-    borderRadius: "8px",
-    border: "none",
-    background: "#111827",
-    color: "white",
-    cursor: "pointer",
-    marginTop: "10px",
-    fontWeight: 600,
-    opacity: analyzing || !repoUrl.trim() ? 0.6 : 1,
+    marginRight: "8px",
   };
 
   return (
     <div
       style={{
-        maxWidth: "900px",
+        maxWidth: "980px",
         margin: "0 auto",
         padding: "20px",
         minHeight: "100vh",
@@ -341,7 +547,6 @@ export default function UploadFile({ darkMode }) {
         color: theme.text,
       }}
     >
-      {/* Analyze GitHub Repo card */}
       <div style={cardStyle}>
         <h1 style={{ marginTop: 0, color: theme.text }}>Analyze GitHub Repository</h1>
         <label style={labelStyle}>Paste GitHub URL</label>
@@ -379,13 +584,28 @@ export default function UploadFile({ darkMode }) {
         </div>
       </div>
 
-      {/* Upload Documents card */}
       <div style={cardStyle}>
         <h1 style={{ marginTop: 0, color: theme.text }}>Upload Documents</h1>
 
+        <div
+          style={{
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: theme.cardAlt,
+            border: `1px solid ${theme.border}`,
+            marginBottom: "14px",
+            color: theme.text,
+          }}
+        >
+          Uploading to:{" "}
+          <strong>
+            {teamNameMap[activeTeamId] || (activeTeamId ? activeTeamId : "No active group selected")}
+          </strong>
+        </div>
+
         <label style={labelStyle}>Select Document Type</label>
-        <select value={overrideType} onChange={e => setOverrideType(e.target.value)} style={selectStyle}>
-          {TYPE_OPTIONS.map(opt => (
+        <select value={overrideType} onChange={(e) => setOverrideType(e.target.value)} style={selectStyle}>
+          {TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -423,16 +643,33 @@ export default function UploadFile({ darkMode }) {
         </button>
 
         {uploadResult?.error && (
-          <div style={{ marginTop: 10, padding: "10px 12px", background: "#fee2e2", color: "#b91c1c", borderRadius: 8, fontSize: 14 }}>
+          <div
+            style={{
+              marginTop: 10,
+              padding: "10px 12px",
+              background: "#fee2e2",
+              color: "#b91c1c",
+              borderRadius: 8,
+              fontSize: 14,
+            }}
+          >
             {uploadResult.error}
           </div>
         )}
 
         {uploadResult && !uploadResult.error && (
           <div style={confirmBoxStyle}>
-            Uploaded: {uploadResult.originalName}
+            Uploaded: {uploadResult.originalName || "Unknown file"}
             <br />
-            Detected Type: <b>{uploadResult.detectedType}</b>
+            Detected Type: <b>{uploadResult.detectedType || "unknown"}</b>
+            {uploadResult.parseMessage ? (
+              <>
+                <br />
+                Status: <b>{uploadResult.status || "unknown"}</b>
+                <br />
+                Message: {uploadResult.parseMessage}
+              </>
+            ) : null}
             <button onClick={handleConfirm} disabled={confirming} style={confirmBtnStyle}>
               {confirming ? "Processing..." : "Confirm & Parse"}
             </button>
@@ -440,62 +677,205 @@ export default function UploadFile({ darkMode }) {
         )}
       </div>
 
-      {/* Uploaded Files table */}
-      <div
-        style={{
-          background: theme.card,
-          padding: "20px",
-          borderRadius: "10px",
-          boxShadow: theme.shadow,
-          border: `1px solid ${theme.border}`,
-        }}
-      >
-        <h2 style={{ marginTop: 0, color: theme.text }}>Uploaded Files</h2>
+      <div style={cardStyle}>
+        <h2 style={{ marginTop: 0, color: theme.text }}>Uploaded Files by Group</h2>
 
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={thStyle}>File Name</th>
-              <th style={thStyle}>File Type</th>
-              <th style={thStyle}>Upload Date</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Download</th>
-            </tr>
-          </thead>
-          <tbody>
-            {files.length ? (
-              files.map(f => (
-                <tr key={f.id} style={tableRowStyle}>
-                  <td style={{ ...tableCellStyle, borderLeft: `1px solid ${theme.border}`, borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
-                    {f.originalName}
-                  </td>
-                  <td style={tableCellStyle}>{f.userType || f.detectedType}</td>
-                  <td style={tableCellStyle}>{new Date(f.uploadDate).toLocaleString()}</td>
-                  <td style={tableCellStyle}>{f.status}</td>
-                  <td style={{ ...tableCellStyle, borderRight: `1px solid ${theme.border}`, borderTopRightRadius: "10px", borderBottomRightRadius: "10px" }}>
-                    <button
-                      style={downloadBtnStyle}
-                      onClick={async () => {
-                        const res = await apiFetch(`/api/uploads/${f.id}/download`);
-                        const { url } = await res.json();
-                        window.open(url, "_blank");
-                      }}
-                    >
-                      Download
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" style={{ textAlign: "center", padding: "12px", color: theme.subtext }}>
-                  No files uploaded yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 12,
+            marginBottom: 18,
+          }}
+        >
+          <div>
+            <label style={labelStyle}>Group View</label>
+            <select value={groupView} onChange={(e) => setGroupView(e.target.value)} style={selectStyle}>
+              {GROUP_VIEW_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {groupView === "all" && (
+            <div>
+              <label style={labelStyle}>Filter by Group</label>
+              <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} style={selectStyle}>
+                <option value="all">All Groups</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name || team.code || team.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label style={labelStyle}>Filter by Type</label>
+            <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} style={selectStyle}>
+              <option value="all">All Types</option>
+              {TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.value}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Filter by Status</label>
+            <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} style={selectStyle}>
+              <option value="all">All Statuses</option>
+              {availableStatuses.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Search</label>
+            <input
+              type="text"
+              placeholder="Search by file name or uploader"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginTop: 5,
+                borderRadius: "8px",
+                border: `1px solid ${theme.border}`,
+                background: theme.inputBg,
+                color: theme.text,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+        </div>
+
+        {groupedFiles.length ? (
+          groupedFiles.map((group) => (
+            <div
+              key={group.teamId}
+              style={{
+                marginTop: 18,
+                padding: 16,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 12,
+                background: theme.cardAlt,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  marginBottom: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <h3 style={{ margin: 0, color: theme.text }}>
+                  {group.teamName}
+                </h3>
+
+                <span
+                  style={{
+                    background: theme.groupBadgeBg,
+                    color: theme.groupBadgeText,
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {group.teamId === activeTeamId ? "Active Group" : `Group ID: ${group.teamId}`}
+                </span>
+              </div>
+
+              <table style={tableStyle}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>File Name</th>
+                    <th style={thStyle}>File Type</th>
+                    <th style={thStyle}>Uploaded By</th>
+                    <th style={thStyle}>Size</th>
+                    <th style={thStyle}>Upload Date</th>
+                    <th style={thStyle}>Status</th>
+                    <th style={thStyle}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.files.map((f) => {
+                    const badgeStyle = getStatusBadgeStyle(f.status);
+                    return (
+                      <tr key={f.id} style={tableRowStyle}>
+                        <td
+                          style={{
+                            ...tableCellStyle,
+                            borderLeft: `1px solid ${theme.border}`,
+                            borderTopLeftRadius: "10px",
+                            borderBottomLeftRadius: "10px",
+                          }}
+                        >
+                          {f.originalName}
+                        </td>
+                        <td style={tableCellStyle}>
+                          {f.userType !== "unknown" ? f.userType : f.detectedType}
+                        </td>
+                        <td style={tableCellStyle}>{uploaderLabel(f)}</td>
+                        <td style={tableCellStyle}>{formatFileSize(f.size)}</td>
+                        <td style={tableCellStyle}>{formatDisplayDate(f.uploadDate)}</td>
+                        <td style={tableCellStyle}>
+                          <span
+                            style={{
+                              ...badgeStyle,
+                              borderRadius: "999px",
+                              padding: "6px 10px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              display: "inline-block",
+                            }}
+                          >
+                            {f.status || "unknown"}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            ...tableCellStyle,
+                            borderRight: `1px solid ${theme.border}`,
+                            borderTopRightRadius: "10px",
+                            borderBottomRightRadius: "10px",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <button
+                            style={actionBtnStyle}
+                            onClick={() => handleView(f.id)}
+                          >
+                            View
+                          </button>
+                          <button
+                            style={actionBtnStyle}
+                            onClick={() => handleDownload(f.id)}
+                          >
+                            Download
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ))
+        ) : (
+          <div style={{ textAlign: "center", padding: "12px", color: theme.subtext }}>
+            No files found for the selected filters.
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

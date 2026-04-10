@@ -25,7 +25,18 @@ function detectTypeFromName(filename, userGuess) {
 // Called after the browser uploads the file directly to S3 via presigned URL
 // Registers the upload in the database
 router.post("/", async (req, res) => {
-  const { s3Key, storedName, originalName, size, mimetype, teamId, userType } = req.body || {};
+  const {
+    s3Key,
+    storedName,
+    originalName,
+    size,
+    mimetype,
+    teamId,
+    userType,
+    uploadedByName,
+    uploadedByEmail,
+  } = req.body || {};
+
   if (!s3Key || !originalName) {
     return res.status(400).json({ error: "Missing s3Key or originalName" });
   }
@@ -36,9 +47,32 @@ router.post("/", async (req, res) => {
   try {
     await db.query(
       `INSERT INTO file_registry
-        (id, team_id, original_name, stored_name, s3_key, mimetype, size, detected_type, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'uploaded')`,
-      [id, teamId || null, originalName, id, s3Key, mimetype || null, size || null, detectedType]
+        (
+          id,
+          team_id,
+          original_name,
+          stored_name,
+          s3_key,
+          mimetype,
+          size,
+          detected_type,
+          status,
+          uploaded_by_name,
+          uploaded_by_email
+        )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'uploaded', $9, $10)`,
+      [
+        id,
+        teamId || null,
+        originalName,
+        id,
+        s3Key,
+        mimetype || null,
+        size || null,
+        detectedType,
+        uploadedByName || null,
+        uploadedByEmail || null,
+      ]
     );
 
     const result = await db.query("SELECT * FROM file_registry WHERE id = $1", [id]);
