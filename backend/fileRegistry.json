@@ -1277,5 +1277,347 @@
       "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
       "message": "Sprint report parsed successfully"
     }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report__1774774172091.docx",
+    "originalName": "COS40005 Sprint 1 Report.docx",
+    "storedName": "COS40005 Sprint 1 Report__1774774172091.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report__1774774172091.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T08:49:32.846Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 6, in <module>\r\n    from docx import Document\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\docx.py\", line 30, in <module>\r\n    from exceptions import PendingDeprecationWarning\r\nModuleNotFoundError: No module named 'exceptions'\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report__1774774433697.docx",
+    "originalName": "COS40005 Sprint 1 Report.docx",
+    "storedName": "COS40005 Sprint 1 Report__1774774433697.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report__1774774433697.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T08:53:54.456Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report__1774774511930.docx",
+    "originalName": "COS40005 Sprint 1 Report.docx",
+    "storedName": "COS40005 Sprint 1 Report__1774774511930.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report__1774774511930.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T08:55:12.656Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report__1774774810972.docx",
+    "originalName": "COS40005 Sprint 1 Report.docx",
+    "storedName": "COS40005 Sprint 1 Report__1774774810972.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report__1774774810972.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:00:11.708Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report (1)__1774774846333.docx",
+    "originalName": "COS40005 Sprint 2 Report (1).docx",
+    "storedName": "COS40005 Sprint 2 Report (1)__1774774846333.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 2 Report (1)__1774774846333.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 6416054,
+    "uploadDate": "2026-03-29T09:00:49.161Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report (1)__1774775060418.docx",
+    "originalName": "COS40005 Sprint 1 Report (1).docx",
+    "storedName": "COS40005 Sprint 1 Report (1)__1774775060418.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report (1)__1774775060418.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:04:21.146Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report (1)__1774775248673.docx",
+    "originalName": "COS40005 Sprint 1 Report (1).docx",
+    "storedName": "COS40005 Sprint 1 Report (1)__1774775248673.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report (1)__1774775248673.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:07:29.395Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report (1)__1774775445641.docx",
+    "originalName": "COS40005 Sprint 1 Report (1).docx",
+    "storedName": "COS40005 Sprint 1 Report (1)__1774775445641.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report (1)__1774775445641.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:10:46.376Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report (1)__1774775699535.docx",
+    "originalName": "COS40005 Sprint 1 Report (1).docx",
+    "storedName": "COS40005 Sprint 1 Report (1)__1774775699535.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report (1)__1774775699535.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:15:00.260Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan (1)__1774775941622.docx",
+    "originalName": "COS40005 Team and Project Plan (1).docx",
+    "storedName": "COS40005 Team and Project Plan (1)__1774775941622.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Team and Project Plan (1)__1774775941622.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 609494,
+    "uploadDate": "2026-03-29T09:19:02.044Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Project Plan parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_project_plan_docx.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "team_attendance__1774773394342__1774775987723.xlsx",
+    "originalName": "team_attendance__1774773394342.xlsx",
+    "storedName": "team_attendance__1774773394342__1774775987723.xlsx",
+    "s3Key": "team_1774770983553/uploads/team_attendance__1774773394342__1774775987723.xlsx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "size": 9657,
+    "uploadDate": "2026-03-29T09:19:47.869Z",
+    "detectedType": "attendance",
+    "userType": "attendance",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1774770983553/parsed/team_attendance__1774773394342-parsed.json",
+      "jsonPath": "data\\parsed\\team_attendance__1774773394342-parsed.json",
+      "message": "Attendance parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773524285__1774776008499.docx",
+    "originalName": "COS40005 Sprint 2 Report__1774773524285.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773524285__1774776008499.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 2 Report__1774773524285__1774776008499.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T09:20:12.967Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773524285__1774776011253.docx",
+    "originalName": "COS40005 Sprint 2 Report__1774773524285.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773524285__1774776011253.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 2 Report__1774773524285__1774776011253.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T09:20:16.590Z",
+    "detectedType": "sprint_report",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Sprint 1 Report (1)__1774776470850.docx",
+    "originalName": "COS40005 Sprint 1 Report (1).docx",
+    "storedName": "COS40005 Sprint 1 Report (1)__1774776470850.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report (1)__1774776470850.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:27:51.603Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 9, in <module>\r\n    from parse_docx_with_metrics import parse_docx_with_metrics\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 14, in <module>\r\n    nlp = spacy.load(\"en_core_web_sm\")\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\__init__.py\", line 52, in load\r\n    return util.load_model(\r\n           ^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\spacy\\util.py\", line 484, in load_model\r\n    raise IOError(Errors.E050.format(name=name))\r\nOSError: [E050] Can't find model 'en_core_web_sm'. It doesn't seem to be a Python package or a valid path to a data directory.\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report (1)__1774776927800.docx",
+    "originalName": "COS40005 Sprint 1 Report (1).docx",
+    "storedName": "COS40005 Sprint 1 Report (1)__1774776927800.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report (1)__1774776927800.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:35:28.516Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1774770983553/parsed/COS40005 Sprint 1 Report (1)-parsed.json",
+      "jsonPath": "data\\parsed\\COS40005 Sprint 1 Report (1)-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773524285__1774777000225.docx",
+    "originalName": "COS40005 Sprint 2 Report__1774773524285.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773524285__1774777000225.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 2 Report__1774773524285__1774777000225.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T09:36:44.207Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Sprint report parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 83, in <module>\r\n    parse_sprint_report(args.input_path, out_path, args.students_json)\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_sprint_report_docx.py\", line 46, in parse_sprint_report\r\n    result = parse_docx_with_metrics(docx_path, output_json_path)\r\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 173, in parse_docx_with_metrics\r\n    students = build_student_metrics(authorship_map, extracted_sections)\r\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 160, in build_student_metrics\r\n    \"metrics\": get_text_metrics(full_text)\r\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_docx_with_metrics.py\", line 44, in get_text_metrics\r\n    sentences = sent_tokenize(cleaned)\r\n                ^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\nltk\\tokenize\\__init__.py\", line 119, in sent_tokenize\r\n    tokenizer = _get_punkt_tokenizer(language)\r\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\nltk\\tokenize\\__init__.py\", line 105, in _get_punkt_tokenizer\r\n    return PunktTokenizer(language)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\nltk\\tokenize\\punkt.py\", line 1744, in __init__\r\n    self.load_lang(lang)\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\nltk\\tokenize\\punkt.py\", line 1749, in load_lang\r\n    lang_dir = find(f\"tokenizers/punkt_tab/{lang}/\")\r\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python311\\site-packages\\nltk\\data.py\", line 579, in find\r\n    raise LookupError(resource_not_found)\r\nLookupError: \r\n**********************************************************************\r\n  Resource \u001b[93mpunkt_tab\u001b[0m not found.\r\n  Please use the NLTK Downloader to obtain the resource:\r\n\r\n  \u001b[31m>>> import nltk\r\n  >>> nltk.download('punkt_tab')\r\n  \u001b[0m\r\n  For more information see: https://www.nltk.org/data.html\r\n\r\n  Attempted to load \u001b[93mtokenizers/punkt_tab/english/\u001b[0m\r\n\r\n  Searched in:\r\n    - 'C:\\\\Users\\\\Someo/nltk_data'\r\n    - 'C:\\\\Program Files\\\\WindowsApps\\\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\\\nltk_data'\r\n    - 'C:\\\\Program Files\\\\WindowsApps\\\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\\\share\\\\nltk_data'\r\n    - 'C:\\\\Program Files\\\\WindowsApps\\\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\\\lib\\\\nltk_data'\r\n    - 'C:\\\\Users\\\\Someo\\\\AppData\\\\Roaming\\\\nltk_data'\r\n    - 'C:\\\\nltk_data'\r\n    - 'D:\\\\nltk_data'\r\n    - 'E:\\\\nltk_data'\r\n**********************************************************************\r\n\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 1 Report (1)__1774777021252.docx",
+    "originalName": "COS40005 Sprint 1 Report (1).docx",
+    "storedName": "COS40005 Sprint 1 Report (1)__1774777021252.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 1 Report (1)__1774777021252.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 1399158,
+    "uploadDate": "2026-03-29T09:37:01.983Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1774770983553/parsed/COS40005 Sprint 1 Report (1)-parsed.json",
+      "jsonPath": "data\\parsed\\COS40005 Sprint 1 Report (1)-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Team and Project Plan (1)__1774777046737.docx",
+    "originalName": "COS40005 Team and Project Plan (1).docx",
+    "storedName": "COS40005 Team and Project Plan (1)__1774777046737.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Team and Project Plan (1)__1774777046737.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 609494,
+    "uploadDate": "2026-03-29T09:37:27.580Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parse_failed",
+    "parseInfo": {
+      "message": "Project Plan parse failed: Traceback (most recent call last):\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_project_plan_docx.py\", line 376, in <module>\r\n    res = parse_project_plan_docx(args.input_path, out_path)\r\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_project_plan_docx.py\", line 300, in parse_project_plan_docx\r\n    matched = find_matching_section(claimed, sections, debug=True)\r\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"C:\\Users\\Someo\\Documents\\GitHub\\contribution-capstone\\backend\\parsers\\parse_project_plan_docx.py\", line 205, in find_matching_section\r\n    print(f\"  \\u2713 Exact match: '{matched}'\")\r\n  File \"C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\\Lib\\encodings\\cp1252.py\", line 19, in encode\r\n    return codecs.charmap_encode(input,self.errors,encoding_table)[0]\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nUnicodeEncodeError: 'charmap' codec can't encode character '\\u2713' in position 2: character maps to <undefined>\r\n"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773524285__1774777301519.docx",
+    "originalName": "COS40005 Sprint 2 Report__1774773524285.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773524285__1774777301519.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 2 Report__1774773524285__1774777301519.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T09:41:45.872Z",
+    "detectedType": "sprint_report",
+    "userType": "sprint_report",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1774770983553/parsed/COS40005 Sprint 2 Report__1774773524285-parsed.json",
+      "jsonPath": "data\\parsed\\COS40005 Sprint 2 Report__1774773524285-parsed.json",
+      "message": "Sprint report parsed successfully"
+    }
+  },
+  {
+    "id": "COS40005 Sprint 2 Report__1774773524285__1774777305260.docx",
+    "originalName": "COS40005 Sprint 2 Report__1774773524285.docx",
+    "storedName": "COS40005 Sprint 2 Report__1774773524285__1774777305260.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Sprint 2 Report__1774773524285__1774777305260.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 9296340,
+    "uploadDate": "2026-03-29T09:41:49.602Z",
+    "detectedType": "sprint_report",
+    "userType": null,
+    "status": "uploaded",
+    "parseInfo": null
+  },
+  {
+    "id": "COS40005 Team and Project Plan (1)__1774777328462.docx",
+    "originalName": "COS40005 Team and Project Plan (1).docx",
+    "storedName": "COS40005 Team and Project Plan (1)__1774777328462.docx",
+    "s3Key": "team_1774770983553/uploads/COS40005 Team and Project Plan (1)__1774777328462.docx",
+    "teamId": "team_1774770983553",
+    "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "size": 609494,
+    "uploadDate": "2026-03-29T09:42:08.903Z",
+    "detectedType": "project_plan",
+    "userType": "project_plan",
+    "status": "parsed",
+    "parseInfo": {
+      "s3ParsedKey": "team_1774770983553/parsed/COS40005 Team and Project Plan (1)-parsed.json",
+      "jsonPath": "data\\parsed\\COS40005 Team and Project Plan (1)-parsed.json",
+      "message": "Project Plan parsed successfully"
+    }
   }
 ]
