@@ -103,6 +103,8 @@ export default function UploadFile({ darkMode }) {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [uploadTeamId, setUploadTeamId] = useState("");
+
   const theme = darkMode
     ? {
         pageBg: "#0b1120",
@@ -161,6 +163,12 @@ export default function UploadFile({ darkMode }) {
     fetchFiles();
     fetchTeams();
   }, []);
+
+  useEffect(() => {
+    if (activeTeamId && !uploadTeamId) {
+      setUploadTeamId(activeTeamId);
+    }
+  }, [activeTeamId, uploadTeamId]);
 
   const teamNameMap = useMemo(() => {
     const map = {};
@@ -250,11 +258,17 @@ export default function UploadFile({ darkMode }) {
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !uploadTeamId) return;
 
     try {
-      const teamIdForUpload = localStorage.getItem("activeTeamId") || "unknown";
-      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      const teamIdForUpload = uploadTeamId || activeTeamId || "unknown";
+
+      let currentUser = null;
+      try {
+        currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      } catch {
+        currentUser = null;
+      }
 
       const presignRes = await apiFetch(
         `/api/uploads/presign?filename=${encodeURIComponent(file.name)}&teamId=${encodeURIComponent(teamIdForUpload)}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}`
@@ -319,9 +333,37 @@ export default function UploadFile({ darkMode }) {
       const json = await res.json();
       setUploadResult(normalizeUploadRecord(json));
       setFile(null);
+      setOverrideType("unknown");
       fetchFiles();
     } finally {
       setConfirming(false);
+    }
+  };
+
+  const handleDelete = async (fileId) => {
+    const confirmed = window.confirm("Delete this uploaded file?");
+    if (!confirmed) return;
+
+    try {
+      const res = await apiFetch(`/api/uploads/${fileId}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || "Failed to delete file.");
+        return;
+      }
+
+      if (uploadResult?.id === fileId) {
+        setUploadResult(null);
+      }
+
+      fetchFiles();
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete file.");
     }
   };
 
@@ -453,10 +495,10 @@ export default function UploadFile({ darkMode }) {
     border: "none",
     background: "#000",
     color: "white",
-    cursor: file ? "pointer" : "not-allowed",
+    cursor: file && uploadTeamId ? "pointer" : "not-allowed",
     marginTop: "10px",
     fontWeight: 700,
-    opacity: file ? 1 : 0.6,
+    opacity: file && uploadTeamId ? 1 : 0.6,
   };
 
   const confirmBoxStyle = {
@@ -494,14 +536,25 @@ export default function UploadFile({ darkMode }) {
     opacity: analyzing || !repoUrl.trim() ? 0.6 : 1,
   };
 
+  const tableCellStyle = {
+    padding: "12px 12px",
+    textAlign: "left",
+    color: theme.text,
+    borderTop: `1px solid ${theme.border}`,
+    borderBottom: `1px solid ${theme.border}`,
+    verticalAlign: "top",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+  };
   const tableStyle = {
     width: "100%",
     borderCollapse: "separate",
     borderSpacing: "0 10px",
     marginTop: "10px",
     color: theme.text,
+    tableLayout: "fixed",
+    minWidth: "760px",
   };
-
   const thStyle = {
     textAlign: "left",
     color: theme.subtext,
@@ -514,26 +567,26 @@ export default function UploadFile({ darkMode }) {
     boxShadow: darkMode ? "none" : "0 1px 3px rgba(0,0,0,0.1)",
   };
 
-  const tableCellStyle = {
-    padding: "12px 15px",
-    textAlign: "left",
-    color: theme.text,
-    borderTop: `1px solid ${theme.border}`,
-    borderBottom: `1px solid ${theme.border}`,
-    verticalAlign: "middle",
-  };
-
   const actionBtnStyle = {
     background: "#000",
     color: "white",
-    padding: "8px 12px",
+    padding: "7px 10px",
     borderRadius: "6px",
     textDecoration: "none",
     cursor: "pointer",
     fontWeight: "bold",
-    display: "inline-block",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
     border: "none",
-    marginRight: "8px",
+    fontSize: "12px",
+    minWidth: "72px",
+  };
+
+  const actionsWrapStyle = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
   };
 
   return (
@@ -589,18 +642,33 @@ export default function UploadFile({ darkMode }) {
 
         <div
           style={{
-            padding: "12px 14px",
+            padding: "14px",
             borderRadius: "10px",
             background: theme.cardAlt,
             border: `1px solid ${theme.border}`,
             marginBottom: "14px",
-            color: theme.text,
           }}
         >
-          Uploading to:{" "}
-          <strong>
-            {teamNameMap[activeTeamId] || (activeTeamId ? activeTeamId : "No active group selected")}
-          </strong>
+          <label style={{ ...labelStyle, marginTop: 0 }}>Upload To Group</label>
+          <select
+            value={uploadTeamId}
+            onChange={(e) => setUploadTeamId(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="">Select a group</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name || team.code || team.id}
+              </option>
+            ))}
+          </select>
+
+          <div style={{ marginTop: 8, fontSize: 13, color: theme.subtext }}>
+            Current target:{" "}
+            <strong style={{ color: theme.text }}>
+              {teamNameMap[uploadTeamId] || "No group selected"}
+            </strong>
+          </div>
         </div>
 
         <label style={labelStyle}>Select Document Type</label>
@@ -638,7 +706,7 @@ export default function UploadFile({ darkMode }) {
           </div>
         )}
 
-        <button onClick={handleUpload} disabled={!file} style={uploadBtnStyle}>
+        <button onClick={handleUpload} disabled={!file || !uploadTeamId} style={uploadBtnStyle}>
           Upload
         </button>
 
@@ -662,17 +730,26 @@ export default function UploadFile({ darkMode }) {
             Uploaded: {uploadResult.originalName || "Unknown file"}
             <br />
             Detected Type: <b>{uploadResult.detectedType || "unknown"}</b>
-            {uploadResult.parseMessage ? (
+
+            {uploadResult.status ? (
               <>
                 <br />
-                Status: <b>{uploadResult.status || "unknown"}</b>
+                Status: <b>{uploadResult.status}</b>
+              </>
+            ) : null}
+
+            {uploadResult.parseMessage ? (
+              <>
                 <br />
                 Message: {uploadResult.parseMessage}
               </>
             ) : null}
-            <button onClick={handleConfirm} disabled={confirming} style={confirmBtnStyle}>
-              {confirming ? "Processing..." : "Confirm & Parse"}
-            </button>
+
+            {!["confirmed", "parsed", "parse_failed"].includes(String(uploadResult.status || "").toLowerCase()) && (
+              <button onClick={handleConfirm} disabled={confirming} style={confirmBtnStyle}>
+                {confirming ? "Processing..." : "Confirm & Parse"}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -793,7 +870,8 @@ export default function UploadFile({ darkMode }) {
                 </span>
               </div>
 
-              <table style={tableStyle}>
+            <div style={{ width: "100%", overflowX: "auto" }}>
+             <table style={tableStyle}>
                 <thead>
                   <tr>
                     <th style={thStyle}>File Name</th>
@@ -818,12 +896,14 @@ export default function UploadFile({ darkMode }) {
                             borderBottomLeftRadius: "10px",
                           }}
                         >
-                          {f.originalName}
+                          <div style={{ fontWeight: 600 }}>{f.originalName}</div>
                         </td>
                         <td style={tableCellStyle}>
                           {f.userType !== "unknown" ? f.userType : f.detectedType}
                         </td>
-                        <td style={tableCellStyle}>{uploaderLabel(f)}</td>
+                        <td style={tableCellStyle}>
+                        <div>{uploaderLabel(f)}</div>
+                        </td>
                         <td style={tableCellStyle}>{formatFileSize(f.size)}</td>
                         <td style={tableCellStyle}>{formatDisplayDate(f.uploadDate)}</td>
                         <td style={tableCellStyle}>
@@ -841,32 +921,43 @@ export default function UploadFile({ darkMode }) {
                           </span>
                         </td>
                         <td
-                          style={{
-                            ...tableCellStyle,
-                            borderRight: `1px solid ${theme.border}`,
-                            borderTopRightRadius: "10px",
-                            borderBottomRightRadius: "10px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          <button
-                            style={actionBtnStyle}
-                            onClick={() => handleView(f.id)}
-                          >
-                            View
-                          </button>
-                          <button
-                            style={actionBtnStyle}
-                            onClick={() => handleDownload(f.id)}
-                          >
-                            Download
-                          </button>
-                        </td>
+  style={{
+    ...tableCellStyle,
+    borderRight: `1px solid ${theme.border}`,
+    borderTopRightRadius: "10px",
+    borderBottomRightRadius: "10px",
+  }}
+>
+  <div style={actionsWrapStyle}>
+    <button
+      style={actionBtnStyle}
+      onClick={() => handleView(f.id)}
+    >
+      View
+    </button>
+    <button
+      style={actionBtnStyle}
+      onClick={() => handleDownload(f.id)}
+    >
+      Download
+    </button>
+    <button
+      style={{
+        ...actionBtnStyle,
+        background: "#dc2626",
+      }}
+      onClick={() => handleDelete(f.id)}
+    >
+      Delete
+    </button>
+  </div>
+</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           ))
         ) : (
@@ -878,4 +969,3 @@ export default function UploadFile({ darkMode }) {
     </div>
   );
 }
-
