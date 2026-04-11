@@ -14,5 +14,6 @@ router.use("/github",  require("./github/POST"));
 router.use("/uploads", require("./uploads/GET"));
 router.use("/uploads", require("./uploads/POST"));
 router.use("/uploads", require("./uploads/DELETE"));
+router.use("/teams", require("./teams/POST"));
 
 module.exports = router;

@@ -21,6 +21,107 @@ router.post("/active", async (req, res) => {
   res.json({ success: true, id });
 });
 
+// POST /api/teams/:id/claim-leader
+router.post("/:id/claim-leader", async (req, res) => {
+  const { email } = req.body || {};
+
+  try {
+    if (!email) {
+      return res.status(400).json({ error: "Student email is required." });
+    }
+
+    const teamId = req.params.id;
+
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [teamId]);
+    if (!teamCheck.rows.length) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const leaderCheck = await db.query(
+      "SELECT * FROM students WHERE team_id = $1 AND role = 'leader'",
+      [teamId]
+    );
+
+    if (leaderCheck.rows.length) {
+      return res.status(400).json({ error: "This team already has a leader." });
+    }
+
+    const studentCheck = await db.query(
+      "SELECT * FROM students WHERE team_id = $1 AND email = $2",
+      [teamId, email]
+    );
+
+    if (!studentCheck.rows.length) {
+      return res.status(404).json({ error: "Student not found in this team." });
+    }
+
+    await db.query(
+      "UPDATE students SET role = 'leader' WHERE team_id = $1 AND email = $2",
+      [teamId, email]
+    );
+
+    const updatedStudents = await db.query(
+      "SELECT * FROM students WHERE team_id = $1",
+      [teamId]
+    );
+
+    res.json({
+      success: true,
+      message: "Leader assigned successfully.",
+      students: updatedStudents.rows,
+    });
+  } catch (e) {
+    console.error("POST /api/teams/:id/claim-leader error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/teams/:id/remove-leader
+router.post("/:id/remove-leader", async (req, res) => {
+  const { email } = req.body || {};
+
+  try {
+    if (!email) {
+      return res.status(400).json({ error: "Student email is required." });
+    }
+
+    const teamId = req.params.id;
+
+    const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [teamId]);
+    if (!teamCheck.rows.length) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const leaderCheck = await db.query(
+      "SELECT * FROM students WHERE team_id = $1 AND email = $2 AND role = 'leader'",
+      [teamId, email]
+    );
+
+    if (!leaderCheck.rows.length) {
+      return res.status(400).json({ error: "You are not the current leader of this team." });
+    }
+
+    await db.query(
+      "UPDATE students SET role = 'member' WHERE team_id = $1 AND email = $2",
+      [teamId, email]
+    );
+
+    const updatedStudents = await db.query(
+      "SELECT * FROM students WHERE team_id = $1",
+      [teamId]
+    );
+
+    res.json({
+      success: true,
+      message: "Leader role removed successfully.",
+      students: updatedStudents.rows,
+    });
+  } catch (e) {
+    console.error("POST /api/teams/:id/remove-leader error:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/teams
 router.post("/", async (req, res) => {
   const { name, code, repo, students } = req.body || {};

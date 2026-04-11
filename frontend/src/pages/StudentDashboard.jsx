@@ -120,14 +120,29 @@ function matchStudentRecord(ranking = [], user) {
     user.githubAuthor || AUTHOR_MAP[user.email] || AUTHOR_MAP[user.name] || ""
   );
 
-  return (
-    ranking.find((r) => normalizeText(r.email || "") === email) ||
-    ranking.find((r) => normalizeText(r.name || "") === name) ||
-    ranking.find((r) => normalizeText(r.author || "") === githubAuthor) ||
-    ranking.find((r) => normalizeText(r.author || "").includes(githubAuthor)) ||
-    ranking.find((r) => githubAuthor.includes(normalizeText(r.author || ""))) ||
-    null
-  );
+  // 1. Exact email match first
+  if (email) {
+    const emailMatch = ranking.find((r) => normalizeText(r.email || "") === email);
+    if (emailMatch) return emailMatch;
+  }
+
+  // 2. Exact name match only if email match failed
+  if (name) {
+    const nameMatch = ranking.find((r) => normalizeText(r.name || "") === name);
+    if (nameMatch) return nameMatch;
+  }
+
+  // 3. GitHub author fallback last
+  if (githubAuthor) {
+    return (
+      ranking.find((r) => normalizeText(r.author || "") === githubAuthor) ||
+      ranking.find((r) => normalizeText(r.author || "").includes(githubAuthor)) ||
+      ranking.find((r) => githubAuthor.includes(normalizeText(r.author || ""))) ||
+      null
+    );
+  }
+
+  return null;
 }
 
 function average(values = []) {
@@ -139,6 +154,26 @@ function average(values = []) {
 function safePercentFromRatio(value, max) {
   if (!Number.isFinite(value) || max <= 0) return 0;
   return Math.round((value / max) * 100);
+}
+
+function isStudentInTeam(team, user) {
+  if (!team || !user) return false;
+
+  const userEmail = normalizeText(user.email || "");
+  const userName = normalizeText(user.name || "");
+
+  return (team.students || []).some((student) => {
+    const studentEmail = normalizeText(student.email || "");
+    const studentName = normalizeText(student.name || "");
+
+    // Prefer exact email match
+    if (userEmail && studentEmail) {
+      return studentEmail === userEmail;
+    }
+
+    // Only fall back to name if one side has no email
+    return !!userName && !!studentName && studentName === userName;
+  });
 }
 
 export default function StudentDashboard({ darkMode }) {
@@ -175,7 +210,8 @@ export default function StudentDashboard({ darkMode }) {
   const [loading, setLoading] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState("");
-
+  const [studentTeams, setStudentTeams] = useState([]);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
 
   useEffect(() => {
     const savedPhoto = localStorage.getItem("student_profile_photo");
@@ -185,37 +221,64 @@ export default function StudentDashboard({ darkMode }) {
   }, []);
 
   useEffect(() => {
-    async function loadData() {
+    async function loadStudentTeams() {
       try {
-        const [teamsRes, activeRes] = await Promise.all([
-          fetch(`${API}/api/teams`).then((r) => r.json()),
-          fetch(`${API}/api/teams/active`).then((r) => r.json()),
-        ]);
-
-        const activeTeamId = activeRes?.id || teamsRes?.[0]?.id || "";
-
-        if (!activeTeamId) {
-          setScores(null);
+        const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+  
+        const matchedTeams = (teamsRes || []).filter((team) =>
+          isStudentInTeam(team, savedUser)
+        );
+  
+        setStudentTeams(matchedTeams);
+  
+        if (!matchedTeams.length) {
           setTeam(null);
+          setScores(null);
+          setSelectedTeamId("");
           return;
         }
-
-        const scoreData = await fetch(
-          `${API}/api/scores?teamId=${encodeURIComponent(activeTeamId)}`
-        ).then((r) => r.json());
-
-        setScores(scoreData || null);
-        setTeam(scoreData?.team || activeRes || null);
+  
+        const savedStudentTeamId = localStorage.getItem("studentSelectedTeamId");
+        const initialTeamId =
+          matchedTeams.find((t) => t.id === savedStudentTeamId)?.id ||
+          matchedTeams[0].id;
+  
+        setSelectedTeamId(initialTeamId);
       } catch (error) {
-        console.error("Failed to load student dashboard data:", error);
+        console.error("Failed to load student teams:", error);
+        setStudentTeams([]);
         setScores(null);
+        setTeam(null);
       } finally {
         setLoading(false);
       }
     }
+  
+    loadStudentTeams();
+  }, [savedUser]);
 
-    loadData();
-  }, []);
+  useEffect(() => {
+    async function loadSelectedTeamData() {
+      if (!selectedTeamId) return;
+  
+      try {
+        localStorage.setItem("studentSelectedTeamId", selectedTeamId);
+  
+        const scoreData = await fetch(
+          `${API}/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
+        ).then((r) => r.json());
+  
+        setScores(scoreData || null);
+        setTeam(scoreData?.team || null);
+      } catch (error) {
+        console.error("Failed to load selected student team data:", error);
+        setScores(null);
+        setTeam(null);
+      }
+    }
+  
+    loadSelectedTeamData();
+  }, [selectedTeamId]);
 
   const ranking = useMemo(() => scores?.ranking || [], [scores]);
   const matchedRecord = matchStudentRecord(ranking, savedUser);
@@ -228,6 +291,107 @@ export default function StudentDashboard({ darkMode }) {
 
   const teamSize = ranking.length || 0;
   const progressStatus = getStatus(student?.score || 0);
+
+  const selectedTeamObject = useMemo(() => {
+    return studentTeams.find((t) => t.id === selectedTeamId) || null;
+  }, [studentTeams, selectedTeamId]);
+  
+  const teamStudents = selectedTeamObject?.students || [];
+  
+  const currentStudentTeamRecord = useMemo(() => {
+    const savedEmail = normalizeText(savedUser?.email || "");
+    const savedName = normalizeText(savedUser?.name || "");
+  
+    return teamStudents.find((member) => {
+      const memberEmail = normalizeText(member.email || "");
+      const memberName = normalizeText(member.name || "");
+  
+      if (savedEmail && memberEmail) {
+        return savedEmail === memberEmail;
+      }
+  
+      return savedName && memberName && savedName === memberName;
+    }) || null;
+  }, [teamStudents, savedUser]);
+  
+  const currentRole = currentStudentTeamRecord?.role || "member";
+  
+  const existingLeader = useMemo(() => {
+    return teamStudents.find((member) => member.role === "leader") || null;
+  }, [teamStudents]);
+  
+  const canClaimLeader = !!selectedTeamId && !!currentStudentTeamRecord && !existingLeader;
+
+  async function handleClaimLeader() {
+    if (!selectedTeamId || !savedUser?.email) return;
+  
+    try {
+      const res = await fetch(`${API}/api/teams/${selectedTeamId}/claim-leader`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: savedUser.email }),
+      });
+  
+      const data = await res.json();
+  
+      if (!res.ok) {
+        alert(data.error || "Failed to claim leader role.");
+        return;
+      }
+  
+      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const matchedTeams = (teamsRes || []).filter((team) =>
+        isStudentInTeam(team, savedUser)
+      );
+      setStudentTeams(matchedTeams);
+  
+      alert("You are now the leader of this group.");
+    } catch (error) {
+      console.error("Failed to claim leader role:", error);
+      alert("Failed to claim leader role.");
+    }
+  }
+
+  async function handleStepDownLeader() {
+    if (!selectedTeamId || !savedUser?.email) return;
+  
+    try {
+      const res = await fetch(`${API}/api/teams/${selectedTeamId}/remove-leader`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: savedUser.email }),
+      });
+  
+      const data = await res.json();
+  
+      if (!res.ok) {
+        alert(data.error || "Failed to step down as leader.");
+        return;
+      }
+  
+      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const matchedTeams = (teamsRes || []).filter((team) =>
+        isStudentInTeam(team, savedUser)
+      );
+      setStudentTeams(matchedTeams);
+  
+      const scoreData = await fetch(
+        `${API}/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
+      ).then((r) => r.json());
+  
+      setScores(scoreData || null);
+      setTeam(scoreData?.team || null);
+  
+      alert("You are no longer the leader of this group.");
+    } catch (error) {
+      console.error("Failed to step down as leader:", error);
+      alert("Failed to step down as leader.");
+    }
+  }
 
   const contributionBreakdown = useMemo(() => {
     if (!student || !ranking.length) {
@@ -383,9 +547,91 @@ export default function StudentDashboard({ darkMode }) {
                 <h1 style={{ margin: 0, fontSize: 30, color: theme.text }}>
                   Welcome, {student.displayName}
                 </h1>
-                <p style={{ margin: "8px 0 0 0", color: theme.subtext }}>
-                  Email: {student.email} | Team: {team?.name || "Active Team"}
-                </p>
+                <div style={{ marginTop: 8, color: theme.subtext }}>
+  <div>Email: {student.email}</div>
+  <div style={{ marginTop: 10, maxWidth: 280 }}>
+    <div style={{ fontSize: 13, marginBottom: 6 }}>Selected Group</div>
+    <select
+      value={selectedTeamId}
+      onChange={(e) => setSelectedTeamId(e.target.value)}
+      style={{
+        width: "100%",
+        padding: "10px 12px",
+        borderRadius: 10,
+        border: `1px solid ${theme.border}`,
+        background: theme.inputBg,
+        color: theme.text,
+        outline: "none",
+      }}
+    >
+      {studentTeams.map((group) => (
+        <option key={group.id} value={group.id}>
+          {group.name} {group.code ? `(${group.code})` : ""}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
+<div style={{ marginTop: 12 }}>
+  <div style={{ fontSize: 13, color: theme.subtext, marginBottom: 6 }}>
+    Your Role in This Group
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <span
+      style={{
+        padding: "6px 12px",
+        borderRadius: 999,
+        background: currentRole === "leader" ? "#dcfce7" : "#e5e7eb",
+        color: currentRole === "leader" ? "#166534" : "#374151",
+        fontWeight: 600,
+        fontSize: 13,
+      }}
+    >
+      {currentRole === "leader" ? "Leader" : "Member"}
+    </span>
+
+    {existingLeader && currentRole !== "leader" && (
+  <span style={{ fontSize: 13, color: theme.subtext }}>
+    Team leader: {existingLeader.name || existingLeader.email}
+  </span>
+)}
+
+{canClaimLeader && (
+  <button
+    onClick={handleClaimLeader}
+    style={{
+      padding: "8px 12px",
+      borderRadius: 10,
+      border: `1px solid ${theme.border}`,
+      background: theme.inputBg,
+      color: theme.text,
+      cursor: "pointer",
+      fontWeight: 600,
+    }}
+  >
+    Become Team Leader
+  </button>
+)}
+
+{currentRole === "leader" && (
+  <button
+    onClick={handleStepDownLeader}
+    style={{
+      padding: "8px 12px",
+      borderRadius: 10,
+      border: `1px solid ${theme.border}`,
+      background: "#fee2e2",
+      color: "#991b1b",
+      cursor: "pointer",
+      fontWeight: 600,
+    }}
+  >
+    Step Down as Leader
+  </button>
+)}
+  </div>
+</div>
               </div>
             </div>
 
