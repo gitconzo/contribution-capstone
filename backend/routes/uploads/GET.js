@@ -18,6 +18,33 @@ router.get("/", async (_req, res) => {
   }
 });
 
+// GET /api/uploads/student?teamId=...&email=...
+router.get("/student", async (req, res) => {
+  try {
+    const { teamId, email } = req.query;
+
+    if (!teamId || !email) {
+      return res.status(400).json({ error: "Missing teamId or email" });
+    }
+
+    const result = await db.query(
+      `
+      SELECT *
+      FROM file_registry
+      WHERE team_id = $1
+        AND LOWER(uploaded_by_email) = LOWER($2)
+      ORDER BY upload_date DESC
+      `,
+      [teamId, email]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("GET /api/uploads/student error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/uploads/presign
 // Generates a presigned S3 URL so the browser can upload directly to S3
 router.get("/presign", async (req, res) => {

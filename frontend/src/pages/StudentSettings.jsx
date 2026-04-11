@@ -1,6 +1,54 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { User } from "lucide-react";
 import { changeCurrentUserPassword } from "../utils/cognitoAuth";
+import { API_URL as API } from "../utils/api";
+
+const STUDENT_UPLOAD_TYPES = [
+  { value: "worklog", label: "Worklog / Week Log" },
+  { value: "peer_review", label: "Peer Review" },
+  { value: "attendance", label: "Attendance Sheet (Leader only)" },
+  { value: "sprint_report", label: "Sprint Report (Leader only)" },
+  { value: "project_plan", label: "Project Plan (Leader only)" },
+];
+
+function normalizeText(value = "") {
+  return String(value).trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function isStudentInTeam(team, user) {
+  if (!team || !user) return false;
+
+  const userEmail = normalizeText(user.email || "");
+  const userName = normalizeText(user.name || "");
+
+  return (team.students || []).some((student) => {
+    const studentEmail = normalizeText(student.email || "");
+    const studentName = normalizeText(student.name || "");
+
+    if (userEmail && studentEmail) {
+      return studentEmail === userEmail;
+    }
+
+    return !!userName && !!studentName && studentName === userName;
+  });
+}
+
+function formatDateTime(value) {
+  if (!value) return "Unknown";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
+}
+
+function prettyType(value = "") {
+  const map = {
+    worklog: "Worklog",
+    peer_review: "Peer Review",
+    attendance: "Attendance Sheet",
+    sprint_report: "Sprint Report",
+    project_plan: "Project Plan",
+  };
+  return map[value] || value || "Unknown";
+}
 
 export default function StudentSettings({ darkMode }) {
   const theme = darkMode
@@ -39,6 +87,11 @@ export default function StudentSettings({ darkMode }) {
         menuText: "#111827",
       };
 
+      const savedUser = useMemo(() => {
+        const raw = localStorage.getItem("user");
+        return raw ? JSON.parse(raw) : null;
+      }, []);
+
   const [activeSection, setActiveSection] = useState("security");
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -52,12 +105,194 @@ export default function StudentSettings({ darkMode }) {
   const [photoMessage, setPhotoMessage] = useState("");
   const [photoError, setPhotoError] = useState("");
 
+  const [studentTeams, setStudentTeams] = useState([]);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedDocType, setSelectedDocType] = useState("worklog");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [studentUploads, setStudentUploads] = useState([]);
+  const [uploadsLoading, setUploadsLoading] = useState(false);
+
+  const selectedTeam = studentTeams.find((team) => team.id === selectedTeamId) || null;
+  const selectedTeamStudents = selectedTeam?.students || [];
+
+  const currentMembership = selectedTeamStudents.find((student) => {
+    const studentEmail = normalizeText(student.email || "");
+    const studentName = normalizeText(student.name || "");
+    const userEmail = normalizeText(savedUser?.email || "");
+    const userName = normalizeText(savedUser?.name || "");
+
+    if (userEmail && studentEmail) {
+      return studentEmail === userEmail;
+    }
+
+    return !!userName && !!studentName && studentName === userName;
+  }) || null;
+
+  const currentRole = currentMembership?.role || "member";
+
+  const visibleUploadTypes =
+  currentRole === "leader"
+    ? STUDENT_UPLOAD_TYPES
+    : STUDENT_UPLOAD_TYPES.filter(
+        (type) => !["attendance", "sprint_report", "project_plan"].includes(type.value)
+      );
+
+  async function handleStudentUpload() {
+    setUploadMessage("");
+    setUploadError("");
+
+    if (!selectedTeamId) {
+      setUploadError("Please select a group first.");
+      return;
+    }
+
+    if (!selectedFile) {
+      setUploadError("Please choose a file first.");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      const presignRes = await fetch(
+        `${API}/api/uploads/presign?filename=${encodeURIComponent(selectedFile.name)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(selectedFile.type || "application/octet-stream")}`
+      );
+
+      const presignData = await presignRes.json();
+
+      if (!presignRes.ok) {
+        setUploadError(presignData.error || "Failed to get upload URL.");
+        return;
+      }
+
+      const { url, s3Key, storedName } = presignData;
+
+      const s3Res = await fetch(url, {
+        method: "PUT",
+        body: selectedFile,
+        headers: {
+          "Content-Type": selectedFile.type || "application/octet-stream",
+        },
+      });
+
+      if (!s3Res.ok) {
+        setUploadError("File upload to storage failed.");
+        return;
+      }
+
+      const saveRes = await fetch(`${API}/api/uploads/student`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          s3Key,
+          storedName,
+          originalName: selectedFile.name,
+          size: selectedFile.size,
+          mimetype: selectedFile.type,
+          teamId: selectedTeamId,
+          userType: selectedDocType,
+          uploadedByName: savedUser?.name || null,
+          uploadedByEmail: savedUser?.email || null,
+        }),
+      });
+
+      const saveData = await saveRes.json();
+
+      if (!saveRes.ok) {
+        setUploadError(saveData.error || "Failed to save upload.");
+        return;
+      }
+
+      setUploadMessage("Document uploaded successfully and is now pending lecturer approval.");
+      setSelectedFile(null);
+      await loadStudentUploads(selectedTeamId);
+      setSelectedDocType("worklog");
+    } catch (error) {
+      console.error("Student upload failed:", error);
+      setUploadError("Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function loadStudentUploads(teamId = selectedTeamId) {
+    if (!teamId || !savedUser?.email) {
+      setStudentUploads([]);
+      return;
+    }
+
+    try {
+      setUploadsLoading(true);
+
+      const res = await fetch(
+        `${API}/api/uploads/student?teamId=${encodeURIComponent(teamId)}&email=${encodeURIComponent(savedUser.email)}`
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data.error || "Failed to load student uploads.");
+        setStudentUploads([]);
+        return;
+      }
+
+      setStudentUploads(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load student uploads:", error);
+      setStudentUploads([]);
+    } finally {
+      setUploadsLoading(false);
+    }
+  }
+
+
   useEffect(() => {
     const savedPhoto = localStorage.getItem("student_profile_photo");
     if (savedPhoto) {
       setProfileImage(savedPhoto);
     }
   }, []);
+
+  useEffect(() => {
+    async function loadStudentTeams() {
+      try {
+        const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+
+        const matchedTeams = (teamsRes || []).filter((team) =>
+          isStudentInTeam(team, savedUser)
+        );
+
+        setStudentTeams(matchedTeams);
+
+        if (!matchedTeams.length) {
+          setSelectedTeamId("");
+          return;
+        }
+
+        const savedTeamId = localStorage.getItem("studentSelectedTeamId");
+        const initialTeamId =
+          matchedTeams.find((t) => t.id === savedTeamId)?.id ||
+          matchedTeams[0].id;
+
+        setSelectedTeamId(initialTeamId);
+      } catch (error) {
+        console.error("Failed to load student teams:", error);
+        setStudentTeams([]);
+        setSelectedTeamId("");
+      }
+    }
+
+    loadStudentTeams();
+  }, [savedUser]);
+
+  useEffect(() => {
+    loadStudentUploads(selectedTeamId);
+  }, [selectedTeamId, savedUser]);
 
   async function handleChangePassword(e) {
     e.preventDefault();
@@ -290,21 +525,7 @@ export default function StudentSettings({ darkMode }) {
                   <div style={{ display: "grid", gap: 12 }}>
                     <input type="file" accept="image/*" onChange={handlePhotoChange} />
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        style={{
-                          border: "none",
-                          background: theme.btnBg,
-                          color: theme.btnText,
-                          borderRadius: 10,
-                          padding: "12px 16px",
-                          fontSize: 14,
-                          fontWeight: 600,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Upload Photo
-                      </button>
+
                       <button
                         type="button"
                         onClick={removePhoto}
@@ -357,40 +578,213 @@ export default function StudentSettings({ darkMode }) {
               </div>
             )}
 
-            {activeSection === "documents" && (
-              <div>
-                <h3 style={{ marginTop: 0, marginBottom: 12, color: theme.text }}>
-                  Document Upload (Beta)
-                </h3>
-                <p style={{ color: theme.subtext, marginBottom: 18 }}>
-                  Upload supporting documents or progress files. This feature is currently in beta.
-                </p>
+{activeSection === "documents" && (
+  <div>
+    <h3 style={{ marginTop: 0, marginBottom: 12, color: theme.text }}>
+      Document Upload
+    </h3>
+    <p style={{ color: theme.subtext, marginBottom: 18 }}>
+      Upload documents for your selected group.
+    </p>
 
-                <input
-                  type="file"
-                  style={{ marginBottom: 14 }}
-                  accept=".pdf,.doc,.docx,.txt"
-                />
+    <div style={{ display: "grid", gap: 14, maxWidth: 560 }}>
+      <div>
+        <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: theme.text }}>
+          Selected Group
+        </label>
+        <select
+          value={selectedTeamId}
+          onChange={(e) => {
+            setSelectedTeamId(e.target.value);
+            localStorage.setItem("studentSelectedTeamId", e.target.value);
+          }}
+          style={inputField(theme)}
+        >
+          {studentTeams.map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name} {team.code ? `(${team.code})` : ""}
+            </option>
+          ))}
+        </select>
+      </div>
 
+      <div style={{ fontSize: 14, color: theme.subtext }}>
+        Your role in this group:{" "}
+        <strong style={{ color: theme.text }}>
+          {currentRole === "leader" ? "Leader" : "Member"}
+        </strong>
+      </div>
+
+      <div>
+        <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: theme.text }}>
+          Document Type
+        </label>
+        <select
+          value={selectedDocType}
+          onChange={(e) => setSelectedDocType(e.target.value)}
+          style={inputField(theme)}
+        >
+          {visibleUploadTypes.map((type) => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: theme.text }}>
+          Choose File
+        </label>
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.txt,.xlsx,.xls"
+          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+        />
+      </div>
+
+      {selectedFile && (
+        <div style={{ color: theme.subtext, fontSize: 14 }}>
+          Selected file: <strong style={{ color: theme.text }}>{selectedFile.name}</strong>
+        </div>
+      )}
+
+      {uploadError && (
+        <div
+          style={{
+            background: "#fee2e2",
+            color: "#b91c1c",
+            padding: "10px 12px",
+            borderRadius: 10,
+            fontSize: 14,
+          }}
+        >
+          {uploadError}
+        </div>
+      )}
+
+      {uploadMessage && (
+        <div
+          style={{
+            background: "#dcfce7",
+            color: "#166534",
+            padding: "10px 12px",
+            borderRadius: 10,
+            fontSize: 14,
+          }}
+        >
+          {uploadMessage}
+        </div>
+      )}
+
+      <div>
+        <button
+          type="button"
+          onClick={handleStudentUpload}
+          disabled={uploading}
+          style={{
+            border: "none",
+            background: theme.btnBg,
+            color: theme.btnText,
+            borderRadius: 10,
+            padding: "12px 16px",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          {uploading ? "Uploading..." : "Upload Document"}
+        </button>
+      </div>
+    </div>
+
+    <div
+      style={{
+        marginTop: 28,
+        borderTop: `1px solid ${theme.border}`,
+        paddingTop: 20,
+      }}
+    >
+      <h4 style={{ marginTop: 0, marginBottom: 12, color: theme.text }}>
+        My Uploaded Files
+      </h4>
+
+      {uploadsLoading ? (
+        <div style={{ color: theme.subtext, fontSize: 14 }}>
+          Loading uploaded files...
+        </div>
+      ) : studentUploads.length === 0 ? (
+        <div style={{ color: theme.subtext, fontSize: 14 }}>
+          No uploaded files found for this group yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {studentUploads.map((file) => (
+            <div
+              key={file.id}
+              style={{
+                border: `1px solid ${theme.border}`,
+                borderRadius: 12,
+                padding: 14,
+                background: theme.card,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ fontWeight: 600, color: theme.text }}>
+                  {file.original_name || file.originalName || "Unnamed file"}
+                </div>
+
+                <span
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    background: "#fef3c7",
+                    color: "#92400e",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {file.approval_status || "pending"}
+                </span>
+              </div>
+
+              <div style={{ fontSize: 14, color: theme.subtext, display: "grid", gap: 4 }}>
                 <div>
-                  <button
-                    style={{
-                      border: "none",
-                      background: theme.btnBg,
-                      color: theme.btnText,
-                      borderRadius: 10,
-                      padding: "12px 16px",
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Upload Document
-                  </button>
+                  Type: <strong style={{ color: theme.text }}>
+                    {prettyType(file.user_type || file.detected_type)}
+                  </strong>
+                </div>
+                <div>
+                  Scope: <strong style={{ color: theme.text }}>
+                    {file.upload_scope || "individual"}
+                  </strong>
+                </div>
+                <div>
+                  Uploaded: <strong style={{ color: theme.text }}>
+                    {formatDateTime(file.upload_date || file.uploadDate)}
+                  </strong>
+                </div>
+                <div>
+                  Status: <strong style={{ color: theme.text }}>
+                    {file.status || "pending"}
+                  </strong>
                 </div>
               </div>
-            )}
-
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
             {activeSection === "security" && (
               <div>
                 <h3 style={{ marginTop: 0, marginBottom: 16, color: theme.text }}>
