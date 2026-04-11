@@ -152,7 +152,7 @@ export default function Dashboard({ onViewStudent, darkMode, teams = [], teamId 
           />
           <InfoInline
             icon={<LinkIcon size={15} color={theme.mutedIcon} />}
-            text={scores?.team?.repo?.url || "Repository not connected"}
+            text={scores?.team?.repo?.url || scores?.team?.repo_url || "Repository not connected"}
           />
         </div>
       </div>
