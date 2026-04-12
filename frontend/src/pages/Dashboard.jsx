@@ -9,6 +9,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   const [scores, setScores] = useState(null);
   const [teamStudents, setTeamStudents] = useState([]);
   const [query, setQuery] = useState("");
+  const [peerReview, setPeerReview] = useState(false);
 
   const theme = darkMode
     ? {
@@ -44,14 +45,15 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         apiFetch("/api/teams").then(r => r.json()),
         apiFetch("/api/teams/active").then(r => r.json()),
       ]);
-      setTeams(allTeams || []);
+      setTeams(Array.isArray(allTeams) ? allTeams : []);
       setTeamId(activeTeam?.id || allTeams?.[0]?.id || "");
     })();
   }, []);
 
   useEffect(() => {
     if (!teamId) return;
-    apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`)
+    const url = `/api/scores?teamId=${encodeURIComponent(teamId)}${peerReview ? "&usePeerReview=true" : ""}`;
+    apiFetch(url)
       .then(r => r.json())
       .then(setScores)
       .catch(() => setScores(null));
@@ -60,7 +62,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       .then(r => r.json())
       .then(data => setTeamStudents(data.students || []))
       .catch(() => setTeamStudents([]));
-  }, [teamId]);
+  }, [teamId, peerReview]);
 
   const students = useMemo(() => {
     // Use scored ranking if available, otherwise fall back to raw team students
@@ -138,6 +140,23 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           </div>
         </div>
 
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <button
+          onClick={() => setPeerReview(v => !v)}
+          style={{
+            padding: "8px 14px",
+            borderRadius: 10,
+            border: `1px solid ${peerReview ? "#16a34a" : theme.border}`,
+            background: peerReview ? "#f0fdf4" : theme.buttonBg,
+            cursor: "pointer",
+            fontSize: 13,
+            color: peerReview ? "#16a34a" : theme.text,
+            fontWeight: peerReview ? 600 : 400,
+          }}
+        >
+          {peerReview ? "✓ Peer Review On" : "Peer Review Off"}
+        </button>
+
         <select
           value={teamId}
           onChange={async (e) => {
@@ -159,6 +178,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
             </option>
           ))}
         </select>
+        </div> 
       </div>
 
       {/* project card */}
@@ -347,6 +367,11 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                 <div style={{ fontWeight: 700, color: scoreColor(s.score), fontSize: 32 }}>
                   {Math.round(s.score) || "—"}
                 </div>
+                {scores?.peerReviewApplied && s.peerMultiplier && (
+                  <div style={{ fontSize: 11, color: theme.subtext, marginTop: 2 }}>
+                    Base: {Math.round(s.baseScore)}% × {s.peerMultiplier}
+                  </div>
+                )}
                 <div style={{ color: scoreColor(s.score), fontSize: 12, marginTop: -8 }}>%</div>
 
                 <button onClick={() => onViewStudent?.(s)} style={linkBtn(theme)}>
