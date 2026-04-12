@@ -10,6 +10,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   const [teamStudents, setTeamStudents] = useState([]);
   const [query, setQuery] = useState("");
   const [peerReview, setPeerReview] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const theme = darkMode
     ? {
@@ -118,6 +119,21 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     return { avg, high, commits: 0 };
   }, [scores]);
 
+  const handleReset = async () => {
+    if (!window.confirm("This will clear all scores and analysis for this team. Uploaded files will be kept. Are you sure?")) return;
+    setResetting(true);
+    try {
+      const res = await apiFetch("/api/reset", { method: "POST" });
+      if (!res.ok) throw new Error("Reset failed");
+      setScores(null);
+      alert("Scores reset. Re-upload documents and re-run GitHub analysis to recalculate.");
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -142,6 +158,23 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button
+          onClick={handleReset}
+          disabled={resetting}
+          style={{
+            padding: "8px 14px",
+            borderRadius: 10,
+            border: `1px solid #dc2626`,
+            background: resetting ? "#fee2e2" : theme.buttonBg,
+            cursor: resetting ? "not-allowed" : "pointer",
+            fontSize: 13,
+            color: "#dc2626",
+            fontWeight: 500,
+          }}
+        >
+          {resetting ? "Resetting..." : "Reset Scores"}
+        </button>
+
+         <button
           onClick={() => setPeerReview(v => !v)}
           style={{
             padding: "8px 14px",
@@ -208,6 +241,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
             icon={<LinkIcon size={15} color={theme.mutedIcon} />}
             text={scores?.team?.repo?.url || "Repository not connected"}
           />
+          
         </div>
       </div>
 
