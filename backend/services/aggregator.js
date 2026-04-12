@@ -232,6 +232,77 @@ function aggregateForTeam(team, rootDir) {
   return students;
 }
 
+
+// ---------- Peer Review ----------
+function loadPeerReviewMetrics(rootDir, aliasMap) {
+  const registry = safeReadJSON(path.join(rootDir, "fileRegistry.json"), []);
+  
+  // Collect all parsed peer review JSON files
+  const peerFiles = [];
+  registry.forEach(r => {
+    const type = r.userType || r.detectedType || "unknown";
+    if (type !== "peer_review") return;
+    const relJson = r?.parseInfo?.jsonPath;
+    if (!relJson) return;
+    const abs = path.join(rootDir, relJson);
+    const data = safeReadJSON(abs, null);
+    if (data?.scores) peerFiles.push(data);
+  });
+ 
+  if (!peerFiles.length) return null;
+ 
+  // Aggregate all peer scores per student
+  const studentScores = {}; // { studentIdx: [score, score, ...] }
+ 
+  peerFiles.forEach(file => {
+    Object.entries(file.scores || {}).forEach(([name, scoreArr]) => {
+      const idx = matchStudentIndex(aliasMap, name);
+      if (idx === -1) return;
+      if (!studentScores[idx]) studentScores[idx] = [];
+      scoreArr.forEach(s => studentScores[idx].push(s));
+    });
+  });
+ 
+  return studentScores;
+}
+ 
+function applyPeerMultiplier(students, ranked, peerData) {
+  if (!peerData || !Object.keys(peerData).length) return ranked;
+ 
+  // Calculate average peer score per student
+  const peerAvgs = {};
+  Object.entries(peerData).forEach(([idx, scores]) => {
+    if (scores.length) {
+      peerAvgs[idx] = scores.reduce((a, b) => a + b, 0) / scores.length;
+    }
+  });
+ 
+  // Only apply to students who have peer data
+  const validIdxs = Object.keys(peerAvgs).map(Number);
+  if (!validIdxs.length) return ranked;
+ 
+  // Team average of peer scores
+  const teamPeerAvg = validIdxs.reduce((sum, idx) => sum + peerAvgs[idx], 0) / validIdxs.length;
+  if (!teamPeerAvg) return ranked;
+ 
+  // Apply multiplier clamped to +-15%
+  return ranked.map((r, i) => {
+    const studentIdx = students.findIndex(s => s.email === r.email || s.name === r.name);
+    if (studentIdx === -1 || peerAvgs[studentIdx] === undefined) return r;
+ 
+    const multiplier = Math.min(1.15, Math.max(0.85, peerAvgs[studentIdx] / teamPeerAvg));
+    const adjustedScore = Math.min(100, +(r.score * multiplier).toFixed(2));
+ 
+    return {
+      ...r,
+      score: adjustedScore,
+      peerMultiplier: +multiplier.toFixed(3),
+      peerAvgScore: +peerAvgs[studentIdx].toFixed(1),
+      baseScore: r.score,
+    };
+  });
+}
+
 function mapRulesIfArray(rulesObj) {
   const arr = rulesObj && Array.isArray(rulesObj.rules) ? rulesObj.rules : null;
   if (!arr) return null;

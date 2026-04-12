@@ -9,9 +9,10 @@ router.get("/", async (req, res) => {
   try {
     const teamId = req.query.teamId || readActiveId();
     if (!teamId) return res.status(400).json({ error: "No active team." });
-    if (!teamId) return res.status(400).json({ error: "No active team." });
-
-    const payload = await aggregateTeamScores({ teamId, rootDir: ROOT_DIR });
+ 
+    const usePeerReview = req.query.usePeerReview === "true";
+ 
+    const payload = await aggregateTeamScores({ teamId, rootDir: ROOT_DIR, usePeerReview });
     res.json(payload);
   } catch (e) {
     console.error(e);
