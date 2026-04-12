@@ -214,13 +214,6 @@ export default function StudentDashboard({ darkMode }) {
   const [selectedTeamId, setSelectedTeamId] = useState("");
 
   useEffect(() => {
-    const savedPhoto = localStorage.getItem("student_profile_photo");
-    if (savedPhoto) {
-      setProfilePhoto(savedPhoto);
-    }
-  }, []);
-
-  useEffect(() => {
     async function loadStudentTeams() {
       try {
         const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
@@ -315,6 +308,35 @@ export default function StudentDashboard({ darkMode }) {
   }, [teamStudents, savedUser]);
   
   const currentRole = currentStudentTeamRecord?.role || "member";
+
+  useEffect(() => {
+    async function loadDashboardProfilePhoto() {
+      const photoKey = currentStudentTeamRecord?.profile_photo_url;
+  
+      if (!photoKey) {
+        setProfilePhoto("");
+        return;
+      }
+  
+      try {
+        const res = await fetch(
+          `${API}/api/uploads/file?key=${encodeURIComponent(photoKey)}`
+        );
+        const data = await res.json();
+  
+        if (res.ok && data.url) {
+          setProfilePhoto(data.url);
+        } else {
+          setProfilePhoto("");
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard profile photo:", error);
+        setProfilePhoto("");
+      }
+    }
+  
+    loadDashboardProfilePhoto();
+  }, [currentStudentTeamRecord]);
   
   const existingLeader = useMemo(() => {
     return teamStudents.find((member) => member.role === "leader") || null;

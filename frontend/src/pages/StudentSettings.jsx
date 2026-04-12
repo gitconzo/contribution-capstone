@@ -133,6 +133,35 @@ export default function StudentSettings({ darkMode }) {
 
   const currentRole = currentMembership?.role || "member";
 
+  useEffect(() => {
+    async function loadProfilePhoto() {
+      const photoKey = currentMembership?.profile_photo_url;
+  
+      if (!photoKey) {
+        setProfileImage("");
+        return;
+      }
+  
+      try {
+        const res = await fetch(
+          `${API}/api/uploads/file?key=${encodeURIComponent(photoKey)}`
+        );
+        const data = await res.json();
+  
+        if (res.ok && data.url) {
+          setProfileImage(data.url);
+        } else {
+          setProfileImage("");
+        }
+      } catch (error) {
+        console.error("Failed to load profile photo:", error);
+        setProfileImage("");
+      }
+    }
+  
+    loadProfilePhoto();
+  }, [currentMembership]);
+
   const visibleUploadTypes =
   currentRole === "leader"
     ? STUDENT_UPLOAD_TYPES
@@ -250,14 +279,6 @@ export default function StudentSettings({ darkMode }) {
     }
   }
 
-
-  useEffect(() => {
-    const savedPhoto = localStorage.getItem("student_profile_photo");
-    if (savedPhoto) {
-      setProfileImage(savedPhoto);
-    }
-  }, []);
-
   useEffect(() => {
     async function loadStudentTeams() {
       try {
@@ -350,35 +371,127 @@ export default function StudentSettings({ darkMode }) {
     }
   }
 
-  function handlePhotoChange(e) {
+  async function handlePhotoChange(e) {
     setPhotoMessage("");
     setPhotoError("");
-
+  
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
     if (!file.type.startsWith("image/")) {
       setPhotoError("Please select a valid image file.");
       return;
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        setProfileImage(result);
-        localStorage.setItem("student_profile_photo", result);
-        setPhotoMessage("Profile photo updated successfully.");
+  
+    if (!selectedTeamId) {
+      setPhotoError("Please select a group first.");
+      return;
+    }
+  
+    try {
+      const safeEmail = savedUser?.email || "student";
+      const photoFileName = `profile-${Date.now()}-${file.name}`;
+      const folder = `profile-photos/${safeEmail}`;
+  
+      const presignRes = await fetch(
+        `${API}/api/uploads/presign?filename=${encodeURIComponent(photoFileName)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}&folder=${encodeURIComponent(folder)}`
+      );
+  
+      const presignData = await presignRes.json();
+  
+      if (!presignRes.ok) {
+        setPhotoError(presignData.error || "Failed to get upload URL.");
+        return;
       }
-    };
-    reader.readAsDataURL(file);
+  
+      const { url, s3Key } = presignData;
+  
+      const uploadRes = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+      });
+  
+      if (!uploadRes.ok) {
+        setPhotoError("Failed to upload profile photo.");
+        return;
+      }
+  
+      const saveRes = await fetch(`${API}/api/teams/profile-photo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: savedUser?.email,
+          teamId: selectedTeamId,
+          photoUrl: s3Key,
+        }),
+      });
+  
+      const saveData = await saveRes.json().catch(() => ({}));
+  
+      if (!saveRes.ok) {
+        setPhotoError(saveData.error || "Failed to save profile photo.");
+        return;
+      }
+  
+      setProfileImage(URL.createObjectURL(file));
+      setPhotoMessage("Profile photo updated successfully.");
+  
+      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const matchedTeams = (teamsRes || []).filter((team) =>
+        isStudentInTeam(team, savedUser)
+      );
+      setStudentTeams(matchedTeams);
+    } catch (error) {
+      console.error("Profile photo upload failed:", error);
+      setPhotoError("Failed to upload profile photo.");
+    }
   }
 
-  function removePhoto() {
-    setProfileImage("");
-    localStorage.removeItem("student_profile_photo");
-    setPhotoMessage("Profile photo removed.");
+  async function removePhoto() {
+    setPhotoMessage("");
     setPhotoError("");
+  
+    if (!selectedTeamId || !savedUser?.email) {
+      setPhotoError("Missing student or team information.");
+      return;
+    }
+  
+    try {
+      const res = await fetch(`${API}/api/teams/profile-photo/remove`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: savedUser.email,
+          teamId: selectedTeamId,
+        }),
+      });
+  
+      const data = await res.json().catch(() => ({}));
+  
+      if (!res.ok) {
+        setPhotoError(data.error || "Failed to remove profile photo.");
+        return;
+      }
+  
+      setProfileImage("");
+      setPhotoMessage("Profile photo removed.");
+  
+      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const matchedTeams = (teamsRes || []).filter((team) =>
+        isStudentInTeam(team, savedUser)
+      );
+      setStudentTeams(matchedTeams);
+    } catch (error) {
+      console.error("Failed to remove profile photo:", error);
+      setPhotoError("Failed to remove profile photo.");
+    }
   }
 
   return (

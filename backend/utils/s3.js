@@ -1,5 +1,5 @@
 // backend/utils/s3.js
-const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const s3 = new S3Client({
@@ -55,4 +55,20 @@ async function uploadFile(key, localPath, contentType) {
   return s3.send(command);
 }
 
-module.exports = { s3, BUCKET, getPresignedUploadUrl, getPresignedDownloadUrl, downloadToFile, uploadFile };
+async function deleteFile(key) {
+  const command = new DeleteObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+  });
+  return s3.send(command);
+}
+
+module.exports = { 
+  s3, 
+  BUCKET, 
+  getPresignedUploadUrl, 
+  getPresignedDownloadUrl, 
+  downloadToFile, 
+  uploadFile,
+  deleteFile
+};

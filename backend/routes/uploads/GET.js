@@ -49,7 +49,8 @@ router.get("/student", async (req, res) => {
 // Generates a presigned S3 URL so the browser can upload directly to S3
 router.get("/presign", async (req, res) => {
   try {
-    const { filename, teamId, contentType } = req.query;
+    const { filename, teamId, contentType, folder } = req.query;
+
     if (!filename || !teamId) {
       return res.status(400).json({ error: "Missing filename or teamId" });
     }
@@ -57,12 +58,37 @@ router.get("/presign", async (req, res) => {
     const ext = path.extname(filename);
     const base = path.basename(filename, ext);
     const storedName = `${base}__${Date.now()}${ext}`;
-    const s3Key = `${teamId}/uploads/${storedName}`;
 
-    const url = await getPresignedUploadUrl(s3Key, contentType || "application/octet-stream");
+    const s3Key = folder
+      ? `${folder}/${storedName}`
+      : `${teamId}/uploads/${storedName}`;
+
+    const url = await getPresignedUploadUrl(
+      s3Key,
+      contentType || "application/octet-stream"
+    );
+
     res.json({ url, s3Key, storedName });
   } catch (err) {
     console.error("GET /api/uploads/presign error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/uploads/file?key=...
+// Returns a presigned download URL for any S3 key
+router.get("/file", async (req, res) => {
+  try {
+    const { key } = req.query;
+
+    if (!key) {
+      return res.status(400).json({ error: "Missing key" });
+    }
+
+    const url = await getPresignedDownloadUrl(key);
+    res.json({ url });
+  } catch (err) {
+    console.error("GET /api/uploads/file error:", err);
     res.status(500).json({ error: err.message });
   }
 });

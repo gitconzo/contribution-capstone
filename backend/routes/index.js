@@ -14,8 +14,9 @@ router.use("/github",  require("./github/POST"));
 router.use("/uploads", require("./uploads/GET"));
 router.use("/uploads", require("./uploads/POST"));
 router.use("/uploads", require("./uploads/DELETE"));
-router.use("/teams", require("./teams/POST"));
 router.use("/uploads", require("./uploads/STUDENT_POST"));
 router.use("/uploads", require("./uploads/APPROVAL"));
+router.use("/teams/profile-photo", require("./teams/PROFILE_PHOTO"));
+
 
 module.exports = router;
