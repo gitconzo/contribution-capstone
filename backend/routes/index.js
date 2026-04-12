@@ -16,5 +16,6 @@ router.use("/uploads", require("./uploads/POST"));
 router.use("/uploads", require("./uploads/DELETE"));
 router.use("/teams", require("./teams/POST"));
 router.use("/uploads", require("./uploads/STUDENT_POST"));
+router.use("/uploads", require("./uploads/APPROVAL"));
 
 module.exports = router;

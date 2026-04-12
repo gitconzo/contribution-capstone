@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import UploadFile from "./pages/UploadFile";
 import RuleSettings from "./pages/RuleSettings";
 import StudentDetail from "./pages/StudentDetail";
+import UploadsReview from "./pages/UploadsReview";
 import SetupTeam from "./pages/SetupTeam";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentSettings from "./pages/StudentSettings";
@@ -91,6 +92,7 @@ function Shell() {
 
   const current = useMemo(() => {
     if (pathname === "/") return "dashboard";
+    if (pathname.startsWith("/uploads-review")) return "uploads-review";
     if (pathname.startsWith("/rules")) return "rules";
     if (pathname.startsWith("/upload")) return "upload";
     if (pathname.startsWith("/setup-team")) return "setup-team";
@@ -188,6 +190,7 @@ function Shell() {
                       setSelectedStudent(s);
                       nav("/student");
                     }}
+                    onViewUploads={() => nav("/uploads-review")}
                   />
                 ) : (
                   <Navigate to="/student-dashboard" replace />
@@ -217,6 +220,22 @@ function Shell() {
                   <StudentDetail
                     darkMode={dark}
                     student={selectedStudent}
+                    onBack={() => nav("/")}
+                  />
+                ) : (
+                  <Navigate to="/student-dashboard" replace />
+                )
+              }
+            />
+
+<Route
+              path="/uploads-review"
+              element={
+                isTeacher ? (
+                  <UploadsReview
+                    darkMode={dark}
+                    activeTeamId={teamId}
+                    teams={teams}
                     onBack={() => nav("/")}
                   />
                 ) : (

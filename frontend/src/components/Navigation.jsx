@@ -105,7 +105,9 @@ export default function Navigation({
             }}
           >
             {menuItems.map((item) => {
-              const active = currentPage === item.key;
+              const active =
+              currentPage !== "uploads-review" &&
+              currentPage === item.key;
 
               return (
                 <button

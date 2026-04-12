@@ -1,9 +1,11 @@
 // frontend/src/components/dashboard.jsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Users, Link as LinkIcon, BarChart3, UserRound, GitCommitHorizontal, Eye, ChevronDown, Search } from "lucide-react";
 
-export default function Dashboard({ onViewStudent, darkMode, teams = [], teamId = "", scores = null, teamStudents = [], onTeamChange }) {
+export default function Dashboard({ onViewStudent, onViewUploads, darkMode, teams = [], teamId = "", scores = null, teamStudents = [], onTeamChange }) {
   const [query, setQuery] = useState("");
+  const [pendingUploads, setPendingUploads] = useState([]);
+  const [pendingUploadsLoading, setPendingUploadsLoading] = useState(false);
 
   const theme = darkMode
     ? {
@@ -86,6 +88,39 @@ export default function Dashboard({ onViewStudent, darkMode, teams = [], teamId 
     const high = `${list.filter(r => r.score >= 80).length}/${list.length}`;
     return { avg, high, commits: 0 };
   }, [scores]);
+
+  useEffect(() => {
+    async function loadPendingUploads() {
+      try {
+        setPendingUploadsLoading(true);
+        if (!teamId) {
+          setPendingUploads([]);
+          setPendingUploadsLoading(false);
+          return;
+        }
+        
+        const res = await fetch(
+          `http://localhost:5002/api/uploads/pending?teamId=${encodeURIComponent(teamId)}`
+        );
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error(data.error || "Failed to load pending uploads");
+          setPendingUploads([]);
+          return;
+        }
+
+        setPendingUploads(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to load pending uploads:", error);
+        setPendingUploads([]);
+      } finally {
+        setPendingUploadsLoading(false);
+      }
+    }
+
+    loadPendingUploads();
+  }, [teamId]);
 
   return (
     <div
@@ -203,6 +238,61 @@ export default function Dashboard({ onViewStudent, darkMode, teams = [], teamId 
           </div>
         </KpiCard>
       </div>
+
+      {/* pending uploads alert */}
+      {pendingUploadsLoading ? null : pendingUploads.length > 0 && (
+        <div
+          style={card(theme, {
+            marginTop: 16,
+            border: "1px solid #fecaca",
+            background: darkMode ? "#1f1720" : "#fef2f2",
+          })}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: darkMode ? "#fecaca" : "#991b1b",
+                  fontSize: 16,
+                }}
+              >
+                Pending Upload Reviews
+              </div>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 13,
+                  color: darkMode ? "#fca5a5" : "#7f1d1d",
+                }}
+              >
+                {pendingUploads.length} upload(s) waiting for lecturer review
+              </div>
+            </div>
+
+            <button
+              style={{
+                ...linkBtn(theme),
+                border: "1px solid #fca5a5",
+                background: darkMode ? "#2a1220" : "#fff",
+                color: darkMode ? "#fecaca" : "#991b1b",
+              }}
+              onClick={() => onViewUploads?.()}
+            >
+              View Uploads
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* search header */}
       <div style={card(theme, { marginTop: 16, paddingBottom: 10 })}>
