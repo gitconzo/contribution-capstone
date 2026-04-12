@@ -90,37 +90,45 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
   }, [scores]);
 
   useEffect(() => {
-    async function loadPendingUploads() {
-      try {
-        setPendingUploadsLoading(true);
-        if (!teamId) {
-          setPendingUploads([]);
-          setPendingUploadsLoading(false);
-          return;
-        }
-        
-        const res = await fetch(
-          `http://localhost:5002/api/uploads/pending?teamId=${encodeURIComponent(teamId)}`
-        );
-        const data = await res.json();
+    loadPendingCount();
 
-        if (!res.ok) {
-          console.error(data.error || "Failed to load pending uploads");
-          setPendingUploads([]);
-          return;
-        }
+    const handler = () => loadPendingCount();
 
-        setPendingUploads(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to load pending uploads:", error);
-        setPendingUploads([]);
-      } finally {
-        setPendingUploadsLoading(false);
-      }
+    window.addEventListener("uploadsUpdated", handler);
+
+    return () => {
+      window.removeEventListener("uploadsUpdated", handler);
+    };
+  }, [teamId]);
+
+  async function loadPendingCount() {
+    if (!teamId) {
+      setPendingUploads([]);
+      return;
     }
 
-    loadPendingUploads();
-  }, [teamId]);
+    try {
+      setPendingUploadsLoading(true);
+
+      const res = await fetch(
+        `http://localhost:5002/api/uploads/pending?teamId=${encodeURIComponent(teamId)}`
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data.error || "Failed to load pending uploads");
+        setPendingUploads([]);
+        return;
+      }
+
+      setPendingUploads(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load pending uploads:", error);
+      setPendingUploads([]);
+    } finally {
+      setPendingUploadsLoading(false);
+    }
+  }
 
   return (
     <div

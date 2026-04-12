@@ -89,3 +89,22 @@ router.post("/:id/reject", async (req, res) => {
 });
 
 module.exports = router;
+
+router.get("/file", async (req, res) => {
+    try {
+      const { key } = req.query;
+  
+      if (!key) {
+        return res.status(400).json({ error: "Missing file key" });
+      }
+  
+      // If your bucket is public:
+      const fileUrl = `${process.env.S3_BASE_URL}/${key}`;
+  
+      res.json({ url: fileUrl });
+  
+    } catch (err) {
+      console.error("Failed to get file URL:", err);
+      res.status(500).json({ error: "Failed to get file URL" });
+    }
+  });

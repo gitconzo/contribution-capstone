@@ -451,7 +451,7 @@ export default function StudentSettings({ darkMode }) {
               }}
               style={menuButton(activeSection === "documents", theme)}
             >
-              Document Upload (Beta)
+              Document Upload
             </button>
 
             <button
@@ -743,17 +743,27 @@ export default function StudentSettings({ darkMode }) {
                 </div>
 
                 <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                    background: "#fef3c7",
-                    color: "#92400e",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {file.approval_status || "pending"}
-                </span>
+  style={{
+    padding: "4px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 700,
+    background:
+      file.approval_status === "approved"
+        ? "#dcfce7"
+        : file.approval_status === "rejected"
+        ? "#fee2e2"
+        : "#fef3c7",
+    color:
+      file.approval_status === "approved"
+        ? "#166534"
+        : file.approval_status === "rejected"
+        ? "#991b1b"
+        : "#92400e",
+  }}
+>
+  {file.approval_status || "pending"}
+</span>
               </div>
 
               <div style={{ fontSize: 14, color: theme.subtext, display: "grid", gap: 4 }}>

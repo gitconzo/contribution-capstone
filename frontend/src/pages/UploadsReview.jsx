@@ -1,5 +1,6 @@
 // frontend/src/pages/UploadsReview.jsx
 import React, { useEffect, useState } from "react";
+import { API_URL as API } from "../utils/api";
 
 export default function UploadsReview({ darkMode, activeTeamId = "", teams = [], onBack }) {
   const [pendingUploads, setPendingUploads] = useState([]);
@@ -197,36 +198,117 @@ export default function UploadsReview({ darkMode, activeTeamId = "", teams = [],
               </div>
 
               <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-                <button
-                  style={{
-                    border: "1px solid #86efac",
-                    background: "#dcfce7",
-                    color: "#166534",
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Approve
-                </button>
+  <button
+    onClick={async () => {
+        try {
+          const res = await fetch(`${API}/api/uploads/${file.id}/download`);
+          const data = await res.json();
+      
+          if (data.url) {
+            window.open(data.url, "_blank");
+          }
+        } catch (err) {
+          console.error("Failed to open file", err);
+        }
+      }}
+    style={{
+      border: "1px solid #3b82f6",
+      background: "#eff6ff",
+      color: "#1d4ed8",
+      borderRadius: 10,
+      padding: "10px 14px",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer",
+    }}
+  >
+    View File
+  </button>
 
-                <button
-                  style={{
-                    border: "1px solid #fca5a5",
-                    background: "#fee2e2",
-                    color: "#991b1b",
-                    borderRadius: 10,
-                    padding: "10px 14px",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Reject
-                </button>
-              </div>
+  <button
+  onClick={async () => {
+    try {
+        const res = await fetch(`${API}/api/uploads/${file.id}/approve`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ approvedBy: "Lecturer" }),
+          });
+          
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || "Approve failed");
+          }
+
+      // remove from UI instantly
+      setPendingUploads((prev) =>
+  prev.filter((f) => f.id !== file.id)
+);
+
+// 🔥 notify dashboard
+window.dispatchEvent(new Event("uploadsUpdated"));
+    } catch (err) {
+      console.error("Approve failed", err);
+    }
+  }}
+  style={{
+    border: "1px solid #86efac",
+    background: "#dcfce7",
+    color: "#166534",
+    borderRadius: 10,
+    padding: "10px 14px",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+  }}
+>
+  Approve
+</button>
+
+<button
+  onClick={async () => {
+    try {
+        const res = await fetch(`${API}/api/uploads/${file.id}/reject`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              approvedBy: "Lecturer",
+              declineReason: "Rejected by lecturer",
+            }),
+          });
+          
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || "Reject failed");
+          }
+
+      setPendingUploads((prev) =>
+  prev.filter((f) => f.id !== file.id)
+);
+
+// 🔥 notify dashboard
+window.dispatchEvent(new Event("uploadsUpdated"));
+    } catch (err) {
+      console.error("Reject failed", err);
+    }
+  }}
+  style={{
+    border: "1px solid #fca5a5",
+    background: "#fee2e2",
+    color: "#991b1b",
+    borderRadius: 10,
+    padding: "10px 14px",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+  }}
+>
+  Reject
+</button>
+</div>
             </div>
           ))
         )}
