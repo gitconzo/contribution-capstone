@@ -15,9 +15,6 @@ const DEFAULT_RULES = {
     { name: "Readability",                 value: 11, desc: "Readability" },
   ],
   autoRecalc: true,
-  crossVerify: true,
-  triangulation: { codeWorklog: 80, meetingDoc: 70, activityDist: 60 },
-  peerValidation: "Statistical analysis",
 };
 
 function weightsFromRules(ruleArr) {

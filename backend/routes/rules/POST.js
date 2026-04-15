@@ -7,7 +7,7 @@ const { DEFAULT_RULES, weightsFromRules } = require("./_defaults");
 // POST /api/rules
 router.post("/", async (req, res) => {
   try {
-    const { teamId = readActiveId(), rules, autoRecalc /*, crossVerify, triangulation, peerValidation */ } = req.body || {};
+    const { teamId = readActiveId(), rules, autoRecalc } = req.body || {};
     if (!teamId) return res.status(400).json({ error: "No active team and no teamId supplied." });
 
     const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [teamId]);
@@ -22,10 +22,6 @@ router.post("/", async (req, res) => {
 
     const newRules      = Array.isArray(rules) ? rules : (cr.length ? cr : DEFAULT_RULES.rules);
     const newAutoRecalc = typeof autoRecalc === "boolean" ? autoRecalc : (cs.auto_recalc ?? DEFAULT_RULES.autoRecalc);
-    // crossVerify and triangulation not yet implemented in scoring — skipped for now
-    // const newCrossVerify  = typeof crossVerify === "boolean" ? crossVerify : (cs.cross_verify ?? DEFAULT_RULES.crossVerify);
-    // const newTriang       = triangulation || ...
-    // const newPeerVal      = peerValidation || cs.peer_validation || DEFAULT_RULES.peerValidation;
 
     await db.query(`
       INSERT INTO rule_settings (team_id, auto_recalc)

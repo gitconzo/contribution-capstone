@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { User } from "lucide-react";
-import { API_URL as API } from "../utils/api";
+import { apiFetch } from "../utils/api";
 
 // Temporary mapping between student login accounts and GitHub contribution authors
 const AUTHOR_MAP = {
@@ -216,14 +216,14 @@ export default function StudentDashboard({ darkMode }) {
   useEffect(() => {
     async function loadStudentTeams() {
       try {
-        const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
-  
+        const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
+
         const matchedTeams = (teamsRes || []).filter((team) =>
           isStudentInTeam(team, savedUser)
         );
-  
+
         setStudentTeams(matchedTeams);
-  
+
         if (!matchedTeams.length) {
           setTeam(null);
           setScores(null);
@@ -257,10 +257,10 @@ export default function StudentDashboard({ darkMode }) {
       try {
         localStorage.setItem("studentSelectedTeamId", selectedTeamId);
   
-        const scoreData = await fetch(
-          `${API}/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
+        const scoreData = await apiFetch(
+          `/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
         ).then((r) => r.json());
-  
+
         setScores(scoreData || null);
         setTeam(scoreData?.team || null);
       } catch (error) {
@@ -319,8 +319,8 @@ export default function StudentDashboard({ darkMode }) {
       }
   
       try {
-        const res = await fetch(
-          `${API}/api/uploads/file?key=${encodeURIComponent(photoKey)}`
+        const res = await apiFetch(
+          `/api/uploads/file?key=${encodeURIComponent(photoKey)}`
         );
         const data = await res.json();
   
@@ -348,7 +348,7 @@ export default function StudentDashboard({ darkMode }) {
     if (!selectedTeamId || !savedUser?.email) return;
   
     try {
-      const res = await fetch(`${API}/api/teams/${selectedTeamId}/claim-leader`, {
+      const res = await apiFetch(`/api/teams/${selectedTeamId}/claim-leader`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -363,12 +363,12 @@ export default function StudentDashboard({ darkMode }) {
         return;
       }
   
-      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
       const matchedTeams = (teamsRes || []).filter((team) =>
         isStudentInTeam(team, savedUser)
       );
       setStudentTeams(matchedTeams);
-  
+
       alert("You are now the leader of this group.");
     } catch (error) {
       console.error("Failed to claim leader role:", error);
@@ -380,7 +380,7 @@ export default function StudentDashboard({ darkMode }) {
     if (!selectedTeamId || !savedUser?.email) return;
   
     try {
-      const res = await fetch(`${API}/api/teams/${selectedTeamId}/remove-leader`, {
+      const res = await apiFetch(`/api/teams/${selectedTeamId}/remove-leader`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -395,14 +395,14 @@ export default function StudentDashboard({ darkMode }) {
         return;
       }
   
-      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
       const matchedTeams = (teamsRes || []).filter((team) =>
         isStudentInTeam(team, savedUser)
       );
       setStudentTeams(matchedTeams);
-  
-      const scoreData = await fetch(
-        `${API}/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
+
+      const scoreData = await apiFetch(
+        `/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
       ).then((r) => r.json());
   
       setScores(scoreData || null);

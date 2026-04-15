@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { User } from "lucide-react";
 import { changeCurrentUserPassword } from "../utils/cognitoAuth";
-import { API_URL as API } from "../utils/api";
+import { apiFetch } from "../utils/api";
 
 const STUDENT_UPLOAD_TYPES = [
   { value: "worklog", label: "Worklog / Week Log" },
@@ -143,8 +143,8 @@ export default function StudentSettings({ darkMode }) {
       }
   
       try {
-        const res = await fetch(
-          `${API}/api/uploads/file?key=${encodeURIComponent(photoKey)}`
+        const res = await apiFetch(
+          `/api/uploads/file?key=${encodeURIComponent(photoKey)}`
         );
         const data = await res.json();
   
@@ -186,8 +186,9 @@ export default function StudentSettings({ darkMode }) {
     try {
       setUploading(true);
 
-      const presignRes = await fetch(
-        `${API}/api/uploads/presign?filename=${encodeURIComponent(selectedFile.name)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(selectedFile.type || "application/octet-stream")}`
+      const studentFolder = `${selectedTeamId}/${savedUser?.email || "unknown"}`;
+      const presignRes = await apiFetch(
+        `/api/uploads/presign?filename=${encodeURIComponent(selectedFile.name)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(selectedFile.type || "application/octet-stream")}&folder=${encodeURIComponent(studentFolder)}`
       );
 
       const presignData = await presignRes.json();
@@ -212,7 +213,7 @@ export default function StudentSettings({ darkMode }) {
         return;
       }
 
-      const saveRes = await fetch(`${API}/api/uploads/student`, {
+      const saveRes = await apiFetch(`/api/uploads/student`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -258,8 +259,8 @@ export default function StudentSettings({ darkMode }) {
     try {
       setUploadsLoading(true);
 
-      const res = await fetch(
-        `${API}/api/uploads/student?teamId=${encodeURIComponent(teamId)}&email=${encodeURIComponent(savedUser.email)}`
+      const res = await apiFetch(
+        `/api/uploads/student?teamId=${encodeURIComponent(teamId)}&email=${encodeURIComponent(savedUser.email)}`
       );
 
       const data = await res.json();
@@ -282,7 +283,7 @@ export default function StudentSettings({ darkMode }) {
   useEffect(() => {
     async function loadStudentTeams() {
       try {
-        const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+        const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
 
         const matchedTeams = (teamsRes || []).filter((team) =>
           isStudentInTeam(team, savedUser)
@@ -312,7 +313,37 @@ export default function StudentSettings({ darkMode }) {
   }, [savedUser]);
 
   useEffect(() => {
-    loadStudentUploads(selectedTeamId);
+    async function fetchStudentUploads() {
+      if (!selectedTeamId || !savedUser?.email) {
+        setStudentUploads([]);
+        return;
+      }
+
+      try {
+        setUploadsLoading(true);
+
+        const res = await apiFetch(
+          `/api/uploads/student?teamId=${encodeURIComponent(selectedTeamId)}&email=${encodeURIComponent(savedUser.email)}`
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error(data.error || "Failed to load student uploads.");
+          setStudentUploads([]);
+          return;
+        }
+
+        setStudentUploads(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to load student uploads:", error);
+        setStudentUploads([]);
+      } finally {
+        setUploadsLoading(false);
+      }
+    }
+
+    fetchStudentUploads();
   }, [selectedTeamId, savedUser]);
 
   async function handleChangePassword(e) {
@@ -393,8 +424,8 @@ export default function StudentSettings({ darkMode }) {
       const photoFileName = `profile-${Date.now()}-${file.name}`;
       const folder = `profile-photos/${safeEmail}`;
   
-      const presignRes = await fetch(
-        `${API}/api/uploads/presign?filename=${encodeURIComponent(photoFileName)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}&folder=${encodeURIComponent(folder)}`
+      const presignRes = await apiFetch(
+        `/api/uploads/presign?filename=${encodeURIComponent(photoFileName)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}&folder=${encodeURIComponent(folder)}`
       );
   
       const presignData = await presignRes.json();
@@ -419,7 +450,7 @@ export default function StudentSettings({ darkMode }) {
         return;
       }
   
-      const saveRes = await fetch(`${API}/api/teams/profile-photo`, {
+      const saveRes = await apiFetch(`/api/teams/profile-photo`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -441,7 +472,7 @@ export default function StudentSettings({ darkMode }) {
       setProfileImage(URL.createObjectURL(file));
       setPhotoMessage("Profile photo updated successfully.");
   
-      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
       const matchedTeams = (teamsRes || []).filter((team) =>
         isStudentInTeam(team, savedUser)
       );
@@ -462,7 +493,7 @@ export default function StudentSettings({ darkMode }) {
     }
   
     try {
-      const res = await fetch(`${API}/api/teams/profile-photo/remove`, {
+      const res = await apiFetch(`/api/teams/profile-photo/remove`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -483,7 +514,7 @@ export default function StudentSettings({ darkMode }) {
       setProfileImage("");
       setPhotoMessage("Profile photo removed.");
   
-      const teamsRes = await fetch(`${API}/api/teams`).then((r) => r.json());
+      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
       const matchedTeams = (teamsRes || []).filter((team) =>
         isStudentInTeam(team, savedUser)
       );

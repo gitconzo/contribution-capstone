@@ -1,6 +1,7 @@
 // frontend/src/components/dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Users, Link as LinkIcon, BarChart3, UserRound, GitCommitHorizontal, Eye, ChevronDown, Search } from "lucide-react";
+import { apiFetch } from "../utils/api";
 
 export default function Dashboard({ onViewStudent, onViewUploads, darkMode, teams = [], teamId = "", scores = null, teamStudents = [], onTeamChange }) {
   const [query, setQuery] = useState("");
@@ -110,9 +111,7 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
     try {
       setPendingUploadsLoading(true);
 
-      const res = await fetch(
-        `http://localhost:5002/api/uploads/pending?teamId=${encodeURIComponent(teamId)}`
-      );
+      const res = await apiFetch(`/api/uploads/pending?teamId=${encodeURIComponent(teamId)}`);
       const data = await res.json();
 
       if (!res.ok) {

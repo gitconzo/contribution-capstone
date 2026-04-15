@@ -1,6 +1,6 @@
 // frontend/src/pages/UploadsReview.jsx
 import React, { useEffect, useState } from "react";
-import { API_URL as API } from "../utils/api";
+import { apiFetch } from "../utils/api";
 
 export default function UploadsReview({ darkMode, activeTeamId = "", teams = [], onBack }) {
   const [pendingUploads, setPendingUploads] = useState([]);
@@ -50,8 +50,8 @@ export default function UploadsReview({ darkMode, activeTeamId = "", teams = [],
 
       try {
         setLoading(true);
-        const res = await fetch(
-          `http://localhost:5002/api/uploads/pending?teamId=${encodeURIComponent(activeTeamId)}`
+        const res = await apiFetch(
+          `/api/uploads/pending?teamId=${encodeURIComponent(activeTeamId)}`
         );
         const data = await res.json();
 
@@ -201,7 +201,7 @@ export default function UploadsReview({ darkMode, activeTeamId = "", teams = [],
   <button
     onClick={async () => {
         try {
-          const res = await fetch(`${API}/api/uploads/${file.id}/download`);
+          const res = await apiFetch(`/api/uploads/${file.id}/download`);
           const data = await res.json();
       
           if (data.url) {
@@ -228,7 +228,7 @@ export default function UploadsReview({ darkMode, activeTeamId = "", teams = [],
   <button
   onClick={async () => {
     try {
-        const res = await fetch(`${API}/api/uploads/${file.id}/approve`, {
+        const res = await apiFetch(`/api/uploads/${file.id}/approve`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -269,7 +269,7 @@ window.dispatchEvent(new Event("uploadsUpdated"));
 <button
   onClick={async () => {
     try {
-        const res = await fetch(`${API}/api/uploads/${file.id}/reject`, {
+        const res = await apiFetch(`/api/uploads/${file.id}/reject`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

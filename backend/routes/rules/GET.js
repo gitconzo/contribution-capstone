@@ -27,14 +27,6 @@ router.get("/", async (req, res) => {
     const payload = {
       rules,
       autoRecalc: settings?.auto_recalc ?? DEFAULT_RULES.autoRecalc,
-      // crossVerify and triangulation stored in DB but not yet implemented in scoring
-      // crossVerify:    settings?.cross_verify ?? DEFAULT_RULES.crossVerify,
-      // triangulation: settings ? {
-      //   codeWorklog:  settings.triangulation_code_worklog  ?? DEFAULT_RULES.triangulation.codeWorklog,
-      //   meetingDoc:   settings.triangulation_meeting_doc   ?? DEFAULT_RULES.triangulation.meetingDoc,
-      //   activityDist: settings.triangulation_activity_dist ?? DEFAULT_RULES.triangulation.activityDist,
-      // } : DEFAULT_RULES.triangulation,
-      peerValidation: settings?.peer_validation ?? DEFAULT_RULES.peerValidation,
     };
 
     res.json({ teamId, ...payload, weights: weightsFromRules(payload.rules) || {} });

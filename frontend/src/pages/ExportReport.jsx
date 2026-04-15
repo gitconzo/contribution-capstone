@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { API_URL as API } from "../utils/api";
+import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../utils/api";
 
 export default function ExportReport({ darkMode }) {
   const [selectedFormat, setSelectedFormat] = useState("pdf");
@@ -35,10 +35,10 @@ export default function ExportReport({ darkMode }) {
       try {
         setLoading(true);
 
-        const activeRes = await fetch(`${API}/api/teams/active`);
+        const activeRes = await apiFetch(`/api/teams/active`);
         const activeData = await activeRes.json();
 
-        const teamsRes = await fetch(`${API}/api/teams`);
+        const teamsRes = await apiFetch(`/api/teams`);
         const teamsData = await teamsRes.json();
 
         const activeTeam = (teamsData || []).find((t) => t.id === activeData?.teamId);
@@ -270,7 +270,6 @@ export default function ExportReport({ darkMode }) {
                 <label><input type="checkbox" defaultChecked /> Contribution Charts & Visualizations</label>
                 <label><input type="checkbox" defaultChecked /> Activity Timeline & Evidence</label>
                 <label><input type="checkbox" defaultChecked /> Rule Weights & Calculation Methods</label>
-                <label><input type="checkbox" defaultChecked /> Triangulation Analysis & Validation</label>
               </div>
             </div>
 
