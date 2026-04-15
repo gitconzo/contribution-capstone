@@ -10,6 +10,8 @@ export default function SetupTeam({ darkMode }) {
   const [teams, setTeams] = useState([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+  const [editingTeam, setEditingTeam] = useState(null);
 
   const theme = darkMode
     ? {
@@ -57,16 +59,76 @@ export default function SetupTeam({ darkMode }) {
     loadTeams();
   }, []);
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!name.trim()) {
+      newErrors.name = "Team name is required.";
+    }
+
+    if (!code.trim()) {
+      newErrors.code = "Project code is required.";
+    }
+
+    if (!repoUrl.trim()) {
+      newErrors.repoUrl = "Repository URL is required.";
+    } else if (!repoUrl.includes("github.com")) {
+      newErrors.repoUrl = "Please enter a valid GitHub repository URL.";
+    }
+
+    if (!csvText.trim()) {
+      newErrors.csvText = "Students CSV is required.";
+    } else if (students.length === 0) {
+      newErrors.csvText =
+        "Please enter at least one valid student in the format: name,email";
+    }
+
+    const emailSet = new Set();
+
+    students.forEach((student, index) => {
+      if (!student.name?.trim()) {
+        newErrors[`student-name-${index}`] = `Student ${index + 1}: name is required.`;
+      }
+
+      if (!student.email?.trim()) {
+        newErrors[`student-email-${index}`] = `Student ${index + 1}: email is required.`;
+      } else if (!/\S+@\S+\.\S+/.test(student.email)) {
+        newErrors[`student-email-${index}`] = `Student ${index + 1}: invalid email format.`;
+      } else if (emailSet.has(student.email.toLowerCase())) {
+        newErrors[`student-email-${index}`] = `Student ${index + 1}: duplicate email found.`;
+      } else {
+        emailSet.add(student.email.toLowerCase());
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleEdit = (team) => {
+    setEditingTeam(team);
+    setName(team.name || "");
+    setCode(team.code || "");
+    setRepoUrl(team.repo?.url || "");
+    setCsvText(studentsToCsv(team.students || []));
+    setErrors({});
+    setError("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTeam(null);
+    setName("");
+    setCode("");
+    setRepoUrl("");
+    setCsvText("");
+    setErrors({});
+    setError("");
+  };
+
   const onCreate = async () => {
     setError("");
-    if (!name.trim() || !code.trim() || !repoUrl.trim()) {
-      setError("Team Name, Project Code, and Repository URL are required.");
-      return;
-    }
-    if (students.length === 0) {
-      setError("Must include at least one student.");
-      return;
-    }
+
+    if (!validateForm()) return;
 
     setCreating(true);
     try {
@@ -77,22 +139,35 @@ export default function SetupTeam({ darkMode }) {
         students,
       };
 
-      const res = await fetch(`${API}/api/teams`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      let res;
+
+      if (editingTeam) {
+        res = await fetch(`${API}/api/teams/${editingTeam.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } else {
+        res = await fetch(`${API}/api/teams`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
+
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || `Create failed (${res.status})`);
+      if (!res.ok) {
+        throw new Error(
+          json.error ||
+            `${editingTeam ? "Update" : "Create"} failed (${res.status})`
+        );
+      }
 
       await loadTeams();
-      setName("");
-      setCode("");
-      setRepoUrl("");
-      setCsvText("");
-      alert("Team created.");
+      handleCancelEdit();
+      alert(editingTeam ? "Team updated." : "Team created.");
     } catch (e) {
-      setError(e.message || "Create team failed");
+      setError(e.message || "Action failed");
     } finally {
       setCreating(false);
     }
@@ -109,9 +184,14 @@ export default function SetupTeam({ darkMode }) {
         color: theme.text,
       }}
     >
-      <h1 style={{ margin: 0, fontSize: 22, color: theme.text }}>Setup Team</h1>
+      <h1 style={{ margin: 0, fontSize: 22, color: theme.text }}>
+        {editingTeam ? "Modify Group" : "Setup Team"}
+      </h1>
+
       <div style={{ color: theme.subtext, marginBottom: 12 }}>
-        Create a new project team and provide the repo and students CSV.
+        {editingTeam
+          ? "Update the selected group details and save your changes."
+          : "Create a new project team and provide the repo and students CSV."}
       </div>
 
       {error && (
@@ -132,48 +212,139 @@ export default function SetupTeam({ darkMode }) {
       <div style={card(theme)}>
         <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
           <Field label="Team Name" theme={theme}>
-            <input value={name} onChange={(e) => setName(e.target.value)} style={inp(theme)} />
+            <>
+              <input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors((prev) => ({ ...prev, name: "" }));
+                }}
+                style={inp(theme, errors.name)}
+              />
+              {errors.name && <div style={fieldErrorStyle}>{errors.name}</div>}
+            </>
           </Field>
+
           <Field label="Project Code" theme={theme}>
-            <input value={code} onChange={(e) => setCode(e.target.value)} style={inp(theme)} />
+            <>
+              <input
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  setErrors((prev) => ({ ...prev, code: "" }));
+                }}
+                style={inp(theme, errors.code)}
+              />
+              {errors.code && <div style={fieldErrorStyle}>{errors.code}</div>}
+            </>
           </Field>
         </div>
 
         <div style={{ marginTop: 10 }}>
           <Field label="Repository URL" theme={theme}>
-            <input
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="e.g. https://github.com/org/repo"
-              style={inp(theme, { minWidth: 400 })}
-            />
+            <>
+              <input
+                value={repoUrl}
+                onChange={(e) => {
+                  setRepoUrl(e.target.value);
+                  setErrors((prev) => ({ ...prev, repoUrl: "" }));
+                }}
+                placeholder="e.g. https://github.com/org/repo"
+                style={inp(theme, errors.repoUrl, { minWidth: 400 })}
+              />
+              {errors.repoUrl && <div style={fieldErrorStyle}>{errors.repoUrl}</div>}
+            </>
           </Field>
         </div>
 
         <div style={{ marginTop: 10 }}>
           <Field label="Students CSV (name,email per line)" theme={theme}>
-            <textarea
-              value={csvText}
-              onChange={(e) => setCsvText(e.target.value)}
-              placeholder={`Example:\nAlice Smith, alice@example.com\nBob Jones, bob@example.com`}
-              rows={8}
-              style={inp(theme, { fontFamily: "monospace", resize: "vertical" })}
-            />
+            <>
+              <textarea
+                value={csvText}
+                onChange={(e) => {
+                  setCsvText(e.target.value);
+                  setErrors((prev) => ({ ...prev, csvText: "" }));
+                }}
+                placeholder={`Example:\nAlice Smith, alice@example.com\nBob Jones, bob@example.com`}
+                rows={8}
+                style={inp(theme, errors.csvText, {
+                  fontFamily: "monospace",
+                  resize: "vertical",
+                })}
+              />
+              {errors.csvText && <div style={fieldErrorStyle}>{errors.csvText}</div>}
+            </>
           </Field>
+
           <div style={{ marginTop: 6, fontSize: 12, color: theme.subtext }}>
             Parsed {students.length} student{students.length !== 1 ? "s" : ""}.
           </div>
+
+          {students.length > 0 && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: 10,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 10,
+                background: theme.cardAlt,
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Parsed Students</div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {students.map((student, index) => (
+                  <div
+                    key={`${student.email}-${index}`}
+                    style={{
+                      fontSize: 13,
+                      color: theme.text,
+                      padding: "6px 8px",
+                      borderRadius: 8,
+                      border: `1px solid ${theme.border}`,
+                    }}
+                  >
+                    <div>{student.name}</div>
+                    <div style={{ color: theme.subtext }}>{student.email}</div>
+                    {errors[`student-name-${index}`] && (
+                      <div style={fieldErrorStyle}>{errors[`student-name-${index}`]}</div>
+                    )}
+                    {errors[`student-email-${index}`] && (
+                      <div style={fieldErrorStyle}>{errors[`student-email-${index}`]}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ marginTop: 14 }}>
+        <div style={{ marginTop: 14, display: "flex", gap: 10 }}>
           <button onClick={onCreate} disabled={creating} style={btn()}>
-            {creating ? "Creating..." : "Create Team"}
+            {creating
+              ? editingTeam
+                ? "Updating..."
+                : "Creating..."
+              : editingTeam
+              ? "Update Team"
+              : "Create Team"}
           </button>
+
+          {editingTeam && (
+            <button
+              onClick={handleCancelEdit}
+              style={btn({ background: "#6b7280" })}
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </div>
 
       <div style={card(theme, { marginTop: 16 })}>
-        <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>Existing Teams</div>
+        <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>
+          Existing Teams
+        </div>
 
         {teams.length ? (
           <div style={{ display: "grid", gap: 8 }}>
@@ -204,6 +375,13 @@ export default function SetupTeam({ darkMode }) {
 
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
+                    onClick={() => handleEdit(t)}
+                    style={btn({ background: "#2563eb" })}
+                  >
+                    Edit
+                  </button>
+
+                  <button
                     onClick={async () => {
                       try {
                         const res = await fetch(`${API}/api/teams/active`, {
@@ -231,6 +409,10 @@ export default function SetupTeam({ darkMode }) {
       </div>
     </div>
   );
+}
+
+function studentsToCsv(students = []) {
+  return students.map((s) => `${s.name},${s.email}`).join("\n");
 }
 
 function parseCsv(text) {
@@ -279,9 +461,9 @@ function Field({ label, children, theme }) {
   );
 }
 
-function inp(theme, extra = {}) {
+function inp(theme, hasError = false, extra = {}) {
   return {
-    border: `1px solid ${theme.softBorder}`,
+    border: `1px solid ${hasError ? "#dc2626" : theme.softBorder}`,
     background: theme.inputBg,
     color: theme.text,
     borderRadius: 10,
@@ -307,3 +489,8 @@ function btn(extra = {}) {
   };
 }
 
+const fieldErrorStyle = {
+  color: "#dc2626",
+  fontSize: 12,
+  marginTop: 4,
+};
