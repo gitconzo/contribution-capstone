@@ -26,8 +26,6 @@ function Shell() {
   
   const [teams, setTeams] = useState([]);
   const [teamId, setTeamId] = useState("");
-  const [scores, setScores] = useState(null);
-  const [teamStudents, setTeamStudents] = useState([]);
   const [showDefaultPasswordNotice, setShowDefaultPasswordNotice] = useState(false);
 
   const [dark, setDark] = useState(() => localStorage.getItem("p17_dark") === "1");
@@ -96,41 +94,17 @@ function Shell() {
     setStudentScores(data || null);
   }, [refreshStudentUploads, user?.email]);
 
-  // Fetch scores and students for a given team
-  const refreshDashboard = useCallback(async (id) => {
-    if (!id) return;
-    const [scoreData, teamData] = await Promise.all([
-      apiFetch(`/api/scores?teamId=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null),
-      apiFetch(`/api/teams/${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null),
-    ]);
-    setScores(scoreData);
-    setTeamStudents(teamData?.students || []);
-  }, []);
-
-  // when user switches teams update active team on server + refresh dashboard data
-  const handleTeamChange = useCallback(async (id) => {
-    setTeamId(id);
-    await apiFetch("/api/teams/active", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    refreshDashboard(id);
-  }, [refreshDashboard]);
-
-  // Fetch all teams and the active team, then load dashboard data (on first load)
+  // Fetch all teams and the active team (used by UploadsReview, SetupTeam, LecturerSettings)
   useEffect(() => {
     (async () => {
       const [allTeams, activeTeam] = await Promise.all([
         apiFetch("/api/teams").then(r => r.json()).catch(() => []),
         apiFetch("/api/teams/active").then(r => r.json()).catch(() => null),
       ]);
-      const activeId = activeTeam?.id || allTeams?.[0]?.id || "";
       setTeams(allTeams || []);
-      setTeamId(activeId);
-      refreshDashboard(activeId);
+      setTeamId(activeTeam?.id || allTeams?.[0]?.id || "");
     })();
-  }, [refreshDashboard]);
+  }, []);
 
   useEffect(() => {
     if (authed && user?.role === "student" && user?.usingDefaultPassword) {
@@ -244,17 +218,10 @@ function Shell() {
                 isTeacher ? (
                   <Dashboard
                     darkMode={dark}
-                    teams={teams}
-                    teamId={teamId}
-                    scores={scores}
-                    teamStudents={teamStudents}
-                    onTeamChange={handleTeamChange}
-                    onTeamsChange={setTeams}
                     onViewStudent={(s) => {
                       setSelectedStudent(s);
                       nav("/student");
                     }}
-                    onViewUploads={() => nav("/uploads-review")}
                   />
                 ) : (
                   <Navigate to="/student-dashboard" replace />

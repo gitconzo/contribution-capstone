@@ -2,6 +2,7 @@ import sys
 import json
 import re
 from docx import Document
+
  
 def clean_name(name):
     return (name or "").strip().lower()
@@ -12,6 +13,12 @@ def is_number(val):
         return True
     except (ValueError, TypeError):
         return False
+
+def names_match(a, b):
+    # Check if names share the same first word (first name)
+    a_first = a.split()[0] if a.split() else a
+    b_first = b.split()[0] if b.split() else b
+    return a_first == b_first or a == b
  
 def parse_peer_review(docx_path):
     doc = Document(docx_path)
@@ -35,11 +42,11 @@ def parse_peer_review(docx_path):
                         reviewer_name = cells[i + 1].strip()
                         break
  
-    # Find the scoring table — look for table with A-J column headers
+    # find the scoring table
     scoring_table = None
     for table in doc.tables:
         headers = [c.text.strip().upper() for c in table.rows[0].cells]
-        # Check if headers contain A through J
+        # check if headers contain A through J
         if all(letter in headers for letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']):
             scoring_table = table
             break
@@ -61,7 +68,6 @@ def parse_peer_review(docx_path):
             name_col = i
             break
     if name_col is None:
-        # fallback: second column is usually the name
         name_col = 1
  
     reviewer_clean = clean_name(reviewer_name)
@@ -77,10 +83,8 @@ def parse_peer_review(docx_path):
  
         student_clean = clean_name(student_name)
  
-        # Skip self-assessment
-        if reviewer_clean and student_clean and reviewer_clean in student_clean:
-            continue
-        if reviewer_clean and student_clean and student_clean in reviewer_clean:
+        # skip self-assessment
+        if reviewer_clean and student_clean and names_match(reviewer_clean, student_clean):
             continue
  
         # sum A-J scores

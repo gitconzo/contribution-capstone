@@ -135,6 +135,13 @@ router.post("/confirm", async (req, res) => {
       label: "Project Plan",
       combineAfter: true,
     },
+    peer_review: { 
+    exts: [".docx"],
+    script: path.join(ROOT_DIR, "parsers", "parse_peer_review_docx.py"),
+    outName: parsedName,
+    label: "Peer Review",
+    combine: false,
+  },
   };
 
   const parser = parsers[finalType];

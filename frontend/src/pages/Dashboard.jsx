@@ -1,12 +1,15 @@
 // frontend/src/components/dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Users, Link as LinkIcon, BarChart3, UserRound, GitCommitHorizontal, Eye, ChevronDown, Search } from "lucide-react";
 import { apiFetch } from "../utils/api";
+import { Users, Link as LinkIcon, BarChart3, UserRound, GitCommitHorizontal, Eye, ChevronDown, Search } from "lucide-react";
 
-export default function Dashboard({ onViewStudent, onViewUploads, darkMode, teams = [], teamId = "", scores = null, teamStudents = [], onTeamChange }) {
+export default function Dashboard({ onViewStudent, darkMode }) {
+  const [teamId, setTeamId] = useState("");
+  const [teams, setTeams] = useState([]);
+  const [scores, setScores] = useState(null);
+  const [teamStudents, setTeamStudents] = useState([]);
   const [query, setQuery] = useState("");
-  const [pendingUploads, setPendingUploads] = useState([]);
-  const [pendingUploadsLoading, setPendingUploadsLoading] = useState(false);
+  const [peerReview, setPeerReview] = useState(false);
 
   const theme = darkMode
     ? {
@@ -35,6 +38,31 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
         shadow: "0 6px 14px rgba(0,0,0,.04)",
         buttonBg: "#ffffff",
       };
+
+  useEffect(() => {
+    (async () => {
+      const [allTeams, activeTeam] = await Promise.all([
+        apiFetch("/api/teams").then(r => r.json()),
+        apiFetch("/api/teams/active").then(r => r.json()),
+      ]);
+      setTeams(Array.isArray(allTeams) ? allTeams : []);
+      setTeamId(activeTeam?.id || allTeams?.[0]?.id || "");
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!teamId) return;
+    const url = `/api/scores?teamId=${encodeURIComponent(teamId)}${peerReview ? "&usePeerReview=true" : ""}`;
+    apiFetch(url)
+      .then(r => r.json())
+      .then(setScores)
+      .catch(() => setScores(null));
+
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
+      .then(r => r.json())
+      .then(data => setTeamStudents(data.students || []))
+      .catch(() => setTeamStudents([]));
+  }, [teamId, peerReview]);
 
   const students = useMemo(() => {
     // Use scored ranking if available, otherwise fall back to raw team students
@@ -90,45 +118,6 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
     return { avg, high, commits: 0 };
   }, [scores]);
 
-  useEffect(() => {
-    loadPendingCount();
-
-    const handler = () => loadPendingCount();
-
-    window.addEventListener("uploadsUpdated", handler);
-
-    return () => {
-      window.removeEventListener("uploadsUpdated", handler);
-    };
-  }, [teamId]);
-
-  async function loadPendingCount() {
-    if (!teamId) {
-      setPendingUploads([]);
-      return;
-    }
-
-    try {
-      setPendingUploadsLoading(true);
-
-      const res = await apiFetch(`/api/uploads/pending?teamId=${encodeURIComponent(teamId)}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error(data.error || "Failed to load pending uploads");
-        setPendingUploads([]);
-        return;
-      }
-
-      setPendingUploads(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to load pending uploads:", error);
-      setPendingUploads([]);
-    } finally {
-      setPendingUploadsLoading(false);
-    }
-  }
-
   return (
     <div
       style={{
@@ -151,12 +140,34 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
           </div>
         </div>
 
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <button
+          onClick={() => setPeerReview(v => !v)}
+          style={{
+            padding: "8px 14px",
+            borderRadius: 10,
+            border: `1px solid ${peerReview ? "#16a34a" : theme.border}`,
+            background: peerReview ? "#f0fdf4" : theme.buttonBg,
+            cursor: "pointer",
+            fontSize: 13,
+            color: peerReview ? "#16a34a" : theme.text,
+            fontWeight: peerReview ? 600 : 400,
+          }}
+        >
+          {peerReview ? "✓ Peer Review On" : "Peer Review Off"}
+        </button>
+
         <select
           value={teamId}
-          onChange={(e) => {
+          onChange={async (e) => {
             const newTeamId = e.target.value;
+            setTeamId(newTeamId);
             localStorage.setItem("activeTeamId", newTeamId);
-            onTeamChange?.(newTeamId);
+            await apiFetch("/api/teams/active", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: newTeamId }),
+            });
           }}
           style={selectBox(theme)}
           title="Select project or team"
@@ -167,6 +178,7 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
             </option>
           ))}
         </select>
+        </div> 
       </div>
 
       {/* project card */}
@@ -194,7 +206,7 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
           />
           <InfoInline
             icon={<LinkIcon size={15} color={theme.mutedIcon} />}
-            text={scores?.team?.repo?.url || scores?.team?.repo_url || "Repository not connected"}
+            text={scores?.team?.repo?.url || "Repository not connected"}
           />
         </div>
       </div>
@@ -245,61 +257,6 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
           </div>
         </KpiCard>
       </div>
-
-      {/* pending uploads alert */}
-      {pendingUploadsLoading ? null : pendingUploads.length > 0 && (
-        <div
-          style={card(theme, {
-            marginTop: 16,
-            border: "1px solid #fecaca",
-            background: darkMode ? "#1f1720" : "#fef2f2",
-          })}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  color: darkMode ? "#fecaca" : "#991b1b",
-                  fontSize: 16,
-                }}
-              >
-                Pending Upload Reviews
-              </div>
-
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 13,
-                  color: darkMode ? "#fca5a5" : "#7f1d1d",
-                }}
-              >
-                {pendingUploads.length} upload(s) waiting for lecturer review
-              </div>
-            </div>
-
-            <button
-              style={{
-                ...linkBtn(theme),
-                border: "1px solid #fca5a5",
-                background: darkMode ? "#2a1220" : "#fff",
-                color: darkMode ? "#fecaca" : "#991b1b",
-              }}
-              onClick={() => onViewUploads?.()}
-            >
-              View Uploads
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* search header */}
       <div style={card(theme, { marginTop: 16, paddingBottom: 10 })}>
@@ -410,6 +367,11 @@ export default function Dashboard({ onViewStudent, onViewUploads, darkMode, team
                 <div style={{ fontWeight: 700, color: scoreColor(s.score), fontSize: 32 }}>
                   {Math.round(s.score) || "—"}
                 </div>
+                {scores?.peerReviewApplied && s.peerMultiplier && (
+                  <div style={{ fontSize: 11, color: theme.subtext, marginTop: 2 }}>
+                    Base: {Math.round(s.baseScore)}% × {s.peerMultiplier}
+                  </div>
+                )}
                 <div style={{ color: scoreColor(s.score), fontSize: 12, marginTop: -8 }}>%</div>
 
                 <button onClick={() => onViewStudent?.(s)} style={linkBtn(theme)}>

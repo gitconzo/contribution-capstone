@@ -394,7 +394,7 @@ function scoreStudents(students, rules = null) {
   return { ranking: ranked, weights: w, dims, studentsCount: students.length };
 }
 
-async function aggregateTeamScores({ teamId, rootDir }) {
+async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
   const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [teamId]);
   if (!teamRes.rows.length) throw new Error("Team not found");
   const team = teamRes.rows[0];
@@ -412,6 +412,19 @@ async function aggregateTeamScores({ teamId, rootDir }) {
 
   const students = aggregateForTeam(team, rootDir);
   const scored = scoreStudents(students, rules);
+
+ if (usePeerReview) {
+    const aliasMap = buildAliasMap(team); // use original team with DB aliases
+    const peerData = loadPeerReviewMetrics(rootDir, aliasMap);
+    if (peerData) {
+        scored.ranking = applyPeerMultiplier(students, scored.ranking, peerData);
+        scored.ranking = scored.ranking
+            .sort((a, b) => b.score - a.score)
+            .map((r, idx) => ({ ...r, rank: idx + 1 }));
+    }
+}
+
+  scored.peerReviewApplied = usePeerReview;
 
   return {
     team: { id: team.id, name: team.name, repo_url: team.repo_url },
