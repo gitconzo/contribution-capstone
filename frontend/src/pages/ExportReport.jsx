@@ -7,6 +7,9 @@ export default function ExportReport({ darkMode }) {
   const [team, setTeam] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [scores, setScores] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const theme = darkMode
     ? {
@@ -41,10 +44,17 @@ export default function ExportReport({ darkMode }) {
         const teamsRes = await apiFetch(`/api/teams`);
         const teamsData = await teamsRes.json();
 
-        const activeTeam = (teamsData || []).find((t) => t.id === activeData?.teamId);
+        const teamId = activeData?.id;
+        const activeTeam = (teamsData || []).find((t) => t.id === teamId);
 
         setTeam(activeTeam || null);
         setStudents(activeTeam?.students || []);
+
+        if (teamId) {
+          const scoresRes = await fetch(`${API}/api/scores?teamId=${encodeURIComponent(teamId)}`);
+          const scoresData = await scoresRes.json();
+          setScores(scoresData);
+}
       } catch (err) {
         console.error("Failed to load export team data:", err);
         setTeam(null);
@@ -56,6 +66,13 @@ export default function ExportReport({ darkMode }) {
 
     loadTeam();
   }, []);
+
+  const ranking = scores?.ranking || [];
+
+  const filteredRanking = useMemo(() => {
+    if (!selectedStudents.length) return ranking;
+    return ranking.filter(s => selectedStudents.includes(s.email));
+    }, [ranking, selectedStudents]);
 
   const toggleStudent = (email) => {
     setSelectedStudents((prev) =>
@@ -71,13 +88,81 @@ export default function ExportReport({ darkMode }) {
     setSelectedStudents([]);
   };
 
-  const averageScore = useMemo(() => {
-    const withScores = students.filter((s) => typeof s.score === "number");
-    if (!withScores.length) return "N/A";
-    const avg =
-      withScores.reduce((sum, s) => sum + s.score, 0) / withScores.length;
+   const averageScore = useMemo(() => {
+    const list = ranking.length ? ranking : [];
+    if (!list.length) return "N/A";
+    const avg = list.reduce((sum, s) => sum + (s.score || 0), 0) / list.length;
     return `${Math.round(avg)}%`;
-  }, [students]);
+  }, [ranking]);
+
+  const handleExport = async () => {
+  setExportError("");
+  setExporting(true);
+  try {
+    if (selectedFormat === "excel") {
+      const teamId = team?.id;
+      if (!teamId) throw new Error("No active team");
+      const res = await fetch(`${API}/api/export?teamId=${encodeURIComponent(teamId)}`);
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Export failed"); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `contribution_report_${team?.code || teamId}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (selectedFormat === "csv") {
+      if (!filteredRanking.length) throw new Error("No data to export");
+      const headers = [
+        "Rank","Name","Email","Overall Score (%)",
+        "Code Commits","Work Hours","Documents","Meetings",
+        "Total Lines of Code (normalised)","Total Edited Code (normalised)","Total Commits (normalised)",
+        "Total Functions Written (normalised)","Total Hotspots Contributed (normalised)","Code Complexity (normalised)",
+        "Average Sentence Length (normalised)","Sentence Complexity (normalised)",
+        "Word Count (normalised)","Readability (normalised)",
+        "Total Lines of Code %","Total Edited Code %","Total Commits %",
+        "Total Functions Written %","Total Hotspots Contributed %",
+        "Code Complexity (raw)","Average Sentence Length (raw)","Sentence Complexity (raw)",
+        "Word Count (raw)","Readability Score (raw)","Attendance %"
+      ];
+      const rows = filteredRanking.map((s, i) => {
+        const b = s.breakdown || {};
+        const r = s.raw || {};
+        return [
+          i+1, s.name||"", s.email||"", (s.score||0).toFixed(1),
+          r.commits||0, r.hours||0, r.docCount||0, r.meetings||0,
+          Math.round((b.loc||0)*100), Math.round((b.editedCode||0)*100),
+          Math.round((b.commits||0)*100), Math.round((b.functions||0)*100),
+          Math.round((b.hotspots||0)*100), Math.round((b.codeComplexity||0)*100),
+          Math.round((b.avgSentenceLength||0)*100), Math.round((b.sentenceComplexity||0)*100),
+          Math.round((b.wordCount||0)*100), Math.round((b.readability||0)*100),
+          (r.loc||0).toFixed(2), (r.editedCode||0).toFixed(2),
+          (r.commits||0).toFixed(2), (r.functions||0).toFixed(2),
+          (r.hotspots||0).toFixed(2), (r.codeComplexity||0).toFixed(3),
+          (r.avgSentenceLength||0).toFixed(2), (r.sentenceComplexity||0).toFixed(3),
+          r.wordCount||0, (r.readability||0).toFixed(2),
+          ((r.attendance||0)*100).toFixed(1),
+        ];
+      });
+      const csv = [headers, ...rows]
+        .map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `contribution_report_${team?.code||"team"}_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      setExportError(`${selectedFormat.toUpperCase()} export is not yet implemented.`);
+    }
+  } catch (e) {
+    setExportError(e.message || "Export failed");
+  } finally {
+    setExporting(false);
+  }
+};
 
   const cardStyle = {
     background: theme.card,
@@ -216,7 +301,7 @@ export default function ExportReport({ darkMode }) {
                   ["pdf", "PDF Report", "Formatted document with charts"],
                   ["word", "Word Document", "Editable DOCX format"],
                   ["csv", "CSV Data", "Raw data for analysis"],
-                  ["excel", "Excel Workbook", "Multi-sheet analysis"],
+                  ["excel", "xlsx File", "Excel sheet with graphs"],
                 ].map(([value, title, desc]) => (
                   <div
                     key={value}
@@ -329,20 +414,16 @@ export default function ExportReport({ darkMode }) {
               </div>
 
               <div style={{ display: "grid", gap: "10px" }}>
-                {students.length ? (
-                  students.map((student, index) => (
-                    <div
-                      key={student.email || index}
-                      style={{
-                        border: `1px solid ${theme.border}`,
-                        borderRadius: "12px",
-                        padding: "14px 16px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        background: theme.cardAlt,
-                      }}
-                    >
+                {ranking.length ? (
+                  ranking.map((student) => (
+                    <div key={student.email} style={{ 
+                      border: `1px solid ${theme.border}`, 
+                      borderRadius: "12px", 
+                      padding: "14px 16px", 
+                      display: "flex", 
+                      justifyContent: "space-between", 
+                      alignItems: "center", 
+                      background: theme.cardAlt }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <input
                           type="checkbox"
@@ -505,20 +586,17 @@ export default function ExportReport({ darkMode }) {
             </div>
 
             <div style={cardStyle}>
+              {exportError && (
+                <div style={{ background: "#fee2e2", color: "#991b1b", padding: "10px 12px", borderRadius: "8px", fontSize: "13px", marginBottom: "12px" }}>
+                {exportError}
+                </div>
+              )}
               <button
-                style={{
-                  width: "100%",
-                  background: "#000",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "14px",
-                  fontSize: "16px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                onClick={handleExport}
+                disabled={exporting}
+                style={{ width: "100%", background: exporting ? "#6b7280" : "#000", color: "#fff", border: "none", borderRadius: "12px", padding: "14px", fontSize: "16px", fontWeight: 700, cursor: exporting ? "not-allowed" : "pointer" }}
               >
-                Export {selectedFormat.toUpperCase()} Report
+                {exporting ? "Exporting..." : `Export ${selectedFormat.toUpperCase()} Report`}
               </button>
               <div
                 style={{
@@ -556,26 +634,22 @@ export default function ExportReport({ darkMode }) {
               </div>
 
               <div style={{ display: "grid", gap: "12px", fontSize: "15px", color: theme.text }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Code Commits:</span>
-                  <strong>30%</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Work Log Hours:</span>
-                  <strong>25%</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Documentation:</span>
-                  <strong>20%</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Meeting Participation:</span>
-                  <strong>15%</strong>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>Code Review:</span>
-                  <strong>10%</strong>
-                </div>
+                {scores?.weights ? (
+                  Object.entries(scores.weights).map(([key, val]) => (
+                    <div key={key} style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ textTransform: "capitalize" }}>{key.replace(/([A-Z])/g, ' $1')}:</span>
+                      <strong>{val}</strong>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}><span>Code Commits:</span><strong>30%</strong></div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}><span>Work Log Hours:</span><strong>25%</strong></div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}><span>Documentation:</span><strong>20%</strong></div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}><span>Meeting Participation:</span><strong>15%</strong></div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}><span>Code Review:</span><strong>10%</strong></div>
+                  </>
+                )}
               </div>
             </div>
           </div>
