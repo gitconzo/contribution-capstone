@@ -1,5 +1,5 @@
 // frontend/src/pages/RuleSettings.jsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiFetch } from "../utils/api";
 
 // Enhanced descriptions for each metric
@@ -60,7 +60,6 @@ const DEFAULT_RULES = {
     { name: "Readability", value: 11, desc: METRIC_DESCRIPTIONS["Readability"].short },
   ],
   autoRecalc: true,
-  crossVerify: true,
 };
 
 export default function RuleSettings({ darkMode }) {
@@ -131,7 +130,6 @@ export default function RuleSettings({ darkMode }) {
       const normalized = {
         rules: Array.isArray(data.rules) ? data.rules : DEFAULT_RULES.rules,
         autoRecalc: typeof data.autoRecalc === "boolean" ? data.autoRecalc : DEFAULT_RULES.autoRecalc,
-        crossVerify: typeof data.crossVerify === "boolean" ? data.crossVerify : DEFAULT_RULES.crossVerify,
         teamId: data.teamId || null,
       };
       setPayload(normalized);
@@ -177,7 +175,6 @@ export default function RuleSettings({ darkMode }) {
       const body = {
         rules: effectiveRules.rules,
         autoRecalc: effectiveRules.autoRecalc,
-        crossVerify: effectiveRules.crossVerify,
       };
       const res = await apiFetch("/api/rules", {
         method: "POST",
@@ -193,7 +190,6 @@ export default function RuleSettings({ darkMode }) {
         ...(prev ?? {}),
         rules: saved.rules?.rules ?? body.rules,
         autoRecalc: saved.rules?.autoRecalc ?? body.autoRecalc,
-        crossVerify: saved.rules?.crossVerify ?? body.crossVerify,
       }));
 
       if (effectiveRules.autoRecalc) {
@@ -428,24 +424,6 @@ export default function RuleSettings({ darkMode }) {
           />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "8px 0",
-            color: theme.text,
-          }}
-        >
-          <span>Cross-verify metrics for consistency and flag issues</span>
-          <input
-            type="checkbox"
-            checked={!!effectiveRules.crossVerify}
-            onChange={() =>
-              setRulesField((cur) => ({ ...cur, crossVerify: !cur.crossVerify }))
-            }
-          />
-        </div>
       </div>
 
       {/* Current Team Scores */}

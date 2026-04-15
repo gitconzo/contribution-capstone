@@ -15,23 +15,6 @@ function normalizeText(value = "") {
   return String(value).trim().toLowerCase().replace(/\s+/g, "");
 }
 
-function isStudentInTeam(team, user) {
-  if (!team || !user) return false;
-
-  const userEmail = normalizeText(user.email || "");
-  const userName = normalizeText(user.name || "");
-
-  return (team.students || []).some((student) => {
-    const studentEmail = normalizeText(student.email || "");
-    const studentName = normalizeText(student.name || "");
-
-    if (userEmail && studentEmail) {
-      return studentEmail === userEmail;
-    }
-
-    return !!userName && !!studentName && studentName === userName;
-  });
-}
 
 function formatDateTime(value) {
   if (!value) return "Unknown";
@@ -50,7 +33,7 @@ function prettyType(value = "") {
   return map[value] || value || "Unknown";
 }
 
-export default function StudentSettings({ darkMode }) {
+export default function StudentSettings({ darkMode, studentTeams = [], selectedTeamId: selectedTeamIdProp = "", onTeamChange, onRefreshTeams, studentUploads: uploadsProp = [], uploadsLoading: uploadsLoadingProp = false, onRefreshUploads }) {
   const theme = darkMode
     ? {
         pageBg: "#0b1120",
@@ -105,15 +88,14 @@ export default function StudentSettings({ darkMode }) {
   const [photoMessage, setPhotoMessage] = useState("");
   const [photoError, setPhotoError] = useState("");
 
-  const [studentTeams, setStudentTeams] = useState([]);
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const selectedTeamId = selectedTeamIdProp;
   const [selectedDocType, setSelectedDocType] = useState("worklog");
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [studentUploads, setStudentUploads] = useState([]);
-  const [uploadsLoading, setUploadsLoading] = useState(false);
+  const studentUploads = uploadsProp;
+  const uploadsLoading = uploadsLoadingProp;
 
   const selectedTeam = studentTeams.find((team) => team.id === selectedTeamId) || null;
   const selectedTeamStudents = selectedTeam?.students || [];
@@ -240,7 +222,7 @@ export default function StudentSettings({ darkMode }) {
 
       setUploadMessage("Document uploaded successfully and is now pending lecturer approval.");
       setSelectedFile(null);
-      await loadStudentUploads(selectedTeamId);
+      await onRefreshUploads?.();
       setSelectedDocType("worklog");
     } catch (error) {
       console.error("Student upload failed:", error);
@@ -250,101 +232,6 @@ export default function StudentSettings({ darkMode }) {
     }
   }
 
-  async function loadStudentUploads(teamId = selectedTeamId) {
-    if (!teamId || !savedUser?.email) {
-      setStudentUploads([]);
-      return;
-    }
-
-    try {
-      setUploadsLoading(true);
-
-      const res = await apiFetch(
-        `/api/uploads/student?teamId=${encodeURIComponent(teamId)}&email=${encodeURIComponent(savedUser.email)}`
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error(data.error || "Failed to load student uploads.");
-        setStudentUploads([]);
-        return;
-      }
-
-      setStudentUploads(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to load student uploads:", error);
-      setStudentUploads([]);
-    } finally {
-      setUploadsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    async function loadStudentTeams() {
-      try {
-        const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
-
-        const matchedTeams = (teamsRes || []).filter((team) =>
-          isStudentInTeam(team, savedUser)
-        );
-
-        setStudentTeams(matchedTeams);
-
-        if (!matchedTeams.length) {
-          setSelectedTeamId("");
-          return;
-        }
-
-        const savedTeamId = localStorage.getItem("studentSelectedTeamId");
-        const initialTeamId =
-          matchedTeams.find((t) => t.id === savedTeamId)?.id ||
-          matchedTeams[0].id;
-
-        setSelectedTeamId(initialTeamId);
-      } catch (error) {
-        console.error("Failed to load student teams:", error);
-        setStudentTeams([]);
-        setSelectedTeamId("");
-      }
-    }
-
-    loadStudentTeams();
-  }, [savedUser]);
-
-  useEffect(() => {
-    async function fetchStudentUploads() {
-      if (!selectedTeamId || !savedUser?.email) {
-        setStudentUploads([]);
-        return;
-      }
-
-      try {
-        setUploadsLoading(true);
-
-        const res = await apiFetch(
-          `/api/uploads/student?teamId=${encodeURIComponent(selectedTeamId)}&email=${encodeURIComponent(savedUser.email)}`
-        );
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          console.error(data.error || "Failed to load student uploads.");
-          setStudentUploads([]);
-          return;
-        }
-
-        setStudentUploads(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to load student uploads:", error);
-        setStudentUploads([]);
-      } finally {
-        setUploadsLoading(false);
-      }
-    }
-
-    fetchStudentUploads();
-  }, [selectedTeamId, savedUser]);
 
   async function handleChangePassword(e) {
     e.preventDefault();
@@ -472,11 +359,7 @@ export default function StudentSettings({ darkMode }) {
       setProfileImage(URL.createObjectURL(file));
       setPhotoMessage("Profile photo updated successfully.");
   
-      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
-      const matchedTeams = (teamsRes || []).filter((team) =>
-        isStudentInTeam(team, savedUser)
-      );
-      setStudentTeams(matchedTeams);
+      await onRefreshTeams?.();
     } catch (error) {
       console.error("Profile photo upload failed:", error);
       setPhotoError("Failed to upload profile photo.");
@@ -514,11 +397,7 @@ export default function StudentSettings({ darkMode }) {
       setProfileImage("");
       setPhotoMessage("Profile photo removed.");
   
-      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
-      const matchedTeams = (teamsRes || []).filter((team) =>
-        isStudentInTeam(team, savedUser)
-      );
-      setStudentTeams(matchedTeams);
+      await onRefreshTeams?.();
     } catch (error) {
       console.error("Failed to remove profile photo:", error);
       setPhotoError("Failed to remove profile photo.");
@@ -738,10 +617,7 @@ export default function StudentSettings({ darkMode }) {
         </label>
         <select
           value={selectedTeamId}
-          onChange={(e) => {
-            setSelectedTeamId(e.target.value);
-            localStorage.setItem("studentSelectedTeamId", e.target.value);
-          }}
+          onChange={(e) => onTeamChange?.(e.target.value)}
           style={inputField(theme)}
         >
           {studentTeams.map((team) => (

@@ -2,6 +2,7 @@
 const router = require("express").Router();
 const db = require("../../utils/db");
 const { readActiveId } = require("../../utils/activeTeamUtils");
+const { getUserStatus } = require("../../utils/cognitoAdmin");
 
 async function fetchTeamById(id) {
   const teamRes = await db.query(
@@ -68,6 +69,30 @@ router.get("/:id", async (req, res) => {
     const team = await fetchTeamById(req.params.id);
     if (!team) return res.status(404).json({ error: "Team not found" });
     res.json(team);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/teams/:id/student-statuses
+// Returns Cognito status for each student in the team
+router.get("/:id/student-statuses", async (req, res) => {
+  try {
+    const studentsRes = await db.query(
+      "SELECT email FROM students WHERE team_id = $1",
+      [req.params.id]
+    );
+
+    const statuses = {};
+    await Promise.all(
+      studentsRes.rows.map(async (s) => {
+        if (s.email) {
+          statuses[s.email] = await getUserStatus(s.email);
+        }
+      })
+    );
+
+    res.json(statuses);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

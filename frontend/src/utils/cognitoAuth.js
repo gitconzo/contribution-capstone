@@ -27,13 +27,28 @@ import {
     return new Promise((resolve, reject) => {
       const safeEmail = String(email || "").trim().toLowerCase();
       const user = getCognitoUser(safeEmail);
-  
+
       const authDetails = new AuthenticationDetails({
         Username: safeEmail,
         Password: password,
       });
-  
+
       user.authenticateUser(authDetails, {
+        onSuccess: (result) => resolve(result),
+        onFailure: (err) => reject(err),
+        newPasswordRequired: (userAttributes) => {
+          // Strip non-writable attributes before completing the challenge
+          delete userAttributes.email_verified;
+          delete userAttributes.email;
+          resolve({ challenge: "NEW_PASSWORD_REQUIRED", cognitoUser: user, userAttributes });
+        },
+      });
+    });
+  }
+
+  export function completeNewPassword(cognitoUser, newPassword) {
+    return new Promise((resolve, reject) => {
+      cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
         onSuccess: (result) => resolve(result),
         onFailure: (err) => reject(err),
       });

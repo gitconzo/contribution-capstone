@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { changeCurrentUserPassword } from "../utils/cognitoAuth";
 import { apiFetch } from "../utils/api";
 
-export default function LecturerSettings({ darkMode }) {
+export default function LecturerSettings({ darkMode, teams = [] }) {
   const theme = darkMode
     ? {
         pageBg: "#0b1120",
@@ -39,43 +39,22 @@ export default function LecturerSettings({ darkMode }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [studentDefaultPassword, setStudentDefaultPassword] = useState("");
-  const [studentConfirmPassword, setStudentConfirmPassword] = useState("");
-  const [currentDefaultPassword, setCurrentDefaultPassword] = useState("");
-  const [showCurrentDefaultPassword, setShowCurrentDefaultPassword] = useState(false);
-
   const [teacherMessage, setTeacherMessage] = useState("");
   const [teacherError, setTeacherError] = useState("");
-  const [studentMessage, setStudentMessage] = useState("");
-  const [studentError, setStudentError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
 
   const [loadingTeacher, setLoadingTeacher] = useState(false);
-  const [loadingStudent, setLoadingStudent] = useState(false);
-  const [loadingDefaultPassword, setLoadingDefaultPassword] = useState(true);
+  const [loadingReset, setLoadingReset] = useState(false);
+
+  // Student reset
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedEmail, setSelectedEmail] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    async function loadDefaultPassword() {
-      try {
-        setLoadingDefaultPassword(true);
-
-        const response = await apiFetch("/api/auth/student-default-password", {
-          method: "GET",
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          setCurrentDefaultPassword(data.studentDefaultPassword || "");
-        }
-      } catch (error) {
-        console.error("Failed to load default student password:", error);
-      } finally {
-        setLoadingDefaultPassword(false);
-      }
-    }
-
-    loadDefaultPassword();
-  }, []);
+    if (teams.length && !selectedTeamId) setSelectedTeamId(teams[0].id);
+  }, [teams, selectedTeamId]);
 
   async function handleTeacherPasswordChange(e) {
     e.preventDefault();
@@ -126,58 +105,32 @@ export default function LecturerSettings({ darkMode }) {
     }
   }
 
-  async function handleStudentDefaultPasswordChange(e) {
-    e.preventDefault();
-    setStudentMessage("");
-    setStudentError("");
+  const selectedTeam = teams.find(t => t.id === selectedTeamId);
+  const teamStudents = selectedTeam?.students || [];
 
-    if (!studentDefaultPassword || !studentConfirmPassword) {
-      setStudentError("Please fill in all student default password fields.");
-      return;
-    }
-
-    if (studentDefaultPassword.length < 8) {
-      setStudentError("Student default password must be at least 8 characters.");
-      return;
-    }
-
-    if (studentDefaultPassword !== studentConfirmPassword) {
-      setStudentError("Student password and confirm password do not match.");
-      return;
-    }
-
+  async function handleResetPassword() {
+    if (!selectedEmail) return;
+    setResetMessage("");
+    setResetError("");
+    setLoadingReset(true);
     try {
-      setLoadingStudent(true);
-
-      const response = await apiFetch("/api/auth/student-default-password", {
+      const res = await apiFetch("/api/auth/reset-student-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          newPassword: studentDefaultPassword,
-          confirmPassword: studentConfirmPassword,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: selectedEmail }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setStudentError(data.message || "Failed to update student default password.");
-        return;
+      const data = await res.json();
+      if (!res.ok) {
+        setResetError(data.error || "Failed to reset password.");
+      } else {
+        setResetMessage(`Password reset sent to ${selectedEmail}.`);
+        setSelectedEmail("");
       }
-
-      setStudentMessage(
-        `Student default password updated successfully. ${data.updatedStudents || 0} student account(s) were updated.`
-      );
-      setCurrentDefaultPassword(studentDefaultPassword);
-      setStudentDefaultPassword("");
-      setStudentConfirmPassword("");
-    } catch (error) {
-      console.error(error);
-      setStudentError("Cannot connect to server.");
+    } catch {
+      setResetError("Cannot connect to server.");
     } finally {
-      setLoadingStudent(false);
+      setLoadingReset(false);
+      setConfirming(false);
     }
   }
 
@@ -204,7 +157,7 @@ export default function LecturerSettings({ darkMode }) {
           Lecturer Settings
         </h1>
         <p style={{ color: theme.subtext, marginBottom: 24 }}>
-          Manage your lecturer account and the student default password.
+          Manage your lecturer account and student access.
         </p>
 
         <div
@@ -255,103 +208,87 @@ export default function LecturerSettings({ darkMode }) {
           </div>
 
           <div style={cardStyle(theme)}>
-            <h3 style={titleStyle(theme)}>Student Default Password</h3>
+            <h3 style={titleStyle(theme)}>Reset Student Password</h3>
             <p style={subtitleStyle(theme)}>
-              This password is used when new student accounts are created. Students who already changed
-              their own password will not be affected unless your backend is configured to update them.
+              Send a password reset to a specific student. If they haven't set their password yet,
+              the invite email will be resent. Otherwise they'll receive a reset link.
             </p>
 
-            <div
-              style={{
-                border: "1px solid #86efac",
-                background: "#f0fdf4",
-                borderRadius: 14,
-                padding: 16,
-                marginBottom: 18,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 10,
-                }}
-              >
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: "50%",
-                    background: "#22c55e",
-                    display: "inline-block",
-                  }}
-                />
-                <span style={{ fontWeight: 700, color: "#166534" }}>Active</span>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, color: theme.subtext, marginBottom: 6 }}>Team</div>
+                <select
+                  value={selectedTeamId}
+                  onChange={e => { setSelectedTeamId(e.target.value); setSelectedEmail(""); setConfirming(false); }}
+                  style={inputStyle(theme)}
+                >
+                  {teams.length === 0 && <option value="">No teams found</option>}
+                  {teams.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} {t.code ? `(${t.code})` : ""}</option>
+                  ))}
+                </select>
               </div>
 
-              <div style={{ color: "#166534", fontSize: 14, marginBottom: 8 }}>
-                Current default password
+              <div>
+                <div style={{ fontSize: 12, color: theme.subtext, marginBottom: 6 }}>Student</div>
+                <select
+                  value={selectedEmail}
+                  onChange={e => { setSelectedEmail(e.target.value); setConfirming(false); setResetMessage(""); setResetError(""); }}
+                  style={inputStyle(theme)}
+                  disabled={!teamStudents.length}
+                >
+                  <option value="">— Select a student —</option>
+                  {teamStudents.map(s => (
+                    <option key={s.email} value={s.email}>{s.name} ({s.email})</option>
+                  ))}
+                </select>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <input
-                  type={showCurrentDefaultPassword ? "text" : "password"}
-                  value={
-                    loadingDefaultPassword
-                      ? "Loading..."
-                      : currentDefaultPassword || "No default password found"
-                  }
-                  readOnly
-                  style={{
-                    ...inputStyle(theme),
-                    background: darkMode ? "#0f172a" : "#ffffff",
-                    flex: 1,
-                  }}
-                />
+              {resetError && <div style={errorStyle}>{resetError}</div>}
+              {resetMessage && <div style={successStyle}>{resetMessage}</div>}
 
+              {!confirming ? (
                 <button
                   type="button"
-                  onClick={() => setShowCurrentDefaultPassword((prev) => !prev)}
-                  style={secondaryButtonStyle(theme)}
-                  disabled={loadingDefaultPassword || !currentDefaultPassword}
+                  style={buttonStyle(theme)}
+                  disabled={!selectedEmail || loadingReset}
+                  onClick={() => setConfirming(true)}
                 >
-                  {showCurrentDefaultPassword ? "Hide" : "Show"}
+                  Reset Password
                 </button>
-              </div>
+              ) : (
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{
+                    background: darkMode ? "#1c1917" : "#fef9c3",
+                    border: `1px solid ${darkMode ? "#78350f" : "#fde047"}`,
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    fontSize: 13,
+                    color: darkMode ? "#fde68a" : "#713f12",
+                  }}>
+                    Send a password reset to <strong>{selectedEmail}</strong>?
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      style={buttonStyle(theme)}
+                      disabled={loadingReset}
+                      onClick={handleResetPassword}
+                    >
+                      {loadingReset ? "Sending..." : "Yes, Reset"}
+                    </button>
+                    <button
+                      type="button"
+                      style={secondaryButtonStyle(theme)}
+                      disabled={loadingReset}
+                      onClick={() => setConfirming(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-
-            <form onSubmit={handleStudentDefaultPasswordChange} style={{ display: "grid", gap: 14 }}>
-              <input
-                type="password"
-                placeholder="New default student password"
-                value={studentDefaultPassword}
-                onChange={(e) => setStudentDefaultPassword(e.target.value)}
-                style={inputStyle(theme)}
-              />
-
-              <input
-                type="password"
-                placeholder="Confirm new default student password"
-                value={studentConfirmPassword}
-                onChange={(e) => setStudentConfirmPassword(e.target.value)}
-                style={inputStyle(theme)}
-              />
-
-              {studentError && <div style={errorStyle}>{studentError}</div>}
-              {studentMessage && <div style={successStyle}>{studentMessage}</div>}
-
-              <button type="submit" style={buttonStyle(theme)} disabled={loadingStudent}>
-                {loadingStudent ? "Updating..." : "Update Default Password"}
-              </button>
-            </form>
           </div>
         </div>
       </div>

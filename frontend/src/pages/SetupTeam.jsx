@@ -13,6 +13,8 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
 
   // Which team is expanded (shows edit panel + students)
   const [expandedId, setExpandedId] = useState(null);
+  // Cognito statuses per team: { [teamId]: { [email]: status } }
+  const [studentStatuses, setStudentStatuses] = useState({});
 
   // Edit team details state
   const [editingId, setEditingId] = useState(null);
@@ -91,7 +93,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
     }
   };
 
-  const toggleExpand = (id) => {
+  const toggleExpand = async (id) => {
     if (expandedId === id) {
       setExpandedId(null);
       setEditingId(null);
@@ -102,6 +104,17 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
       setEditingId(null);
       setEditingStudent(null);
       setAddingStudentToId(null);
+
+      // Fetch Cognito statuses for team's students
+      try {
+        const res = await apiFetch(`/api/teams/${id}/student-statuses`);
+        if (res.ok) {
+          const statuses = await res.json();
+          setStudentStatuses(prev => ({ ...prev, [id]: statuses }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch student statuses:", err);
+      }
     }
   };
 
@@ -382,216 +395,250 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
       <div style={card(theme, { marginTop: 16 })}>
         <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>Existing Teams</div>
         {teams.length ? (
-          <div style={{ display: "grid", gap: 12 }}>
-            {teams.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: 10,
-                  padding: "12px 14px",
-                  background: theme.cardAlt,
-                }}
-              >
-                {/* Team header — always visible */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: 8 }}>
-                  <div>
-                    <div style={{ fontWeight: 600, color: theme.text }}>
-                      {t.name}{" "}
-                      <span style={{ color: theme.subtext, fontWeight: 400 }}>({t.code})</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: theme.subtext }}>
-                      {t.repo?.url} • {t.students?.length || 0} students
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      onClick={async () => {
-                        await apiFetch("/api/teams/active", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: t.id }),
-                        });
-                        localStorage.setItem("activeTeamId", t.id);
-                        alert("Active team updated.");
-                      }}
-                      style={btn({ fontSize: 12, padding: "6px 10px" })}
-                    >
-                      Make Active
-                    </button>
-                    <button
-                      onClick={() => toggleExpand(t.id)}
-                      style={btn({
-                        background: expandedId === t.id ? "#6b7280" : "#2563eb",
-                        fontSize: 12,
-                        padding: "6px 10px",
-                      })}
-                    >
-                      {expandedId === t.id ? "Close" : "Edit"}
-                    </button>
-                    <button
-                      onClick={() => onDeleteTeam(t.id)}
-                      style={btn({ background: "#dc2626", fontSize: 12, padding: "6px 10px" })}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                {/* Expanded panel — only visible when Edit is clicked */}
-                {expandedId === t.id && (
+          <div style={{ display: "grid", gap: 10 }}>
+            {teams.map((t) => {
+              const isExpanded = expandedId === t.id;
+              return (
+                <div
+                  key={t.id}
+                  style={{
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    background: theme.cardAlt,
+                  }}
+                >
+                  {/* Clickable team header */}
                   <div
+                    onClick={() => toggleExpand(t.id)}
                     style={{
-                      marginTop: 12,
-                      borderTop: `1px solid ${theme.border}`,
-                      paddingTop: 12,
                       display: "grid",
-                      gap: 12,
+                      gridTemplateColumns: "1fr auto",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "12px 14px",
+                      cursor: "pointer",
+                      transition: "background 0.15s",
                     }}
+                    onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#1f2937" : "#f1f5f9"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
-                    {/* Edit team details */}
-                    {editingId === t.id ? (
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: theme.expandEditText }}>Edit Team Details</div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                          <Field label="Team Name" theme={theme}>
-                            <input value={editName} onChange={e => setEditName(e.target.value)} style={inp(theme)} />
-                          </Field>
-                          <Field label="Project Code" theme={theme}>
-                            <input value={editCode} onChange={e => setEditCode(e.target.value)} style={inp(theme)} />
-                          </Field>
-                        </div>
-                        <Field label="Repository URL" theme={theme}>
-                          <input value={editRepo} onChange={e => setEditRepo(e.target.value)} style={inp(theme, { width: "100%" })} />
-                        </Field>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={() => onSaveTeam(t.id)} style={btn()}>Save</button>
-                          <button onClick={() => setEditingId(null)} style={btn({ background: "#6b7280" })}>Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => onEditTeam(t)}
-                        style={btn({ background: "#2563eb", fontSize: 12, padding: "6px 10px", width: "fit-content" })}
-                      >
-                        Edit Team Details
-                      </button>
-                    )}
-
-                    {/* Students */}
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, color: theme.expandEditText }}>
-                        Students ({t.students?.length || 0})
+                      <div style={{ fontWeight: 600, color: theme.text, display: "flex", alignItems: "center", gap: 8 }}>
+                        {t.name}{" "}
+                        <span style={{ color: theme.subtext, fontWeight: 400 }}>({t.code})</span>
+                        <span style={{ fontSize: 11, color: theme.subtext }}>
+                          {t.students?.length || 0} student{t.students?.length !== 1 ? "s" : ""}
+                        </span>
                       </div>
-                      <div style={{ display: "grid", gap: 6 }}>
-                        {(t.students || []).map(s => (
-                          <div key={s.email}>
-                            {editingStudent?.teamId === t.id && editingStudent?.email === s.email ? (
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns: "1fr 1fr 1fr auto",
-                                  gap: 6,
-                                  alignItems: "end",
-                                  background: theme.expandEditBg,
-                                  borderRadius: 8,
-                                  padding: 8,
-                                  border: `1px solid ${theme.border}`,
-                                }}
-                              >
-                                <Field label="Name" theme={theme}>
-                                  <input value={editStudentName} onChange={e => setEditStudentName(e.target.value)} style={inp(theme)} />
-                                </Field>
-                                <Field label="Email" theme={theme}>
-                                  <input value={editStudentEmail} onChange={e => setEditStudentEmail(e.target.value)} style={inp(theme)} />
-                                </Field>
-                                <Field label="GitHub" theme={theme}>
-                                  <input value={editStudentGithub} onChange={e => setEditStudentGithub(e.target.value)} style={inp(theme)} />
-                                </Field>
-                                <div style={{ display: "flex", gap: 4 }}>
-                                  <button onClick={onSaveStudent} style={btn({ fontSize: 12, padding: "6px 10px" })}>Save</button>
-                                  <button onClick={() => setEditingStudent(null)} style={btn({ background: "#6b7280", fontSize: 12, padding: "6px 10px" })}>Cancel</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns: "1fr auto",
-                                  alignItems: "center",
-                                  background: theme.studentRowBg,
-                                  borderRadius: 8,
-                                  padding: "6px 10px",
-                                  border: `1px solid ${theme.border}`,
-                                }}
-                              >
-                                <div style={{ fontSize: 13 }}>
-                                  <span style={{ fontWeight: 500, color: theme.text }}>{s.name}</span>
-                                  <span style={{ color: theme.subtext, marginLeft: 8 }}>{s.email}</span>
-                                  {s.github && <span style={{ color: "#2563eb", marginLeft: 8 }}>@{s.github}</span>}
-                                </div>
-                                <div style={{ display: "flex", gap: 4 }}>
-                                  <button onClick={() => onEditStudent(t.id, s)} style={btn({ background: "#2563eb", fontSize: 11, padding: "4px 8px" })}>Edit</button>
-                                  <button onClick={() => onRemoveStudent(t.id, s.email)} style={btn({ background: "#dc2626", fontSize: 11, padding: "4px 8px" })}>Remove</button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                      <div style={{ fontSize: 12, color: theme.subtext, marginTop: 2 }}>
+                        {t.repo?.url || "No repo set"}
                       </div>
-
-                      {/* Add student */}
-                      {addingStudentToId === t.id ? (
-                        <div
-                          style={{
-                            marginTop: 8,
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr 1fr auto",
-                            gap: 6,
-                            alignItems: "end",
-                            background: theme.expandEditBg,
-                            borderRadius: 8,
-                            padding: 8,
-                            border: `1px solid ${theme.border}`,
-                          }}
-                        >
-                          <Field label="Name" theme={theme}>
-                            <input value={newStudentName} onChange={e => setNewStudentName(e.target.value)} style={inp(theme)} placeholder="John Doe" />
-                          </Field>
-                          <Field label="Email" theme={theme}>
-                            <input value={newStudentEmail} onChange={e => setNewStudentEmail(e.target.value)} style={inp(theme)} placeholder="john@example.com" />
-                          </Field>
-                          <Field label="GitHub" theme={theme}>
-                            <input value={newStudentGithub} onChange={e => setNewStudentGithub(e.target.value)} style={inp(theme)} placeholder="johndoe" />
-                          </Field>
-                          <div style={{ display: "flex", gap: 4 }}>
-                            <button onClick={() => onAddStudent(t.id)} style={btn({ fontSize: 12, padding: "6px 10px" })}>Add</button>
-                            <button onClick={() => setAddingStudentToId(null)} style={btn({ background: "#6b7280", fontSize: 12, padding: "6px 10px" })}>Cancel</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setAddingStudentToId(t.id)}
-                          style={{
-                            marginTop: 8,
-                            background: "none",
-                            border: `1px dashed ${theme.addStudentBorder}`,
-                            borderRadius: 8,
-                            padding: "6px 12px",
-                            cursor: "pointer",
-                            fontSize: 12,
-                            color: theme.addStudentColor,
-                            width: "100%",
-                          }}
-                        >
-                          + Add Student
-                        </button>
-                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await apiFetch("/api/teams/active", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: t.id }),
+                          });
+                          localStorage.setItem("activeTeamId", t.id);
+                          alert("Active team updated.");
+                        }}
+                        style={btn({ fontSize: 11, padding: "5px 9px" })}
+                      >
+                        Make Active
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDeleteTeam(t.id); }}
+                        style={btn({ background: "#dc2626", fontSize: 11, padding: "5px 9px" })}
+                      >
+                        Delete
+                      </button>
+                      <span style={{ color: theme.subtext, fontSize: 16, userSelect: "none" }}>
+                        {isExpanded ? "▲" : "▼"}
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Expanded panel */}
+                  {isExpanded && (
+                    <div
+                      style={{
+                        borderTop: `1px solid ${theme.border}`,
+                        padding: "12px 14px",
+                        display: "grid",
+                        gap: 12,
+                      }}
+                    >
+                      {/* Students */}
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: theme.expandEditText }}>
+                          Members
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {(t.students || []).map(s => {
+                            const isPending = studentStatuses[t.id]?.[s.email] === "FORCE_CHANGE_PASSWORD";
+                            return (
+                              <div key={s.email}>
+                                {editingStudent?.teamId === t.id && editingStudent?.email === s.email ? (
+                                  <div
+                                    style={{
+                                      display: "grid",
+                                      gridTemplateColumns: "1fr 1fr 1fr auto",
+                                      gap: 6,
+                                      alignItems: "end",
+                                      background: theme.expandEditBg,
+                                      borderRadius: 8,
+                                      padding: 8,
+                                      border: `1px solid ${theme.border}`,
+                                    }}
+                                  >
+                                    <Field label="Name" theme={theme}>
+                                      <input value={editStudentName} onChange={e => setEditStudentName(e.target.value)} style={inp(theme)} />
+                                    </Field>
+                                    <Field label="Email" theme={theme}>
+                                      <input value={editStudentEmail} onChange={e => setEditStudentEmail(e.target.value)} style={inp(theme)} />
+                                    </Field>
+                                    <Field label="GitHub" theme={theme}>
+                                      <input value={editStudentGithub} onChange={e => setEditStudentGithub(e.target.value)} style={inp(theme)} />
+                                    </Field>
+                                    <div style={{ display: "flex", gap: 4 }}>
+                                      <button onClick={onSaveStudent} style={btn({ fontSize: 12, padding: "6px 10px" })}>Save</button>
+                                      <button onClick={() => setEditingStudent(null)} style={btn({ background: "#6b7280", fontSize: 12, padding: "6px 10px" })}>Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div
+                                    style={{
+                                      display: "grid",
+                                      gridTemplateColumns: "1fr 1fr 1fr auto",
+                                      alignItems: "center",
+                                      background: theme.studentRowBg,
+                                      borderRadius: 8,
+                                      padding: "8px 12px",
+                                      border: `1px solid ${theme.border}`,
+                                      opacity: isPending ? 0.5 : 1,
+                                    }}
+                                  >
+                                    <div style={{ fontSize: 13 }}>
+                                      <div style={{ fontWeight: 600, color: theme.text }}>{s.name}</div>
+                                      {isPending && (
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b" }}>
+                                          Pending setup
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: theme.subtext }}>{s.email}</div>
+                                    <div style={{ fontSize: 12, color: theme.subtext }}>
+                                      {s.github ? (
+                                        <span style={{ color: "#2563eb" }}>@{s.github}</span>
+                                      ) : (
+                                        <span style={{ color: theme.border }}>No GitHub</span>
+                                      )}
+                                      {s.aliases?.length > 0 && (
+                                        <span style={{ marginLeft: 8, color: theme.subtext }}>
+                                          alias: {Array.isArray(s.aliases) ? s.aliases.join(", ") : s.aliases}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                      <button onClick={() => onEditStudent(t.id, s)} style={btn({ background: "#2563eb", fontSize: 11, padding: "4px 8px" })}>Edit</button>
+                                      <button onClick={() => onRemoveStudent(t.id, s.email)} style={btn({ background: "#dc2626", fontSize: 11, padding: "4px 8px" })}>Remove</button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Add student */}
+                        {addingStudentToId === t.id ? (
+                          <div
+                            style={{
+                              marginTop: 8,
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr 1fr auto",
+                              gap: 6,
+                              alignItems: "end",
+                              background: theme.expandEditBg,
+                              borderRadius: 8,
+                              padding: 8,
+                              border: `1px solid ${theme.border}`,
+                            }}
+                          >
+                            <Field label="Name" theme={theme}>
+                              <input value={newStudentName} onChange={e => setNewStudentName(e.target.value)} style={inp(theme)} placeholder="John Doe" />
+                            </Field>
+                            <Field label="Email" theme={theme}>
+                              <input value={newStudentEmail} onChange={e => setNewStudentEmail(e.target.value)} style={inp(theme)} placeholder="john@example.com" />
+                            </Field>
+                            <Field label="GitHub" theme={theme}>
+                              <input value={newStudentGithub} onChange={e => setNewStudentGithub(e.target.value)} style={inp(theme)} placeholder="johndoe" />
+                            </Field>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <button onClick={() => onAddStudent(t.id)} style={btn({ fontSize: 12, padding: "6px 10px" })}>Add</button>
+                              <button onClick={() => setAddingStudentToId(null)} style={btn({ background: "#6b7280", fontSize: 12, padding: "6px 10px" })}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setAddingStudentToId(t.id)}
+                            style={{
+                              marginTop: 8,
+                              background: "none",
+                              border: `1px dashed ${theme.addStudentBorder}`,
+                              borderRadius: 8,
+                              padding: "6px 12px",
+                              cursor: "pointer",
+                              fontSize: 12,
+                              color: theme.addStudentColor,
+                              width: "100%",
+                            }}
+                          >
+                            + Add Student
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Edit team details */}
+                      <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 12 }}>
+                        {editingId === t.id ? (
+                          <div style={{ display: "grid", gap: 8 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: theme.expandEditText }}>Edit Team Details</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                              <Field label="Team Name" theme={theme}>
+                                <input value={editName} onChange={e => setEditName(e.target.value)} style={inp(theme)} />
+                              </Field>
+                              <Field label="Project Code" theme={theme}>
+                                <input value={editCode} onChange={e => setEditCode(e.target.value)} style={inp(theme)} />
+                              </Field>
+                            </div>
+                            <Field label="Repository URL" theme={theme}>
+                              <input value={editRepo} onChange={e => setEditRepo(e.target.value)} style={inp(theme, { width: "100%" })} />
+                            </Field>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button onClick={() => onSaveTeam(t.id)} style={btn()}>Save</button>
+                              <button onClick={() => setEditingId(null)} style={btn({ background: "#6b7280" })}>Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => onEditTeam(t)}
+                            style={btn({ background: "#2563eb", fontSize: 12, padding: "6px 10px", width: "fit-content" })}
+                          >
+                            Edit Team Details
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div style={{ color: theme.subtext }}>No teams yet.</div>

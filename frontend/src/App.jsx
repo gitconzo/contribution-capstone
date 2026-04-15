@@ -30,6 +30,71 @@ function Shell() {
   const [teamStudents, setTeamStudents] = useState([]);
   const [showDefaultPasswordNotice, setShowDefaultPasswordNotice] = useState(false);
 
+  const [dark, setDark] = useState(() => localStorage.getItem("p17_dark") === "1");
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // Student dashboard state — persists across navigation
+  const [studentTeams, setStudentTeams] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("studentTeamsCache") || "[]"); } catch { return []; }
+  });
+  const [studentScores, setStudentScores] = useState(null);
+  const [studentSelectedTeamId, setStudentSelectedTeamId] = useState(() => localStorage.getItem("studentSelectedTeamId") || "");
+  const [studentLoading, setStudentLoading] = useState(true);
+  const [studentUploads, setStudentUploads] = useState([]);
+  const [studentUploadsLoading, setStudentUploadsLoading] = useState(false);
+
+
+  const refreshStudentUploads = useCallback(async (teamId, email) => {
+    if (!teamId || !email) return;
+    setStudentUploadsLoading(true);
+    try {
+      const data = await apiFetch(`/api/uploads/student?teamId=${encodeURIComponent(teamId)}&email=${encodeURIComponent(email)}`).then(r => r.json()).catch(() => []);
+      setStudentUploads(Array.isArray(data) ? data : []);
+    } finally {
+      setStudentUploadsLoading(false);
+    }
+  }, []);
+
+  // Student dashboard: fetch teams this student belongs to, then load initial scores
+  const refreshStudentDashboard = useCallback(async (currentUser) => {
+    const u = currentUser || user;
+    if (!u?.email) return;
+    setStudentLoading(true);
+    try {
+      const all = await apiFetch("/api/teams").then(r => r.json()).catch(() => []);
+      const email = (u.email || "").trim().toLowerCase();
+      const matched = (all || []).filter(t =>
+        (t.students || []).some(s => (s.email || "").trim().toLowerCase() === email)
+      );
+      setStudentTeams(matched);
+      sessionStorage.setItem("studentTeamsCache", JSON.stringify(matched));
+      const savedId = localStorage.getItem("studentSelectedTeamId");
+      const initId = matched.find(t => t.id === savedId)?.id || matched[0]?.id || "";
+      setStudentSelectedTeamId(initId);
+      if (initId) {
+        const [data] = await Promise.all([
+          apiFetch(`/api/scores?teamId=${encodeURIComponent(initId)}`).then(r => r.json()).catch(() => null),
+          refreshStudentUploads(initId, u.email),
+        ]);
+        setStudentScores(data || null);
+      }
+    } finally {
+      setStudentLoading(false);
+    }
+  }, [user, refreshStudentUploads]);
+
+  const handleStudentTeamChange = useCallback(async (id) => {
+    localStorage.setItem("studentSelectedTeamId", id);
+    setStudentSelectedTeamId(id);
+    const [data] = await Promise.all([
+      apiFetch(`/api/scores?teamId=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null),
+      refreshStudentUploads(id, user?.email),
+    ]);
+    setStudentScores(data || null);
+  }, [refreshStudentUploads, user?.email]);
 
   // Fetch scores and students for a given team
   const refreshDashboard = useCallback(async (id) => {
@@ -67,15 +132,6 @@ function Shell() {
     })();
   }, [refreshDashboard]);
 
-  const [dark, setDark] = useState(() => {
-    return localStorage.getItem("p17_dark") === "1";
-  });
-
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-
   useEffect(() => {
     if (authed && user?.role === "student" && user?.usingDefaultPassword) {
       setShowDefaultPasswordNotice(true);
@@ -83,6 +139,13 @@ function Shell() {
       setShowDefaultPasswordNotice(false);
     }
   }, [authed, user]);
+
+  // Load student dashboard data once on mount (when logged in as student)
+  useEffect(() => {
+    if (authed && user?.role === "student") {
+      refreshStudentDashboard(user);
+    }
+  }, [authed, user, refreshStudentDashboard]);
 
   const isStudent = user?.role === "student";
   const isTeacher = !isStudent; // default to teacher if no role set (backwards compat)
@@ -137,6 +200,7 @@ function Shell() {
     localStorage.removeItem("p17_authed");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    sessionStorage.removeItem("studentTeamsCache");
     setAuthedState(false);
     setUser(null);
     nav("/login");
@@ -200,17 +264,52 @@ function Shell() {
 
             <Route
               path="/student-dashboard"
-              element={isStudent ? <StudentDashboard darkMode={dark} /> : <Navigate to="/" replace />}
+              element={
+                isStudent ? (
+                  <StudentDashboard
+                    darkMode={dark}
+                    studentTeams={studentTeams}
+                    scores={studentScores}
+                    selectedTeamId={studentSelectedTeamId}
+                    onTeamChange={handleStudentTeamChange}
+                    loading={studentLoading}
+                    onRefreshTeams={() => refreshStudentDashboard(user)}
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
             />
 
             <Route
               path="/settings"
-              element={isStudent ? <StudentSettings darkMode={dark} /> : <Navigate to="/" replace />}
+              element={
+                isStudent ? (
+                  <StudentSettings
+                    darkMode={dark}
+                    studentTeams={studentTeams}
+                    selectedTeamId={studentSelectedTeamId}
+                    onTeamChange={handleStudentTeamChange}
+                    onRefreshTeams={() => refreshStudentDashboard(user)}
+                    studentUploads={studentUploads}
+                    uploadsLoading={studentUploadsLoading}
+                    onRefreshUploads={() => refreshStudentUploads(studentSelectedTeamId, user?.email)}
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
             />
 
             <Route
               path="/lecturer-settings"
-              element={isTeacher ? <LecturerSettings darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
+              element={
+                isTeacher ? (
+                  <LecturerSettings darkMode={dark} teams={teams} />
+                ) : (
+                  <Navigate to="/student-dashboard" replace />
+                )
+              }
             />
 
             <Route

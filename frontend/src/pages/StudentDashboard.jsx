@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+// Note: teams/scores data is fetched in App.jsx and passed as props (cached across navigation)
 import { User } from "lucide-react";
 import { apiFetch } from "../utils/api";
 
@@ -156,27 +157,8 @@ function safePercentFromRatio(value, max) {
   return Math.round((value / max) * 100);
 }
 
-function isStudentInTeam(team, user) {
-  if (!team || !user) return false;
 
-  const userEmail = normalizeText(user.email || "");
-  const userName = normalizeText(user.name || "");
-
-  return (team.students || []).some((student) => {
-    const studentEmail = normalizeText(student.email || "");
-    const studentName = normalizeText(student.name || "");
-
-    // Prefer exact email match
-    if (userEmail && studentEmail) {
-      return studentEmail === userEmail;
-    }
-
-    // Only fall back to name if one side has no email
-    return !!userName && !!studentName && studentName === userName;
-  });
-}
-
-export default function StudentDashboard({ darkMode }) {
+export default function StudentDashboard({ darkMode, studentTeams = [], scores = null, selectedTeamId = "", onTeamChange, loading = false, onRefreshTeams }) {
   const theme = darkMode
     ? {
         pageBg: "#0b1120",
@@ -205,73 +187,8 @@ export default function StudentDashboard({ darkMode }) {
     return raw ? JSON.parse(raw) : null;
   }, []);
 
-  const [team, setTeam] = useState(null);
-  const [scores, setScores] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showTooltip, setShowTooltip] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState("");
-  const [studentTeams, setStudentTeams] = useState([]);
-  const [selectedTeamId, setSelectedTeamId] = useState("");
-
-  useEffect(() => {
-    async function loadStudentTeams() {
-      try {
-        const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
-
-        const matchedTeams = (teamsRes || []).filter((team) =>
-          isStudentInTeam(team, savedUser)
-        );
-
-        setStudentTeams(matchedTeams);
-
-        if (!matchedTeams.length) {
-          setTeam(null);
-          setScores(null);
-          setSelectedTeamId("");
-          return;
-        }
-  
-        const savedStudentTeamId = localStorage.getItem("studentSelectedTeamId");
-        const initialTeamId =
-          matchedTeams.find((t) => t.id === savedStudentTeamId)?.id ||
-          matchedTeams[0].id;
-  
-        setSelectedTeamId(initialTeamId);
-      } catch (error) {
-        console.error("Failed to load student teams:", error);
-        setStudentTeams([]);
-        setScores(null);
-        setTeam(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-  
-    loadStudentTeams();
-  }, [savedUser]);
-
-  useEffect(() => {
-    async function loadSelectedTeamData() {
-      if (!selectedTeamId) return;
-  
-      try {
-        localStorage.setItem("studentSelectedTeamId", selectedTeamId);
-  
-        const scoreData = await apiFetch(
-          `/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
-        ).then((r) => r.json());
-
-        setScores(scoreData || null);
-        setTeam(scoreData?.team || null);
-      } catch (error) {
-        console.error("Failed to load selected student team data:", error);
-        setScores(null);
-        setTeam(null);
-      }
-    }
-  
-    loadSelectedTeamData();
-  }, [selectedTeamId]);
 
   const ranking = useMemo(() => scores?.ranking || [], [scores]);
   const matchedRecord = matchStudentRecord(ranking, savedUser);
@@ -363,11 +280,7 @@ export default function StudentDashboard({ darkMode }) {
         return;
       }
   
-      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
-      const matchedTeams = (teamsRes || []).filter((team) =>
-        isStudentInTeam(team, savedUser)
-      );
-      setStudentTeams(matchedTeams);
+      await onRefreshTeams?.();
 
       alert("You are now the leader of this group.");
     } catch (error) {
@@ -395,19 +308,8 @@ export default function StudentDashboard({ darkMode }) {
         return;
       }
   
-      const teamsRes = await apiFetch(`/api/teams`).then((r) => r.json());
-      const matchedTeams = (teamsRes || []).filter((team) =>
-        isStudentInTeam(team, savedUser)
-      );
-      setStudentTeams(matchedTeams);
+      await onRefreshTeams?.();
 
-      const scoreData = await apiFetch(
-        `/api/scores?teamId=${encodeURIComponent(selectedTeamId)}`
-      ).then((r) => r.json());
-  
-      setScores(scoreData || null);
-      setTeam(scoreData?.team || null);
-  
       alert("You are no longer the leader of this group.");
     } catch (error) {
       console.error("Failed to step down as leader:", error);
@@ -575,7 +477,7 @@ export default function StudentDashboard({ darkMode }) {
     <div style={{ fontSize: 13, marginBottom: 6 }}>Selected Group</div>
     <select
       value={selectedTeamId}
-      onChange={(e) => setSelectedTeamId(e.target.value)}
+      onChange={(e) => onTeamChange?.(e.target.value)}
       style={{
         width: "100%",
         padding: "10px 12px",

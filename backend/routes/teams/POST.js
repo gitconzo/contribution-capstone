@@ -2,7 +2,6 @@
 const router = require("express").Router();
 const db = require("../../utils/db");
 const { createOrUpdateStudentUser } = require("../../utils/cognitoAdmin");
-const { readAppSettings } = require("../../utils/appSettings");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -130,13 +129,6 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    const settings = readAppSettings();
-    const defaultStudentPassword = settings.studentDefaultPassword;
-
-    if (!defaultStudentPassword) {
-      return res.status(500).json({ error: "Student default password is not configured." });
-    }
-
     // Find or create the unit by code
     let unitResult = await db.query("SELECT id FROM units WHERE code = $1", [code]);
     if (!unitResult.rows.length) {
@@ -179,39 +171,16 @@ router.post("/", async (req, res) => {
 
       if (safeEmail) {
         try {
-          console.log("Creating/updating Cognito user for:", safeEmail);
-
-          const result = await createOrUpdateStudentUser(
-            safeEmail,
-            defaultStudentPassword,
-            s.name || ""
-          );
-
-          cognitoResults.push({
-            email: safeEmail,
-            success: true,
-            created: result.created,
-          });
+          const result = await createOrUpdateStudentUser(safeEmail, s.name || "");
+          cognitoResults.push({ email: safeEmail, success: true, created: result.created });
         } catch (err) {
           console.error(`Failed to create Cognito user for ${safeEmail}:`, err);
-          cognitoResults.push({
-            email: safeEmail,
-            success: false,
-            error: err.message,
-          });
+          cognitoResults.push({ email: safeEmail, success: false, error: err.message });
         }
       }
     }
 
-    res.status(201).json({
-      id,
-      name,
-      code,
-      repo: repo || null,
-      students: studentList,
-      defaultStudentPassword,
-      cognitoResults,
-    });
+    res.status(201).json({ id, name, code, repo: repo || null, students: studentList, cognitoResults });
   } catch (e) {
     console.error("POST /api/teams error:", e);
     res.status(500).json({ error: e.message });
@@ -226,13 +195,6 @@ router.post("/:id/students", async (req, res) => {
   }
 
   try {
-    const settings = readAppSettings();
-    const defaultStudentPassword = settings.studentDefaultPassword;
-
-    if (!defaultStudentPassword) {
-      return res.status(500).json({ error: "Student default password is not configured." });
-    }
-
     const safeEmail = normalizeEmail(email);
 
     const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [req.params.id]);
@@ -262,38 +224,17 @@ router.post("/:id/students", async (req, res) => {
 
     let cognitoResult = null;
     try {
-      console.log("Creating/updating Cognito user for added student:", safeEmail);
-
-      const result = await createOrUpdateStudentUser(
-        safeEmail,
-        defaultStudentPassword,
-        name
-      );
-
-      cognitoResult = {
-        success: true,
-        created: result.created,
-      };
+      const result = await createOrUpdateStudentUser(safeEmail, name);
+      cognitoResult = { success: true, created: result.created };
     } catch (err) {
       console.error(`Failed to create Cognito user for ${safeEmail}:`, err);
-      cognitoResult = {
-        success: false,
-        error: err.message,
-      };
+      cognitoResult = { success: false, error: err.message };
     }
 
     const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
-    const studentsRes = await db.query(
-      "SELECT * FROM students WHERE team_id = $1",
-      [req.params.id]
-    );
+    const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [req.params.id]);
 
-    res.json({
-      ...teamRes.rows[0],
-      students: studentsRes.rows,
-      defaultStudentPassword,
-      cognitoResult,
-    });
+    res.json({ ...teamRes.rows[0], students: studentsRes.rows, cognitoResult });
   } catch (e) {
     console.error("POST /api/teams/:id/students error:", e);
     res.status(500).json({ error: e.message });
