@@ -11,6 +11,7 @@ export default function SetupTeam({ darkMode }) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
+  const [editingTeam, setEditingTeam] = useState(null);
 
   const theme = darkMode
     ? {
@@ -104,12 +105,30 @@ export default function SetupTeam({ darkMode }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleEdit = (team) => {
+    setEditingTeam(team);
+    setName(team.name || "");
+    setCode(team.code || "");
+    setRepoUrl(team.repo?.url || "");
+    setCsvText(studentsToCsv(team.students || []));
+    setErrors({});
+    setError("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTeam(null);
+    setName("");
+    setCode("");
+    setRepoUrl("");
+    setCsvText("");
+    setErrors({});
+    setError("");
+  };
+
   const onCreate = async () => {
     setError("");
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setCreating(true);
     try {
@@ -120,23 +139,35 @@ export default function SetupTeam({ darkMode }) {
         students,
       };
 
-      const res = await fetch(`${API}/api/teams`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      let res;
+
+      if (editingTeam) {
+        res = await fetch(`${API}/api/teams/${editingTeam.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } else {
+        res = await fetch(`${API}/api/teams`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
+
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || `Create failed (${res.status})`);
+      if (!res.ok) {
+        throw new Error(
+          json.error ||
+            `${editingTeam ? "Update" : "Create"} failed (${res.status})`
+        );
+      }
 
       await loadTeams();
-      setName("");
-      setCode("");
-      setRepoUrl("");
-      setCsvText("");
-      setErrors({});
-      alert("Team created.");
+      handleCancelEdit();
+      alert(editingTeam ? "Team updated." : "Team created.");
     } catch (e) {
-      setError(e.message || "Create team failed");
+      setError(e.message || "Action failed");
     } finally {
       setCreating(false);
     }
@@ -153,9 +184,14 @@ export default function SetupTeam({ darkMode }) {
         color: theme.text,
       }}
     >
-      <h1 style={{ margin: 0, fontSize: 22, color: theme.text }}>Setup Team</h1>
+      <h1 style={{ margin: 0, fontSize: 22, color: theme.text }}>
+        {editingTeam ? "Modify Group" : "Setup Team"}
+      </h1>
+
       <div style={{ color: theme.subtext, marginBottom: 12 }}>
-        Create a new project team and provide the repo and students CSV.
+        {editingTeam
+          ? "Update the selected group details and save your changes."
+          : "Create a new project team and provide the repo and students CSV."}
       </div>
 
       {error && (
@@ -283,15 +319,32 @@ export default function SetupTeam({ darkMode }) {
           )}
         </div>
 
-        <div style={{ marginTop: 14 }}>
+        <div style={{ marginTop: 14, display: "flex", gap: 10 }}>
           <button onClick={onCreate} disabled={creating} style={btn()}>
-            {creating ? "Creating..." : "Create Team"}
+            {creating
+              ? editingTeam
+                ? "Updating..."
+                : "Creating..."
+              : editingTeam
+              ? "Update Team"
+              : "Create Team"}
           </button>
+
+          {editingTeam && (
+            <button
+              onClick={handleCancelEdit}
+              style={btn({ background: "#6b7280" })}
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </div>
 
       <div style={card(theme, { marginTop: 16 })}>
-        <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>Existing Teams</div>
+        <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>
+          Existing Teams
+        </div>
 
         {teams.length ? (
           <div style={{ display: "grid", gap: 8 }}>
@@ -322,6 +375,13 @@ export default function SetupTeam({ darkMode }) {
 
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
+                    onClick={() => handleEdit(t)}
+                    style={btn({ background: "#2563eb" })}
+                  >
+                    Edit
+                  </button>
+
+                  <button
                     onClick={async () => {
                       try {
                         const res = await fetch(`${API}/api/teams/active`, {
@@ -349,6 +409,10 @@ export default function SetupTeam({ darkMode }) {
       </div>
     </div>
   );
+}
+
+function studentsToCsv(students = []) {
+  return students.map((s) => `${s.name},${s.email}`).join("\n");
 }
 
 function parseCsv(text) {
