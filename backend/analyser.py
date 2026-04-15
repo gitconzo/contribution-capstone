@@ -65,8 +65,8 @@ def analyse_functions(tempFolder):
 
             commitFrequency = len(commitHashes)
 
-            complexity =(
-                (func.cyclomatic_complexity /10) + (func.cognitive_complexity /10) + (func.token_count / 100)
+            complexity = (
+                (func.cyclomatic_complexity / 10) + (func.token_count / 100)
             )
 
             functionData.append({

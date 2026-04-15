@@ -54,7 +54,6 @@ async function ghFetch(url, token, init = {}) {
 }
 
 async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
-  // Page through the list (summaries), then fetch details (stats) for first N
   const base = `https://api.github.com/repos/${owner}/${repo}`;
   let page = 1;
   const per_page = 100;
@@ -68,10 +67,10 @@ async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
     summaries.push(...batch);
     if (batch.length < per_page) break;
     page += 1;
-    if (page > 10) break; // hard stop to avoid excessive pagination (1000 commits)
+    if (page > 10) break;
   }
 
-  // Fetch detailed stats for first N commits to match {stats:{additions,deletions}}
+  // Fetch detailed stats for first N commits
   const detailed = [];
   const limit = Math.min(summaries.length, maxDetailed);
   for (let i = 0; i < limit; i++) {
@@ -80,20 +79,24 @@ async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
     try {
       const r = await ghFetch(url, token);
       const j = await r.json();
+
+      // Skip merge commits
+      if (j.parents && j.parents.length > 1) continue;
+
       detailed.push({
         sha: sha,
         author: (j.commit && j.commit.author && j.commit.author.name) || (j.author && j.author.login) || "Unknown",
         stats: j.stats || { additions: 0, deletions: 0 }
       });
     } catch (e) {
-      // fall back with minimal info
       detailed.push({ sha, author: "Unknown", stats: { additions: 0, deletions: 0 } });
     }
   }
 
-  // If there are more summaries than detailed, append stubs so counts still reflect activity
   for (let i = maxDetailed; i < summaries.length; i++) {
     const s = summaries[i];
+    const message = s.commit?.message || "";
+    if (message.startsWith("Merge")) continue;
     detailed.push({
       sha: s.sha,
       author: (s.commit && s.commit.author && s.commit.author.name) || (s.author && s.author.login) || "Unknown",
