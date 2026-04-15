@@ -25,7 +25,16 @@ router.get("/", async (req, res) => {
     const scriptPath = path.join(tmpDir, `gen_${ts}.py`);
     const jsonPath = path.join(tmpDir, `data_${ts}.json`);
 
-    const ranking = payload.ranking;
+    // Filter to selected students if provided
+    function parseStudentFilter(query) {
+      if (!query.students) return null;
+      return query.students.split(",").map(email => email.trim().toLowerCase());
+    }
+
+    const studentFilter = parseStudentFilter(req.query);
+    const ranking = studentFilter
+      ? payload.ranking.filter(student => studentFilter.includes((student.email || "").toLowerCase()))
+      : payload.ranking;
     const teamCode = payload.team?.name?.replace(/\s+/g, "_") || teamId;
 
     fs.writeFileSync(jsonPath, JSON.stringify(ranking));
@@ -91,7 +100,7 @@ chart1.height = 12
 pie_data = Reference(ws, min_col=4, min_row=1, max_row=num_students+1)
 chart1.add_data(pie_data, titles_from_data=True)
 chart1.set_categories(names)
-ws.add_chart(chart1, "AC1")
+ws.add_chart(chart1, "AC2")
 
 # Chart 2: Code metrics grouped bar
 chart2 = BarChart()
@@ -112,7 +121,7 @@ for col in range(9, 15):
     chart2.add_data(Reference(ws, min_col=col, min_row=1, max_row=num_students+1), titles_from_data=True)
 cats2 = Reference(ws, min_col=2, min_row=2, max_row=num_students+1)
 chart2.set_categories(cats2)
-ws.add_chart(chart2, "AC16")
+ws.add_chart(chart2, "AC28")
 
 # Chart 3: Documentation metrics grouped bar
 chart3 = BarChart()
@@ -133,7 +142,7 @@ for col in range(15, 19):
     chart3.add_data(Reference(ws, min_col=col, min_row=1, max_row=num_students+1), titles_from_data=True)
 cats3 = Reference(ws, min_col=2, min_row=2, max_row=num_students+1)
 chart3.set_categories(cats3)
-ws.add_chart(chart3, "AC32")
+ws.add_chart(chart3, "AC54")
 
 wb.save(r"${outPath.replace(/\\/g, "\\\\")}")
 `;
@@ -150,9 +159,9 @@ wb.save(r"${outPath.replace(/\\/g, "\\\\")}")
     res.send(fs.readFileSync(outPath));
     fs.unlinkSync(outPath);
 
-  } catch (e) {
-    console.error("Export error:", e);
-    res.status(500).json({ error: e.message || "Export failed" });
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).json({ error: error.message || "Export failed" });
   }
 });
 
