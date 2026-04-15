@@ -51,7 +51,7 @@ export default function ExportReport({ darkMode }) {
         setStudents(activeTeam?.students || []);
 
         if (teamId) {
-          const scoresRes = await fetch(`${API}/api/scores?teamId=${encodeURIComponent(teamId)}`);
+          const scoresRes = await apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`);
           const scoresData = await scoresRes.json();
           setScores(scoresData);
 }
@@ -67,12 +67,12 @@ export default function ExportReport({ darkMode }) {
     loadTeam();
   }, []);
 
-  const ranking = scores?.ranking || [];
+  const ranking = useMemo(() => scores?.ranking || [], [scores]);
 
   const filteredRanking = useMemo(() => {
     if (!selectedStudents.length) return ranking;
     return ranking.filter(s => selectedStudents.includes(s.email));
-    }, [ranking, selectedStudents]);
+  }, [ranking, selectedStudents]);
 
   const toggleStudent = (email) => {
     setSelectedStudents((prev) =>
@@ -102,7 +102,7 @@ export default function ExportReport({ darkMode }) {
     if (selectedFormat === "excel") {
       const teamId = team?.id;
       if (!teamId) throw new Error("No active team");
-      const res = await fetch(`${API}/api/export?teamId=${encodeURIComponent(teamId)}`);
+      const res = await apiFetch(`/api/export?teamId=${encodeURIComponent(teamId)}`);
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Export failed"); }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -185,15 +185,16 @@ export default function ExportReport({ darkMode }) {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: theme.pageBg,
-          color: theme.text,
-          padding: "24px",
-        }}
-      >
-        Loading export data...
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: theme.pageBg }}>
+        <div style={{
+          width: 40,
+          height: 40,
+          border: `4px solid ${theme.border}`,
+          borderTop: `4px solid ${darkMode ? "#f8fafc" : "#111827"}`,
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }

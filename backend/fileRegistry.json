@@ -9,10 +9,8 @@
     "uploadDate": "2025-10-20T01:50:17.027Z",
     "detectedType": "worklog",
     "userType": "worklog",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Worklog parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 8, in extract_text_docx\n    from docx import Document\nModuleNotFoundError: No module named 'docx'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 92, in <module>\n    lines = extract_text_docx(in_path)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 10, in extract_text_docx\n    raise RuntimeError(\"python-docx not installed. pip install python-docx\")\nRuntimeError: python-docx not installed. pip install python-docx\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS4000 Worklog Week 6__1760925122301.docx",
@@ -24,10 +22,8 @@
     "uploadDate": "2025-10-20T01:52:02.318Z",
     "detectedType": "worklog",
     "userType": "worklog",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Worklog parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 8, in extract_text_docx\n    from docx import Document\nModuleNotFoundError: No module named 'docx'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 92, in <module>\n    lines = extract_text_docx(in_path)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/worklog_parser.py\", line 10, in extract_text_docx\n    raise RuntimeError(\"python-docx not installed. pip install python-docx\")\nRuntimeError: python-docx not installed. pip install python-docx\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS4000 Worklog Week 6__1760925315876.docx",
@@ -39,11 +35,8 @@
     "uploadDate": "2025-10-20T01:55:15.893Z",
     "detectedType": "worklog",
     "userType": "worklog",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/COS4000 Worklog Week 6__1760925315876.json",
-      "message": "Worklog parsed"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS4000 Worklog Week 6__1760925636272.docx",
@@ -55,11 +48,8 @@
     "uploadDate": "2025-10-20T02:00:36.282Z",
     "detectedType": "worklog",
     "userType": "worklog",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/COS4000 Worklog Week 6__1760925636272.json",
-      "message": "Worklog parsed"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS4000 Worklog Week 6__1760936288082.docx",
@@ -71,11 +61,8 @@
     "uploadDate": "2025-10-20T04:58:08.097Z",
     "detectedType": "worklog",
     "userType": "worklog",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/COS4000 Worklog Week 6__1760936288082.json",
-      "message": "Worklog parsed"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS4000 Worklog Week 6__1760937419032.docx",
@@ -100,10 +87,8 @@
     "uploadDate": "2025-10-20T05:38:34.786Z",
     "detectedType": "worklog",
     "userType": "worklog",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Worklog parse failed: Error: Package not found at '/Users/conzo/Desktop/contribution-capstone/backend/uploads/COS4000 Worklog Week 9__1760938714775.pdf'\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS4000 Worklog Week 6__1760938744911.docx",
@@ -115,11 +100,8 @@
     "uploadDate": "2025-10-20T05:39:04.925Z",
     "detectedType": "worklog",
     "userType": "worklog",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/COS4000 Worklog Week 6__1760938744911.json",
-      "message": "Worklog parsed"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761478414953.docx",
@@ -131,10 +113,8 @@
     "uploadDate": "2025-10-26T11:33:34.982Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Sprint report parse failed: \nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 20, in <module>\n    import pandas as pd\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/__init__.py\", line 26, in <module>\n    from pandas.compat import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/compat/__init__.py\", line 29, in <module>\n    from pandas.compat.pyarrow import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/compat/pyarrow.py\", line 8, in <module>\n    import pyarrow as pa\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 20, in <module>\n    import pandas as pd\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/__init__.py\", line 49, in <module>\n    from pandas.core.api import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/core/api.py\", line 9, in <module>\n    from pandas.core.dtypes.dtypes import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/core/dtypes/dtypes.py\", line 24, in <module>\n    from pandas._libs import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 421, in <module>\n    import pyarrow\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 15, in <module>\n    from nltk.parse import ParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/parse/__init__.py\", line 100, in <module>\n    from nltk.parse.transitionparser import TransitionParser\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/parse/transitionparser.py\", line 18, in <module>\n    from sklearn import svm\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 20, in <module>\n    from .utils._missing import is_scalar_nan\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 421, in <module>\n    import pyarrow\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\nTraceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 26, in <module>\n    parse_sprint_report(input_file)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 13, in parse_sprint_report\n    result = parse_docx_with_metrics(docx_path, output_json_path=out_path)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 283, in parse_docx_with_metrics\n    students = build_student_metrics(authorship_map, extracted_sections)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 239, in build_student_metrics\n    \"metrics\": get_text_metrics(full_text)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 46, in get_text_metrics\n    sentences = sent_tokenize(cleaned)\n                ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/__init__.py\", line 119, in sent_tokenize\n    tokenizer = _get_punkt_tokenizer(language)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/__init__.py\", line 105, in _get_punkt_tokenizer\n    return PunktTokenizer(language)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/punkt.py\", line 1744, in __init__\n    self.load_lang(lang)\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/punkt.py\", line 1749, in load_lang\n    lang_dir = find(f\"tokenizers/punkt_tab/{lang}/\")\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/data.py\", line 579, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource \u001b[93mpunkt_tab\u001b[0m not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  \u001b[31m>>> import nltk\n  >>> nltk.download('punkt_tab')\n  \u001b[0m\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load \u001b[93mtokenizers/punkt_tab/english/\u001b[0m\n\n  Searched in:\n    - '/Users/conzo/nltk_data'\n    - '/Users/conzo/anaconda3/nltk_data'\n    - '/Users/conzo/anaconda3/share/nltk_data'\n    - '/Users/conzo/anaconda3/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n**********************************************************************\n\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761484933447.docx",
@@ -146,10 +126,8 @@
     "uploadDate": "2025-10-26T13:22:13.476Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Sprint report parse failed: \nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 20, in <module>\n    import pandas as pd\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/__init__.py\", line 26, in <module>\n    from pandas.compat import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/compat/__init__.py\", line 29, in <module>\n    from pandas.compat.pyarrow import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/compat/pyarrow.py\", line 8, in <module>\n    import pyarrow as pa\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 20, in <module>\n    import pandas as pd\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/__init__.py\", line 49, in <module>\n    from pandas.core.api import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/core/api.py\", line 9, in <module>\n    from pandas.core.dtypes.dtypes import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/core/dtypes/dtypes.py\", line 24, in <module>\n    from pandas._libs import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 421, in <module>\n    import pyarrow\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 15, in <module>\n    from nltk.parse import ParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/parse/__init__.py\", line 100, in <module>\n    from nltk.parse.transitionparser import TransitionParser\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/parse/transitionparser.py\", line 18, in <module>\n    from sklearn import svm\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 20, in <module>\n    from .utils._missing import is_scalar_nan\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 421, in <module>\n    import pyarrow\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\nTraceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 26, in <module>\n    parse_sprint_report(input_file)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 13, in parse_sprint_report\n    result = parse_docx_with_metrics(docx_path, output_json_path=out_path)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 283, in parse_docx_with_metrics\n    students = build_student_metrics(authorship_map, extracted_sections)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 239, in build_student_metrics\n    \"metrics\": get_text_metrics(full_text)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 46, in get_text_metrics\n    sentences = sent_tokenize(cleaned)\n                ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/__init__.py\", line 119, in sent_tokenize\n    tokenizer = _get_punkt_tokenizer(language)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/__init__.py\", line 105, in _get_punkt_tokenizer\n    return PunktTokenizer(language)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/punkt.py\", line 1744, in __init__\n    self.load_lang(lang)\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/punkt.py\", line 1749, in load_lang\n    lang_dir = find(f\"tokenizers/punkt_tab/{lang}/\")\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/data.py\", line 579, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource \u001b[93mpunkt_tab\u001b[0m not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  \u001b[31m>>> import nltk\n  >>> nltk.download('punkt_tab')\n  \u001b[0m\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load \u001b[93mtokenizers/punkt_tab/english/\u001b[0m\n\n  Searched in:\n    - '/Users/conzo/nltk_data'\n    - '/Users/conzo/anaconda3/nltk_data'\n    - '/Users/conzo/anaconda3/share/nltk_data'\n    - '/Users/conzo/anaconda3/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n**********************************************************************\n\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761485330902.docx",
@@ -161,10 +139,8 @@
     "uploadDate": "2025-10-26T13:28:50.921Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Sprint report parse failed: \nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 20, in <module>\n    import pandas as pd\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/__init__.py\", line 26, in <module>\n    from pandas.compat import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/compat/__init__.py\", line 29, in <module>\n    from pandas.compat.pyarrow import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/compat/pyarrow.py\", line 8, in <module>\n    import pyarrow as pa\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 20, in <module>\n    import pandas as pd\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/__init__.py\", line 49, in <module>\n    from pandas.core.api import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/core/api.py\", line 9, in <module>\n    from pandas.core.dtypes.dtypes import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pandas/core/dtypes/dtypes.py\", line 24, in <module>\n    from pandas._libs import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 13, in <module>\n    from nltk.chunk.util import ChunkScore\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/util.py\", line 12, in <module>\n    from nltk.tag.mapping import map_tag\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/__init__.py\", line 72, in <module>\n    from nltk.tag.sequential import (\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tag/sequential.py\", line 26, in <module>\n    from nltk.classify import NaiveBayesClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/__init__.py\", line 97, in <module>\n    from nltk.classify.scikitlearn import SklearnClassifier\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/classify/scikitlearn.py\", line 38, in <module>\n    from sklearn.feature_extraction import DictVectorizer\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 19, in <module>\n    from .utils._metadata_requests import _MetadataRequester, _routing_enabled\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 421, in <module>\n    import pyarrow\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\n\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.3.4 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 3, in <module>\n    from parse_docx_with_metrics import parse_docx_with_metrics\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 5, in <module>\n    import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/__init__.py\", line 1, in <module>\n    from .textstat import textstat\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/textstat.py\", line 5, in <module>\n    from .backend import transformations, validations, selections, counts, metrics, utils\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/__init__.py\", line 1, in <module>\n    from . import counts\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/__init__.py\", line 1, in <module>\n    from ._count_chars import count_chars\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/counts/_count_chars.py\", line 5, in <module>\n    from ..utils._typed_cache import typed_cache\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/__init__.py\", line 1, in <module>\n    from ._get_cmudict import get_cmudict\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/textstat/backend/utils/_get_cmudict.py\", line 3, in <module>\n    import nltk\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/__init__.py\", line 146, in <module>\n    from nltk.chunk import *\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/__init__.py\", line 155, in <module>\n    from nltk.chunk.api import ChunkParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/chunk/api.py\", line 15, in <module>\n    from nltk.parse import ParserI\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/parse/__init__.py\", line 100, in <module>\n    from nltk.parse.transitionparser import TransitionParser\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/parse/transitionparser.py\", line 18, in <module>\n    from sklearn import svm\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/__init__.py\", line 73, in <module>\n    from .base import clone  # noqa: E402\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/base.py\", line 20, in <module>\n    from .utils._missing import is_scalar_nan\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/__init__.py\", line 9, in <module>\n    from ._chunking import gen_batches, gen_even_slices\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_chunking.py\", line 11, in <module>\n    from ._param_validation import Interval, validate_params\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_param_validation.py\", line 17, in <module>\n    from .validation import _is_arraylike_not_scalar\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/validation.py\", line 21, in <module>\n    from ..utils._array_api import _asarray_with_order, _is_numpy_namespace, get_namespace\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/_array_api.py\", line 20, in <module>\n    from .fixes import parse_version\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/sklearn/utils/fixes.py\", line 421, in <module>\n    import pyarrow\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/pyarrow/__init__.py\", line 65, in <module>\n    import pyarrow.lib as _lib\nAttributeError: _ARRAY_API not found\nTraceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 26, in <module>\n    parse_sprint_report(input_file)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 13, in parse_sprint_report\n    result = parse_docx_with_metrics(docx_path, output_json_path=out_path)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 283, in parse_docx_with_metrics\n    students = build_student_metrics(authorship_map, extracted_sections)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 239, in build_student_metrics\n    \"metrics\": get_text_metrics(full_text)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_docx_with_metrics.py\", line 46, in get_text_metrics\n    sentences = sent_tokenize(cleaned)\n                ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/__init__.py\", line 119, in sent_tokenize\n    tokenizer = _get_punkt_tokenizer(language)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/__init__.py\", line 105, in _get_punkt_tokenizer\n    return PunktTokenizer(language)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/punkt.py\", line 1744, in __init__\n    self.load_lang(lang)\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/tokenize/punkt.py\", line 1749, in load_lang\n    lang_dir = find(f\"tokenizers/punkt_tab/{lang}/\")\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/anaconda3/lib/python3.11/site-packages/nltk/data.py\", line 579, in find\n    raise LookupError(resource_not_found)\nLookupError: \n**********************************************************************\n  Resource \u001b[93mpunkt_tab\u001b[0m not found.\n  Please use the NLTK Downloader to obtain the resource:\n\n  \u001b[31m>>> import nltk\n  >>> nltk.download('punkt_tab')\n  \u001b[0m\n  For more information see: https://www.nltk.org/data.html\n\n  Attempted to load \u001b[93mtokenizers/punkt_tab/english/\u001b[0m\n\n  Searched in:\n    - '/Users/conzo/nltk_data'\n    - '/Users/conzo/anaconda3/nltk_data'\n    - '/Users/conzo/anaconda3/share/nltk_data'\n    - '/Users/conzo/anaconda3/lib/nltk_data'\n    - '/usr/share/nltk_data'\n    - '/usr/local/share/nltk_data'\n    - '/usr/lib/nltk_data'\n    - '/usr/local/lib/nltk_data'\n**********************************************************************\n\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761485865368.docx",
@@ -176,11 +152,8 @@
     "uploadDate": "2025-10-26T13:37:45.389Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761487411057.docx",
@@ -192,11 +165,8 @@
     "uploadDate": "2025-10-26T14:03:31.078Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761559894004.docx",
@@ -260,11 +230,8 @@
     "uploadDate": "2025-10-27T10:20:02.033Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761562363715.docx",
@@ -276,11 +243,8 @@
     "uploadDate": "2025-10-27T10:52:43.721Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761563185420.docx",
@@ -292,11 +256,8 @@
     "uploadDate": "2025-10-27T11:06:25.426Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761565108957.docx",
@@ -321,11 +282,8 @@
     "uploadDate": "2025-10-27T11:38:34.212Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761565601781.docx",
@@ -337,11 +295,8 @@
     "uploadDate": "2025-10-27T11:46:41.785Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761567053436.docx",
@@ -353,11 +308,8 @@
     "uploadDate": "2025-10-27T12:10:53.446Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761568624520.docx",
@@ -369,11 +321,8 @@
     "uploadDate": "2025-10-27T12:37:04.526Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761568709727.docx",
@@ -385,11 +334,8 @@
     "uploadDate": "2025-10-27T12:38:29.737Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761569095702.docx",
@@ -401,11 +347,8 @@
     "uploadDate": "2025-10-27T12:44:55.710Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761572759106.docx",
@@ -417,10 +360,8 @@
     "uploadDate": "2025-10-27T13:45:59.116Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Project Plan parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 235, in <module>\n    parse_project_plan_docx(input_path, out_path)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 154, in parse_project_plan_docx\n    sections = extract_text_sections(doc)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 60, in extract_text_sections\n    numbered_heading = re.match(r\"^\\d+[\\.\\)]\\s*[A-Z]\", text)\n                                                       ^^^^\nUnboundLocalError: cannot access local variable 'text' where it is not associated with a value\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761572780318.docx",
@@ -432,10 +373,8 @@
     "uploadDate": "2025-10-27T13:46:20.326Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Project Plan parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 235, in <module>\n    parse_project_plan_docx(input_path, out_path)\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 154, in parse_project_plan_docx\n    sections = extract_text_sections(doc)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/conzo/Desktop/contribution-capstone/backend/parsers/parse_project_plan_docx.py\", line 60, in extract_text_sections\n    numbered_heading = re.match(r\"^\\d+[\\.\\)]\\s*[A-Z]\", text)\n                                                       ^^^^\nUnboundLocalError: cannot access local variable 'text' where it is not associated with a value\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report__1761724881987.docx",
@@ -447,11 +386,8 @@
     "uploadDate": "2025-10-29T08:01:22.004Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761741859574.docx",
@@ -463,11 +399,8 @@
     "uploadDate": "2025-10-29T12:44:19.582Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report__1761741895475.docx",
@@ -479,11 +412,8 @@
     "uploadDate": "2025-10-29T12:44:55.491Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761750040497.docx",
@@ -495,11 +425,8 @@
     "uploadDate": "2025-10-29T15:00:40.525Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761754941471.docx",
@@ -511,11 +438,8 @@
     "uploadDate": "2025-10-29T16:22:21.501Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761755008836.docx",
@@ -527,11 +451,8 @@
     "uploadDate": "2025-10-29T16:23:28.843Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761756102219.docx",
@@ -543,11 +464,8 @@
     "uploadDate": "2025-10-29T16:41:42.241Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761756122985.docx",
@@ -559,11 +477,8 @@
     "uploadDate": "2025-10-29T16:42:02.988Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "uploads/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761757352230.docx",
@@ -575,10 +490,8 @@
     "uploadDate": "2025-10-29T17:02:32.259Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Sprint report parse failed: python3: can't open file '/Users/conzo/Documents/GitHub/contribution-capstone/backend/data/parsers/parse_sprint_report_docx.py': [Errno 2] No such file or directory\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761757375948.docx",
@@ -590,10 +503,8 @@
     "uploadDate": "2025-10-29T17:02:55.973Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Sprint report parse failed: python3: can't open file '/Users/conzo/Documents/GitHub/contribution-capstone/backend/data/parsers/parse_sprint_report_docx.py': [Errno 2] No such file or directory\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761757429171.docx",
@@ -605,11 +516,8 @@
     "uploadDate": "2025-10-29T17:03:49.194Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761757603852.docx",
@@ -621,11 +529,8 @@
     "uploadDate": "2025-10-29T17:06:43.859Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761757654926.docx",
@@ -637,11 +542,8 @@
     "uploadDate": "2025-10-29T17:07:34.950Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761758427352.docx",
@@ -653,10 +555,8 @@
     "uploadDate": "2025-10-29T17:20:27.385Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Sprint report parse failed: usage: parse_sprint_report_docx.py [-h] [--students-json STUDENTS_JSON]\n                                   docx_path\nparse_sprint_report_docx.py: error: unrecognized arguments: /Users/conzo/Documents/GitHub/contribution-capstone/backend/data/sprint_report_summary.json\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761758482862.docx",
@@ -668,10 +568,8 @@
     "uploadDate": "2025-10-29T17:21:22.871Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Project Plan parse failed: usage: parse_project_plan_docx.py [-h] [--students-json STUDENTS_JSON]\n                                  input_path\nparse_project_plan_docx.py: error: unrecognized arguments: /Users/conzo/Documents/GitHub/contribution-capstone/backend/data/project_plan_summary.json\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761759788749.docx",
@@ -683,11 +581,8 @@
     "uploadDate": "2025-10-29T17:43:08.757Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761759822526.docx",
@@ -699,10 +594,8 @@
     "uploadDate": "2025-10-29T17:43:42.562Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parse_failed",
-    "parseInfo": {
-      "message": "Sprint report parse failed: Traceback (most recent call last):\n  File \"/Users/conzo/Documents/GitHub/contribution-capstone/backend/parsers/parse_sprint_report_docx.py\", line 56, in <module>\n    parse_sprint_report(args.docx_path, out_path, args.students_json)\nTypeError: parse_sprint_report() takes from 1 to 2 positional arguments but 3 were given\n"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761760133377.docx",
@@ -714,11 +607,8 @@
     "uploadDate": "2025-10-29T17:48:53.413Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761761041566.docx",
@@ -756,11 +646,8 @@
     "uploadDate": "2025-10-29T18:07:17.242Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761761287381.docx",
@@ -772,11 +659,8 @@
     "uploadDate": "2025-10-29T18:08:07.399Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761761597920.docx",
@@ -788,11 +672,8 @@
     "uploadDate": "2025-10-29T18:13:17.926Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761763071785.docx",
@@ -804,11 +685,8 @@
     "uploadDate": "2025-10-29T18:37:51.792Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_summary.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761763089873.docx",
@@ -820,11 +698,8 @@
     "uploadDate": "2025-10-29T18:38:09.894Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761763217286.docx",
@@ -836,11 +711,8 @@
     "uploadDate": "2025-10-29T18:40:17.326Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_summary.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761763467330.docx",
@@ -852,11 +724,8 @@
     "uploadDate": "2025-10-29T18:44:27.358Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_1761763468110.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761763483743.docx",
@@ -868,11 +737,8 @@
     "uploadDate": "2025-10-29T18:44:43.749Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761763484491.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761763854906.docx",
@@ -884,11 +750,8 @@
     "uploadDate": "2025-10-29T18:50:54.910Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761763855707.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761763869060.docx",
@@ -900,11 +763,8 @@
     "uploadDate": "2025-10-29T18:51:09.083Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_1761763869816.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761764070188.docx",
@@ -929,11 +789,8 @@
     "uploadDate": "2025-10-29T18:54:45.134Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_1761764086279.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761764100050.docx",
@@ -958,11 +815,8 @@
     "uploadDate": "2025-10-29T18:55:14.248Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761764115127.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761764161855.docx",
@@ -974,11 +828,8 @@
     "uploadDate": "2025-10-29T18:56:01.862Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761764162573.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761764173175.docx",
@@ -990,11 +841,8 @@
     "uploadDate": "2025-10-29T18:56:13.202Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_1761764173885.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report(1)__1761764345283.docx",
@@ -1006,11 +854,8 @@
     "uploadDate": "2025-10-29T18:59:05.311Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_1761764346123.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761764358124.docx",
@@ -1022,11 +867,8 @@
     "uploadDate": "2025-10-29T18:59:18.126Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761764359093.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "team_attendance__1761768211014.xlsx",
@@ -1038,11 +880,8 @@
     "uploadDate": "2025-10-29T20:03:31.020Z",
     "detectedType": "attendance",
     "userType": "attendance",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/attendance.json",
-      "message": "Attendance parsed"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761768803723.docx",
@@ -1054,11 +893,8 @@
     "uploadDate": "2025-10-29T20:13:23.729Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761768804640.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761768939499.docx",
@@ -1070,11 +906,8 @@
     "uploadDate": "2025-10-29T20:15:39.506Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761768941262.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761769102836.docx",
@@ -1086,11 +919,8 @@
     "uploadDate": "2025-10-29T20:18:22.854Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761769103581.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761789188697.docx",
@@ -1102,11 +932,8 @@
     "uploadDate": "2025-10-30T01:53:08.707Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761789189442.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "team_attendance__1761790474735.xlsx",
@@ -1118,11 +945,8 @@
     "uploadDate": "2025-10-30T02:14:34.743Z",
     "detectedType": "attendance",
     "userType": "attendance",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/attendance.json",
-      "message": "Attendance parsed"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Team and Project Plan__1761790584353.docx",
@@ -1134,11 +958,8 @@
     "uploadDate": "2025-10-30T02:16:24.360Z",
     "detectedType": "project_plan",
     "userType": "project_plan",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/project_plan_1761790585081.json",
-      "message": "Project Plan parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report__1761790646007.docx",
@@ -1150,11 +971,8 @@
     "uploadDate": "2025-10-30T02:17:26.034Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_1761790646909.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 3 Report__1762689981547.docx",
@@ -1166,11 +984,8 @@
     "uploadDate": "2025-11-09T12:06:21.555Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/sprint_report_1762689982635.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "team_attendance__1773213185223.xlsx",
@@ -1182,11 +997,8 @@
     "uploadDate": "2026-03-11T07:13:05.227Z",
     "detectedType": "attendance",
     "userType": "attendance",
-    "status": "parsed",
-    "parseInfo": {
-      "jsonPath": "data/parsed/attendance.json",
-      "message": "Attendance parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "team_attendance__1774172262685.xlsx",
@@ -1199,12 +1011,8 @@
     "uploadDate": "2026-03-22T09:37:42.880Z",
     "detectedType": "attendance",
     "userType": "attendance",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1773736993653/parsed/attendance.json",
-      "jsonPath": "data/parsed/attendance.json",
-      "message": "Attendance parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report__1774773360674.docx",
@@ -1217,12 +1025,8 @@
     "uploadDate": "2026-03-29T08:36:02.533Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 2 Report-parsed.json",
-      "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "team_attendance__1774773394342.xlsx",
@@ -1235,12 +1039,8 @@
     "uploadDate": "2026-03-29T08:36:34.544Z",
     "detectedType": "attendance",
     "userType": "attendance",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1773736993653/parsed/team_attendance-parsed.json",
-      "jsonPath": "data/parsed/team_attendance-parsed.json",
-      "message": "Attendance parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report__1774773503407.docx",
@@ -1253,12 +1053,8 @@
     "uploadDate": "2026-03-29T08:38:24.994Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 2 Report-parsed.json",
-      "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 2 Report__1774773524285.docx",
@@ -1271,12 +1067,8 @@
     "uploadDate": "2026-03-29T08:38:46.801Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 2 Report-parsed.json",
-      "jsonPath": "data/parsed/COS40005 Sprint 2 Report-parsed.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 1 Report__1774774920654.docx",
@@ -1289,12 +1081,8 @@
     "uploadDate": "2026-03-29T09:02:01.216Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 1 Report-parsed.json",
-      "jsonPath": "data/parsed/COS40005 Sprint 1 Report-parsed.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 1 Report__1774774939589.docx",
@@ -1307,12 +1095,8 @@
     "uploadDate": "2026-03-29T09:02:20.141Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1773736993653/parsed/COS40005 Sprint 1 Report-parsed.json",
-      "jsonPath": "data/parsed/COS40005 Sprint 1 Report-parsed.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   },
   {
     "id": "COS40005 Sprint 1 Report__1774776167210.docx",
@@ -1325,11 +1109,7 @@
     "uploadDate": "2026-03-29T09:22:47.705Z",
     "detectedType": "sprint_report",
     "userType": "sprint_report",
-    "status": "parsed",
-    "parseInfo": {
-      "s3ParsedKey": "team_1774770983553/parsed/COS40005 Sprint 1 Report-parsed.json",
-      "jsonPath": "data/parsed/COS40005 Sprint 1 Report-parsed.json",
-      "message": "Sprint report parsed successfully"
-    }
+    "status": "uploaded",
+    "parseInfo": null
   }
 ]

@@ -1,13 +1,19 @@
 // frontend/src/components/dashboard.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { Users, Link as LinkIcon, BarChart3, UserRound, GitCommitHorizontal, Eye, ChevronDown, Search } from "lucide-react";
 
 export default function Dashboard({ onViewStudent, darkMode }) {
-  const [teamId, setTeamId] = useState("");
-  const [teams, setTeams] = useState([]);
-  const [scores, setScores] = useState(null);
-  const [teamStudents, setTeamStudents] = useState([]);
+  const [teamId, setTeamId] = useState(() => localStorage.getItem("dashboardTeamId") || "");
+  const [teams, setTeams] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("dashboardTeamsCache") || "[]"); } catch { return []; }
+  });
+  const [scores, setScores] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("dashboardScoresCache") || "null"); } catch { return null; }
+  });
+  const [teamStudents, setTeamStudents] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("dashboardStudentsCache") || "[]"); } catch { return []; }
+  });
   const [query, setQuery] = useState("");
   const [peerReview, setPeerReview] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -46,22 +52,36 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         apiFetch("/api/teams").then(r => r.json()),
         apiFetch("/api/teams/active").then(r => r.json()),
       ]);
-      setTeams(Array.isArray(allTeams) ? allTeams : []);
-      setTeamId(activeTeam?.id || allTeams?.[0]?.id || "");
+      const resolvedTeams = Array.isArray(allTeams) ? allTeams : [];
+      const resolvedId = activeTeam?.id || resolvedTeams[0]?.id || "";
+      setTeams(resolvedTeams);
+      sessionStorage.setItem("dashboardTeamsCache", JSON.stringify(resolvedTeams));
+      if (resolvedId && resolvedId !== teamId) {
+        setTeamId(resolvedId);
+        localStorage.setItem("dashboardTeamId", resolvedId);
+      }
     })();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!teamId) return;
+    // Don't re-fetch on peerReview toggle when peer review is off and we have cached scores
     const url = `/api/scores?teamId=${encodeURIComponent(teamId)}${peerReview ? "&usePeerReview=true" : ""}`;
     apiFetch(url)
       .then(r => r.json())
-      .then(setScores)
+      .then(data => {
+        setScores(data);
+        if (!peerReview) sessionStorage.setItem("dashboardScoresCache", JSON.stringify(data));
+      })
       .catch(() => setScores(null));
 
     apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
       .then(r => r.json())
-      .then(data => setTeamStudents(data.students || []))
+      .then(data => {
+        const students = data.students || [];
+        setTeamStudents(students);
+        sessionStorage.setItem("dashboardStudentsCache", JSON.stringify(students));
+      })
       .catch(() => setTeamStudents([]));
   }, [teamId, peerReview]);
 
@@ -123,7 +143,11 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     if (!window.confirm("This will clear all scores and analysis for this team. Uploaded files will be kept. Are you sure?")) return;
     setResetting(true);
     try {
-      const res = await apiFetch("/api/reset", { method: "POST" });
+      const res = await apiFetch("/api/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId }),
+      });
       if (!res.ok) throw new Error("Reset failed");
       setScores(null);
       alert("Scores reset. Re-upload documents and re-run GitHub analysis to recalculate.");

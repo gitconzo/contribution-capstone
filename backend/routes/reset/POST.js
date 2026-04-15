@@ -6,21 +6,13 @@ const { readJson, writeJson } = require("../../utils/fileUtils");
 
 router.post("/", (req, res) => {
   try {
-    // Delete GitHub analysis files
-    const filesToDelete = [
-      path.join(DATA_DIR, "finalStats.json"),
-      path.join(DATA_DIR, "commits.json"),
-      path.join(DATA_DIR, "output.json"),
-      path.join(DATA_DIR, "combined_documentation_metrics.json"),
-    ];
+    const { teamId } = req.body || {};
+    if (!teamId) return res.status(400).json({ error: "teamId is required" });
 
-    filesToDelete.forEach(f => {
-      if (fs.existsSync(f)) fs.unlinkSync(f);
-    });
-
-    // Clear parsed JSON files from registry but keep upload entries
+    // Clear parsed JSON files for this team only, keep upload entries
     const registry = readJson(REGISTRY_PATH) || [];
     registry.forEach(entry => {
+      if (entry.teamId !== teamId) return;
       if (entry.parseInfo?.jsonPath) {
         const abs = path.join(ROOT_DIR, entry.parseInfo.jsonPath);
         if (fs.existsSync(abs)) fs.unlinkSync(abs);
@@ -30,11 +22,11 @@ router.post("/", (req, res) => {
     });
     writeJson(REGISTRY_PATH, registry);
 
-    // Clear any sprint/project plan parsed files in PARSED_DIR
+    // Clear team-specific analysis files from PARSED_DIR
     if (fs.existsSync(PARSED_DIR)) {
-      fs.readdirSync(PARSED_DIR).forEach(f => {
-        fs.unlinkSync(path.join(PARSED_DIR, f));
-      });
+      fs.readdirSync(PARSED_DIR)
+        .filter(f => f.startsWith(teamId))
+        .forEach(f => fs.unlinkSync(path.join(PARSED_DIR, f)));
     }
 
     res.json({ success: true, message: "Team scores reset successfully" });
