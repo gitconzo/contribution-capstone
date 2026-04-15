@@ -123,7 +123,11 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     if (!window.confirm("This will clear all scores and analysis for this team. Uploaded files will be kept. Are you sure?")) return;
     setResetting(true);
     try {
-      const res = await apiFetch("/api/reset", { method: "POST" });
+      const res = await apiFetch("/api/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamId }),
+    });
       if (!res.ok) throw new Error("Reset failed");
       setScores(null);
       alert("Scores reset. Re-upload documents and re-run GitHub analysis to recalculate.");

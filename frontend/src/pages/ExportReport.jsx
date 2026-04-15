@@ -111,7 +111,22 @@ export default function ExportReport({ darkMode }) {
       a.download = `contribution_report_${team?.code || teamId}_${new Date().toISOString().slice(0, 10)}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
-    } else if (selectedFormat === "csv") {
+    } else if (selectedFormat === "pdf") {
+      const selectedEmails = selectedStudents.length ? selectedStudents : ranking.map(s => s.email);
+      const res = await fetch(`${API}/api/export/pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId, selectedEmails })
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "PDF export failed"); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `contribution_report_${team?.code || teamId}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }else if (selectedFormat === "csv") {
       if (!filteredRanking.length) throw new Error("No data to export");
       const headers = [
         "Rank","Name","Email","Overall Score (%)",

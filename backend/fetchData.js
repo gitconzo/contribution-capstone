@@ -53,14 +53,14 @@ async function ghFetch(url, token, init = {}) {
   return res;
 }
 
-async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
+async function fetchAllCommits(owner, repo, token, maxDetailed = 200, branch = "") {
   const base = `https://api.github.com/repos/${owner}/${repo}`;
   let page = 1;
   const per_page = 100;
   const summaries = [];
 
   while (true) {
-    const url = `${base}/commits?per_page=${per_page}&page=${page}`;
+    const url = `${base}/commits?per_page=${per_page}&page=${page}${branch ? `&sha=${branch}` : ""}`;
     const r = await ghFetch(url, token);
     const batch = await r.json();
     if (!Array.isArray(batch) || batch.length === 0) break;
@@ -80,13 +80,28 @@ async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
       const r = await ghFetch(url, token);
       const j = await r.json();
 
-      // Skip merge commits
+      // Skip merge commits (more than one parent)
       if (j.parents && j.parents.length > 1) continue;
+
+      // Filter out noise files before summing stats
+      const ignoreFilePatterns = [
+        "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+        "node_modules/", "dist/", "build/", ".min.js",
+        ".min.css", "*.map", "vendor/", "coverage/"
+      ];
+
+      const filteredFiles = (j.files || []).filter(file => {
+        const filename = file.filename || "";
+        return !ignoreFilePatterns.some(pattern => filename.includes(pattern));
+      });
+
+      const additions = filteredFiles.reduce((sum, f) => sum + (f.additions || 0), 0);
+      const deletions = filteredFiles.reduce((sum, f) => sum + (f.deletions || 0), 0);
 
       detailed.push({
         sha: sha,
         author: (j.commit && j.commit.author && j.commit.author.name) || (j.author && j.author.login) || "Unknown",
-        stats: j.stats || { additions: 0, deletions: 0 }
+        stats: { additions, deletions }
       });
     } catch (e) {
       detailed.push({ sha, author: "Unknown", stats: { additions: 0, deletions: 0 } });
@@ -109,10 +124,12 @@ async function fetchAllCommits(owner, repo, token, maxDetailed = 200) {
 
 (async () => {
   try {
-    const { owner, repo } = readRepoInfo();
+    const repoInfo = readRepoInfo();
+    const { owner, repo } = repoInfo;
+    const branch = repoInfo.branch || "";
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
 
-    const commits = await fetchAllCommits(owner, repo, token, 200);
+    const commits = await fetchAllCommits(owner, repo, token, 200, branch);
     ensureDirForFile(commitsOutPath);
     fs.writeFileSync(commitsOutPath, JSON.stringify(commits, null, 2));
     console.log(`Wrote ${commits.length} commits → ${commitsOutPath}`);

@@ -14,7 +14,8 @@ def calculate_hotspots(complexity, commitFrequency, maxComplexity, maxFrequency)
 # Analysing each function in the repo 
 def analyse_functions(tempFolder):
     print("Analysing repository... please wait ...")
-    analyseRepo = list(lizard.analyze([tempFolder]))
+    exclude_pattern = [f"*/{d}/*" for d in IGNORE_DIRS]
+    analyseRepo = list(lizard.analyze([tempFolder], exclude_pattern=exclude_pattern))
     repo = Repo(tempFolder)
 
     Authors = defaultdict(list)

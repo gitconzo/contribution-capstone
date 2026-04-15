@@ -12,7 +12,9 @@ function parseRepoFromUrl(url) {
   try {
     if (url.includes("github.com")) {
       const cleaned = url.replace(/\.git$/i, "");
-      const parts = cleaned.split(/github\.com[/:]/).pop().split("/");
+      // Strip /tree/branch or /blob/branch suffixes
+      const stripped = cleaned.replace(/\/tree\/.*$/, "").replace(/\/blob\/.*$/, "");
+      const parts = stripped.split(/github\.com[/:]/).pop().split("/");
       owner = (parts[0] || "").trim();
       repo  = (parts[1] || "").trim();
     } else if (/^[^/]+\/[^/]+$/.test(url)) {
@@ -51,7 +53,7 @@ router.post("/fetch", async (req, res) => {
   }
 });
 
-// POST /api/github/analyze  { url }
+/// POST /api/github/analyze  { url }
 router.post("/analyze", async (req, res) => {
   try {
     const rawUrl = String(req.body?.url || "").trim();
@@ -61,17 +63,35 @@ router.post("/analyze", async (req, res) => {
     if (!owner || !repo) return res.status(400).json({ error: "Could not parse owner/repo from URL." });
 
     ensureDir(DATA_DIR);
-    writeJson(path.join(DATA_DIR, "repo.json"), { url, owner, repo });
+    const branch = rawUrl.includes("/tree/") ? rawUrl.split("/tree/")[1] : "";
+    writeJson(path.join(DATA_DIR, "repo.json"), { url, owner, repo, branch });
+    writeJson(path.join(DATA_DIR, "analysisStatus.json"), { status: "running", startedAt: new Date().toISOString() });
 
-    await runFile("node", [path.join(ROOT_DIR, "fetchData.js")], { cwd: ROOT_DIR });
-    await runFile(pyBin(), [path.join(ROOT_DIR, "main.py"), "--repo-url", url], { cwd: ROOT_DIR });
+    // Return immediately — run analysis in background
+    res.json({ success: true, status: "running", message: "Analysis started." });
 
-    const commits = safeReadJson(path.join(DATA_DIR, "commits.json"), []);
-    res.json({ success: true, repo: { owner, repo, url }, summary: { commits: commits.length } });
+    // Run fetch + analysis in background (don't await)
+    (async () => {
+      try {
+        await runFile(pyBin(), [path.join(ROOT_DIR, "main.py"), "--repo-url", url], { cwd: ROOT_DIR });
+        writeJson(path.join(DATA_DIR, "analysisStatus.json"), { status: "complete", completedAt: new Date().toISOString() });
+      } catch (e) {
+        console.error("Background analysis error:", e.message);
+        writeJson(path.join(DATA_DIR, "analysisStatus.json"), { status: "error", error: e.message });
+      }
+    })();
+
   } catch (e) {
     console.error("analyze error:", e);
     res.status(500).json({ error: e.message || "Failed to analyze GitHub repo" });
   }
+});
+
+// GET /api/github/status — frontend polls this
+router.get("/status", (req, res) => {
+  const statusPath = path.join(DATA_DIR, "analysisStatus.json");
+  const status = safeReadJson(statusPath, { status: "idle" });
+  res.json(status);
 });
 
 module.exports = router;

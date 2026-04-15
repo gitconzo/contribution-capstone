@@ -2,10 +2,13 @@ import os
 
 IGNORE_DIRS = {
     ".git", "__pycache__", "venv", ".venv", "env",
-    "site-packages", "node_modules", "dist", "build"
+    "site-packages", "node_modules", "dist", "build",
+    "coverage", "vendor",
 }
 IGNORE_EXTENSIONS = {
-    ".pyc", ".pyo", ".exe", ".dll", ".so", ".dylib"
+    ".pyc", ".pyo", ".exe", ".dll", ".so", ".dylib",
+    ".png", ".jpg", ".jpeg", ".gif", ".ico",
+    ".pdf", ".docx", ".xlsx", ".zip", ".tar", ".gz",
 }
 
 def should_ignore(path: str) -> bool:
