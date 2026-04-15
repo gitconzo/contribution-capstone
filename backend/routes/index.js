@@ -25,5 +25,6 @@ router.use("/export", require("./export/GET"));
 
 router.use("/scores",  require("./scores/GET"));
 
+router.use("/reset", require("./reset/POST"));
 
 module.exports = router;
