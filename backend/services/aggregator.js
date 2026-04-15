@@ -411,6 +411,37 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
     : null;
 
   const students = aggregateForTeam(team, rootDir);
+
+  // Worklog hours
+  // Submitted info is in the DB.
+  // Query parsed worklog files for this team, load each JSON, sum TotalHours,
+  //  attribute them to whichever student uploaded the file.
+  const aliasMap = buildAliasMap(team);
+  const worklogRes = await db.query(
+    `SELECT uploaded_by_email, uploaded_by_name, json_path
+     FROM file_registry
+     WHERE team_id = $1
+       AND (user_type = 'worklog' OR detected_type = 'worklog')
+       AND status = 'parsed'
+       AND json_path IS NOT NULL`,
+    [teamId]
+  );
+
+  worklogRes.rows.forEach(row => {
+    const absPath = path.join(rootDir, row.json_path);
+    const weekData = safeReadJSON(absPath, null);
+    if (!Array.isArray(weekData)) return;
+
+    const totalHours = weekData.reduce((sum, week) => sum + pickNumber(week.TotalHours), 0);
+    if (totalHours <= 0) return;
+
+    let idx = matchStudentIndex(aliasMap, row.uploaded_by_email);
+    if (idx === -1) idx = matchStudentIndex(aliasMap, row.uploaded_by_name);
+    if (idx === -1) return;
+
+    students[idx].attendance.hours += totalHours;
+  });
+
   const scored = scoreStudents(students, rules);
 
  if (usePeerReview) {
