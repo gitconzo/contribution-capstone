@@ -1,5 +1,5 @@
 // frontend/src/pages/UploadsReview.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { apiFetch } from "../utils/api";
 
 export default function UploadsReview({ darkMode, activeTeamId = "", teams = [], onBack }) {
@@ -151,26 +151,39 @@ export default function UploadsReview({ darkMode, activeTeamId = "", teams = [],
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  gap: 16,
-                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 12,
                   marginBottom: 10,
                 }}
               >
-                <div style={{ fontWeight: 700, color: theme.text }}>
+                <div style={{
+                  fontWeight: 700,
+                  color: theme.text,
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}>
                   {file.original_name || "Unnamed file"}
                 </div>
 
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                    background: "#fef3c7",
-                    color: "#92400e",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {file.approval_status || "pending"}
+                <span style={{
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                  flexShrink: 0,
+                  ...(
+                    (file.approval_status || "pending") === "approved" || file.approval_status === "confirmed"
+                      ? { background: "#dcfce7", color: "#166534" }
+                      : file.approval_status === "rejected"
+                      ? { background: "#fee2e2", color: "#991b1b" }
+                      : { background: "#fef3c7", color: "#92400e" }
+                  ),
+                }}>
+                  {(file.approval_status || "PENDING").toUpperCase()}
                 </span>
               </div>
 
@@ -197,122 +210,84 @@ export default function UploadsReview({ darkMode, activeTeamId = "", teams = [],
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-  <button
-    onClick={async () => {
-        try {
-          const res = await apiFetch(`/api/uploads/${file.id}/download`);
-          const data = await res.json();
-      
-          if (data.url) {
-            window.open(data.url, "_blank");
-          }
-        } catch (err) {
-          console.error("Failed to open file", err);
-        }
-      }}
-    style={{
-      border: "1px solid #3b82f6",
-      background: "#eff6ff",
-      color: "#1d4ed8",
-      borderRadius: 10,
-      padding: "10px 14px",
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: "pointer",
-    }}
-  >
-    View File
-  </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await apiFetch(`/api/uploads/${file.id}/download`);
+                      const data = await res.json();
+                      if (data.url) window.open(data.url, "_blank");
+                    } catch (err) {
+                      console.error("Failed to open file", err);
+                    }
+                  }}
+                  style={uploadBtn({ border: "1px solid #93c5fd", background: "#eff6ff", color: "#1d4ed8" })}
+                >
+                  View File
+                </button>
 
-  <button
-  onClick={async () => {
-    try {
-        const res = await apiFetch(`/api/uploads/${file.id}/approve`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ approvedBy: "Lecturer" }),
-          });
-          
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || "Approve failed");
-          }
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await apiFetch(`/api/uploads/${file.id}/approve`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ approvedBy: "Lecturer" }),
+                      });
+                      if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.error || "Approve failed");
+                      }
+                      setPendingUploads((prev) => prev.filter((f) => f.id !== file.id));
+                      window.dispatchEvent(new Event("uploadsUpdated"));
+                    } catch (err) {
+                      console.error("Approve failed", err);
+                    }
+                  }}
+                  style={uploadBtn({ border: "1px solid #86efac", background: "#dcfce7", color: "#166534" })}
+                >
+                  Approve
+                </button>
 
-      // remove from UI instantly
-      setPendingUploads((prev) =>
-  prev.filter((f) => f.id !== file.id)
-);
-
-// 🔥 notify dashboard
-window.dispatchEvent(new Event("uploadsUpdated"));
-    } catch (err) {
-      console.error("Approve failed", err);
-    }
-  }}
-  style={{
-    border: "1px solid #86efac",
-    background: "#dcfce7",
-    color: "#166534",
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: "pointer",
-  }}
->
-  Approve
-</button>
-
-<button
-  onClick={async () => {
-    try {
-        const res = await apiFetch(`/api/uploads/${file.id}/reject`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              approvedBy: "Lecturer",
-              declineReason: "Rejected by lecturer",
-            }),
-          });
-          
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || "Reject failed");
-          }
-
-      setPendingUploads((prev) =>
-  prev.filter((f) => f.id !== file.id)
-);
-
-// 🔥 notify dashboard
-window.dispatchEvent(new Event("uploadsUpdated"));
-    } catch (err) {
-      console.error("Reject failed", err);
-    }
-  }}
-  style={{
-    border: "1px solid #fca5a5",
-    background: "#fee2e2",
-    color: "#991b1b",
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: "pointer",
-  }}
->
-  Reject
-</button>
-</div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await apiFetch(`/api/uploads/${file.id}/reject`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ approvedBy: "Lecturer", declineReason: "Rejected by lecturer" }),
+                      });
+                      if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.error || "Reject failed");
+                      }
+                      setPendingUploads((prev) => prev.filter((f) => f.id !== file.id));
+                      window.dispatchEvent(new Event("uploadsUpdated"));
+                    } catch (err) {
+                      console.error("Reject failed", err);
+                    }
+                  }}
+                  style={uploadBtn({ border: "1px solid #fca5a5", background: "#fee2e2", color: "#991b1b" })}
+                >
+                  Reject
+                </button>
+              </div>
             </div>
           ))
         )}
       </div>
     </div>
   );
+}
+
+function uploadBtn(extra = {}) {
+  return {
+    border: "none",
+    borderRadius: 6,
+    padding: "6px 12px",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    ...extra,
+  };
 }

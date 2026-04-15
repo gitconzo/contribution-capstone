@@ -453,7 +453,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onDeleteTeam(t.id); }}
-                        style={btn({ background: "#dc2626", fontSize: 11, padding: "5px 9px" })}
+                        style={btn({ background: "#b83232", fontSize: 11, padding: "5px 9px" })}
                       >
                         Delete
                       </button>
@@ -534,7 +534,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                                     <div style={{ fontSize: 12, color: theme.subtext }}>{s.email}</div>
                                     <div style={{ fontSize: 12, color: theme.subtext }}>
                                       {s.github ? (
-                                        <span style={{ color: "#2563eb" }}>@{s.github}</span>
+                                        <span style={{ color: "#2d5db8" }}>@{s.github}</span>
                                       ) : (
                                         <span style={{ color: theme.border }}>No GitHub</span>
                                       )}
@@ -545,8 +545,8 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                                       )}
                                     </div>
                                     <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                                      <button onClick={() => onEditStudent(t.id, s)} style={btn({ background: "#2563eb", fontSize: 11, padding: "4px 8px" })}>Edit</button>
-                                      <button onClick={() => onRemoveStudent(t.id, s.email)} style={btn({ background: "#dc2626", fontSize: 11, padding: "4px 8px" })}>Remove</button>
+                                      <button onClick={() => onEditStudent(t.id, s)} style={btn({ background: "#2d5db8", fontSize: 11, padding: "4px 8px" })}>Edit</button>
+                                      <button onClick={() => onRemoveStudent(t.id, s.email)} style={btn({ background: "#b83232", fontSize: 11, padding: "4px 8px" })}>Remove</button>
                                     </div>
                                   </div>
                                 )}
@@ -628,7 +628,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                         ) : (
                           <button
                             onClick={() => onEditTeam(t)}
-                            style={btn({ background: "#2563eb", fontSize: 12, padding: "6px 10px", width: "fit-content" })}
+                            style={btn({ background: "#2d5db8", fontSize: 12, padding: "6px 10px", width: "fit-content" })}
                           >
                             Edit Team Details
                           </button>
@@ -697,11 +697,11 @@ function inp(theme, extra = {}) {
 
 function btn(extra = {}) {
   return {
-    background: "#000",
+    background: "#1e293b",
     color: "#fff",
     border: "none",
     padding: "10px 14px",
-    borderRadius: 10,
+    borderRadius: 6,
     cursor: "pointer",
     fontSize: 13,
     fontWeight: 600,

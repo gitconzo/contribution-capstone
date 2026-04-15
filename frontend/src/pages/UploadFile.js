@@ -104,6 +104,7 @@ export default function UploadFile({ darkMode }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [uploadTeamId, setUploadTeamId] = useState("");
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const theme = darkMode
     ? {
@@ -251,7 +252,7 @@ export default function UploadFile({ darkMode }) {
       if (lower.includes("attendance")) setOverrideType("attendance");
       else if (lower.includes("worklog")) setOverrideType("worklog");
       else if (lower.match(/sprint[-_\s]?report/) || lower.includes("sprintreport")) setOverrideType("sprint_report");
-      else if (lower.includes("peer")) setOverrideType("peer_review");
+      else if (lower.includes("peer") || lower.includes("self-peer") || lower.includes("self_peer") || lower.includes("peer assessment") || lower.includes("peer_assessment")) setOverrideType("peer_review");
       else if (lower.includes("project") && lower.includes("plan")) setOverrideType("project_plan");
       else setOverrideType("unknown");
     }
@@ -552,7 +553,7 @@ export default function UploadFile({ darkMode }) {
     borderSpacing: "0 10px",
     marginTop: "10px",
     color: theme.text,
-    tableLayout: "fixed",
+    tableLayout: "auto",
     minWidth: "760px",
   };
   const thStyle = {
@@ -567,27 +568,6 @@ export default function UploadFile({ darkMode }) {
     boxShadow: darkMode ? "none" : "0 1px 3px rgba(0,0,0,0.1)",
   };
 
-  const actionBtnStyle = {
-    background: "#000",
-    color: "white",
-    padding: "7px 10px",
-    borderRadius: "6px",
-    textDecoration: "none",
-    cursor: "pointer",
-    fontWeight: "bold",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "none",
-    fontSize: "12px",
-    minWidth: "72px",
-  };
-
-  const actionsWrapStyle = {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-  };
 
   return (
     <div
@@ -870,7 +850,7 @@ export default function UploadFile({ darkMode }) {
                 </span>
               </div>
 
-            <div style={{ width: "100%", overflowX: "auto" }}>
+            <div style={{ width: "100%", overflow: "visible" }}>
              <table style={tableStyle}>
                 <thead>
                   <tr>
@@ -910,48 +890,86 @@ export default function UploadFile({ darkMode }) {
                           <span
                             style={{
                               ...badgeStyle,
-                              borderRadius: "999px",
-                              padding: "6px 10px",
-                              fontSize: "12px",
+                              borderRadius: "6px",
+                              padding: "3px 8px",
+                              fontSize: "11px",
                               fontWeight: 700,
+                              letterSpacing: "0.05em",
                               display: "inline-block",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            {f.status || "unknown"}
+                            {(f.status || "unknown").toUpperCase()}
                           </span>
                         </td>
                         <td
-  style={{
-    ...tableCellStyle,
-    borderRight: `1px solid ${theme.border}`,
-    borderTopRightRadius: "10px",
-    borderBottomRightRadius: "10px",
-  }}
->
-  <div style={actionsWrapStyle}>
-    <button
-      style={actionBtnStyle}
-      onClick={() => handleView(f.id)}
-    >
-      View
-    </button>
-    <button
-      style={actionBtnStyle}
-      onClick={() => handleDownload(f.id)}
-    >
-      Download
-    </button>
-    <button
-      style={{
-        ...actionBtnStyle,
-        background: "#dc2626",
-      }}
-      onClick={() => handleDelete(f.id)}
-    >
-      Delete
-    </button>
-  </div>
-</td>
+                          style={{
+                            ...tableCellStyle,
+                            borderRight: `1px solid ${theme.border}`,
+                            borderTopRightRadius: "10px",
+                            borderBottomRightRadius: "10px",
+                            position: "relative",
+                          }}
+                        >
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === f.id ? null : f.id)}
+                            style={{
+                              background: "none",
+                              border: `1px solid ${theme.border}`,
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              fontSize: 16,
+                              color: theme.subtext,
+                              padding: "2px 8px",
+                              lineHeight: 1,
+                            }}
+                          >
+                            ⋮
+                          </button>
+
+                          {openMenuId === f.id && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                right: 8,
+                                top: "100%",
+                                zIndex: 100,
+                                background: theme.card,
+                                border: `1px solid ${theme.border}`,
+                                borderRadius: 8,
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                                minWidth: 130,
+                                overflow: "hidden",
+                              }}
+                            >
+                              {[
+                                { label: "View", onClick: () => handleView(f.id), color: theme.text },
+                                { label: "Download", onClick: () => handleDownload(f.id), color: theme.text },
+                                { label: "Delete", onClick: () => handleDelete(f.id), color: "#b83232" },
+                              ].map(({ label, onClick, color }) => (
+                                <button
+                                  key={label}
+                                  onClick={() => { onClick(); setOpenMenuId(null); }}
+                                  style={{
+                                    display: "block",
+                                    width: "100%",
+                                    textAlign: "left",
+                                    background: "none",
+                                    border: "none",
+                                    padding: "9px 14px",
+                                    fontSize: 13,
+                                    fontWeight: 500,
+                                    color,
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
