@@ -59,6 +59,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       if (resolvedId && resolvedId !== teamId) {
         setTeamId(resolvedId);
         localStorage.setItem("dashboardTeamId", resolvedId);
+        setScores(null);
+        setTeamStudents([]);
+        sessionStorage.removeItem("dashboardScoresCache");
+        sessionStorage.removeItem("dashboardStudentsCache");
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -219,7 +223,11 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           onChange={async (e) => {
             const newTeamId = e.target.value;
             setTeamId(newTeamId);
-            localStorage.setItem("activeTeamId", newTeamId);
+            localStorage.setItem("dashboardTeamId", newTeamId);
+            setScores(null);
+            setTeamStudents([]);
+            sessionStorage.removeItem("dashboardScoresCache");
+            sessionStorage.removeItem("dashboardStudentsCache");
             await apiFetch("/api/teams/active", {
               method: "POST",
               headers: { "Content-Type": "application/json" },

@@ -1,4 +1,20 @@
-import React from "react";
+
+const METRIC_LABELS = {
+  loc:                "Lines of Code",
+  editedCode:         "Total Edited Code",
+  commits:            "Total Commits",
+  functions:          "Total Functions Written",
+  hotspots:           "Total Hotspots Contributed",
+  codeComplexity:     "Code Complexity",
+  avgSentenceLength:  "Average Sentence Length",
+  sentenceComplexity: "Sentence Complexity",
+  wordCount:          "Word Count",
+  readability:        "Readability",
+};
+
+function formatMetricKey(key) {
+  return METRIC_LABELS[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, firstChar => firstChar.toUpperCase());
+}
 
 export default function StudentDetail({ student, onBack, darkMode }) {
   const theme = darkMode
@@ -136,12 +152,11 @@ export default function StudentDetail({ student, onBack, darkMode }) {
               <span
                 style={{
                   width: 160,
-                  textTransform: "capitalize",
                   color: theme.subtext,
                   fontSize: 12,
                 }}
               >
-                {k}
+                {formatMetricKey(k)}
               </span>
 
               <span style={{ flex: 1 }}>
