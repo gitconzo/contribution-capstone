@@ -126,7 +126,7 @@ export default function StudentDetail({ student, onBack, darkMode }) {
           <Metric
             theme={theme}
             k="Work Hours"
-            v={`${Math.round(student.raw?.worklogHours || 0)}h`}
+            v={`${Math.round(student.raw?.hours || 0)}h`}
           />
           <Metric theme={theme} k="Documents" v={Math.round(student.raw?.documents || 0)} />
           <Metric theme={theme} k="Meetings" v={Math.round(student.raw?.meetings || 0)} />

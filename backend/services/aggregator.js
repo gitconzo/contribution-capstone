@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { combineDocumentationMetrics } = require("./combineDocumentationMetrics");
 const { safeReadJson } = require("../utils/fileUtils");
+const { combineDocsInMemory } = require("./dataLoaders");
 
 // Alias for backwards-compatibility within this file
 const safeReadJSON = safeReadJson;
@@ -54,13 +55,41 @@ function buildAliasMap(team) {
 function matchStudentIndex(aliasMap, key) {
   if (!key) return -1;
   const k = String(key).toLowerCase().trim();
+
   // Try direct match
   if (aliasMap.has(k)) return aliasMap.get(k);
-  
-  // Try without (Leader) or other parenthetical
+
+  // Try without (Leader) or other parenthetical suffixes
   const cleaned = k.replace(/\s*\(.*?\)\s*/g, '').trim();
   if (aliasMap.has(cleaned)) return aliasMap.get(cleaned);
-  
+
+  const words = cleaned.split(/\s+/);
+
+  // First-name fallback: if the key is a single word, check if it matches
+  // the first word of any alias map entry (handles attendance sheets with first names only)
+  if (words.length === 1) {
+    for (const [alias, idx] of aliasMap.entries()) {
+      if (alias.split(/\s+/)[0] === words[0]) return idx;
+    }
+  }
+
+  // First + last name match: handles middle name discrepancies between docs and DB
+  // e.g. doc has "Kavindu Bhanuka Weragoda" but DB has "Kavindu Weragoda"
+  if (words.length >= 2) {
+    const first = words[0];
+    const last = words[words.length - 1];
+    for (const [alias, idx] of aliasMap.entries()) {
+      const aliasWords = alias.split(/\s+/);
+      if (
+        aliasWords.length >= 2 &&
+        aliasWords[0] === first &&
+        aliasWords[aliasWords.length - 1] === last
+      ) {
+        return idx;
+      }
+    }
+  }
+
   return -1;
 }
 
@@ -158,7 +187,7 @@ function loadParsedArtifacts(rootDir) {
   return results;
 }
 
-function aggregateForTeam(team, rootDir) {
+function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendanceOverride = null) {
   const dataDir = path.join(rootDir, "data");
   const aliasMap = buildAliasMap(team);
   const students = team.students.map(s => ({
@@ -187,21 +216,13 @@ function aggregateForTeam(team, rootDir) {
     c.pctLOC += m.pctLOC;
     c.commitPct += m.commitPct;
     c.editPct += m.editPct;
+    c.commits = (c.commits || 0) + m.commits;
   });
 
-  const combinedDocsPath = path.join(rootDir, "data", "combined_documentation_metrics.json");
-  if (!fs.existsSync(combinedDocsPath)) {
-    console.log("no combined_documentation_metrics.json found");
-    try {
-      combineDocumentationMetrics(rootDir);
-    } catch (e) {
-      console.warn("failed to generate json", e.message);
-    }
-  }
-
   // ---------- Attendance
-  const parsed = loadParsedArtifacts(rootDir);
-  parsed.attendance.forEach(js => {
+  // Prefer the DB-backed override; fall back to legacy fileRegistry.json
+  const attendanceFiles = attendanceOverride !== null ? attendanceOverride : loadParsedArtifacts(rootDir).attendance;
+  attendanceFiles.forEach(js => {
     const byStudent = extractAttendanceMetrics(js);
     Object.entries(byStudent).forEach(([key, a]) => {
       const idx = matchStudentIndex(aliasMap, key);
@@ -214,7 +235,17 @@ function aggregateForTeam(team, rootDir) {
   });
 
   // ---------- Documentation from combined metrics
-  const combinedDocs = safeReadJSON(combinedDocsPath, null);
+  // Prefer the in-memory override built from DB query; fall back to local file
+  const combinedDocsPath = path.join(rootDir, "data", "parsed", "combined_documentation_metrics.json");
+  let combinedDocs = combinedDocsOverride;
+  if (!combinedDocs) {
+    if (!fs.existsSync(combinedDocsPath)) {
+      try { combineDocumentationMetrics(rootDir); } catch (e) {
+        console.warn("failed to generate combined_documentation_metrics.json", e.message);
+      }
+    }
+    combinedDocs = safeReadJSON(combinedDocsPath, null);
+  }
   if (combinedDocs?.students) {
     Object.entries(combinedDocs.students).forEach(([name, data]) => {
       const idx = matchStudentIndex(aliasMap, name);
@@ -362,11 +393,13 @@ function scoreStudents(students, rules = null) {
       }
     });
     
-    // Add attendance percentage to raw (for display)
+    // Add display-only fields to raw (not used in weighted score)
     r.attendance = pickNumber(s.attendance.percentage);
     r.meetings = pickNumber(s.attendance.meetings);
     r.hours = pickNumber(s.attendance.hours);
-    
+    r.codeCommits = pickNumber(s.code.commits);
+    r.documents = pickNumber(s.docs.docCount);
+
     return r;
   });
 
@@ -410,7 +443,28 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
     ? { rules: rulesRes.rows.map(r => ({ name: r.name, value: r.weight, desc: r.description })) }
     : null;
 
-  const students = aggregateForTeam(team, rootDir);
+  // Load parsed sprint/project plan files from DB and combine in memory so
+  // doc metrics reflect the current DB state, not the legacy fileRegistry.json
+  const artifactsRes = await db.query(
+    `SELECT json_path, COALESCE(user_type, detected_type) AS user_type FROM file_registry
+     WHERE team_id = $1 AND status = 'parsed'
+       AND COALESCE(user_type, detected_type) IN ('sprint_report', 'project_plan', 'attendance')
+       AND json_path IS NOT NULL`,
+    [teamId]
+  );
+  const sprintData = [], projectData = [], attendanceData = [];
+  for (const row of artifactsRes.rows) {
+    const data = safeReadJSON(path.join(rootDir, row.json_path), null);
+    if (!data) continue;
+    if (row.user_type === "sprint_report") sprintData.push(data);
+    else if (row.user_type === "project_plan") projectData.push(data);
+    else if (row.user_type === "attendance") attendanceData.push(data);
+  }
+  const combinedDocsOverride = (sprintData.length || projectData.length)
+    ? combineDocsInMemory(sprintData, projectData)
+    : null;
+
+  const students = aggregateForTeam(team, rootDir, combinedDocsOverride, attendanceData);
 
   // Worklog hours
   // Submitted info is in the DB.

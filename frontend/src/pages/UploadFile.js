@@ -31,6 +31,7 @@ function normalizeUploadRecord(fileItem = {}) {
     detectedType: fileItem.detected_type || fileItem.detectedType || "unknown",
     userType: fileItem.user_type || fileItem.userType || "unknown",
     status: fileItem.status || "unknown",
+    approvalStatus: fileItem.approval_status || fileItem.approvalStatus || null,
     parseMessage: fileItem.parse_message || fileItem.parseMessage || "",
     uploadedByName: fileItem.uploaded_by_name || fileItem.uploadedByName || null,
     uploadedByEmail: fileItem.uploaded_by_email || fileItem.uploadedByEmail || null,
@@ -437,6 +438,52 @@ export default function UploadFile({ darkMode }) {
       window.open(url, "_blank");
     } catch (error) {
       console.error("View failed:", error);
+    }
+  };
+
+  const handleReparse = async (fileId) => {
+    try {
+      const res = await apiFetch(`/api/uploads/${fileId}/reparse`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) throw new Error("Re-parse failed");
+      const updated = normalizeUploadRecord(await res.json());
+      setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, status: updated.status, parseMessage: updated.parseMessage } : f));
+    } catch (error) {
+      console.error("Re-parse failed:", error);
+    }
+  };
+
+  const handleApprove = async (fileId) => {
+    try {
+      const res = await apiFetch(`/api/uploads/${fileId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvedBy: "Lecturer" }),
+      });
+      if (!res.ok) throw new Error("Approve failed");
+      setFiles((prev) =>
+        prev.map((f) => f.id === fileId ? { ...f, approvalStatus: "approved", status: "confirmed" } : f)
+      );
+    } catch (error) {
+      console.error("Approve failed:", error);
+    }
+  };
+
+  const handleReject = async (fileId) => {
+    try {
+      const res = await apiFetch(`/api/uploads/${fileId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approvedBy: "Lecturer", declineReason: "Rejected by lecturer" }),
+      });
+      if (!res.ok) throw new Error("Reject failed");
+      setFiles((prev) =>
+        prev.map((f) => f.id === fileId ? { ...f, approvalStatus: "rejected", status: "rejected" } : f)
+      );
+    } catch (error) {
+      console.error("Reject failed:", error);
     }
   };
 
@@ -945,6 +992,13 @@ export default function UploadFile({ darkMode }) {
                               {[
                                 { label: "View", onClick: () => handleView(f.id), color: theme.text },
                                 { label: "Download", onClick: () => handleDownload(f.id), color: theme.text },
+                                ...(f.approvalStatus === "pending" ? [
+                                  { label: "Approve", onClick: () => handleApprove(f.id), color: "#166534" },
+                                  { label: "Reject",  onClick: () => handleReject(f.id),  color: "#991b1b" },
+                                ] : []),
+                                ...(f.status === "parse_failed" ? [
+                                  { label: "Re-parse", onClick: () => handleReparse(f.id), color: "#1d4ed8" },
+                                ] : []),
                                 { label: "Delete", onClick: () => handleDelete(f.id), color: "#b83232" },
                               ].map(({ label, onClick, color }) => (
                                 <button
