@@ -16,6 +16,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   });
   const [query, setQuery] = useState("");
   const [peerReview, setPeerReview] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState("all");
   const [resetting, setResetting] = useState(false);
 
   const theme = darkMode
@@ -90,17 +91,31 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   }, [teamId, peerReview]);
 
   const students = useMemo(() => {
-    // Use scored ranking if available, otherwise fall back to raw team students
     const list = scores?.ranking?.length
       ? scores.ranking
-      : teamStudents.map(s => ({ name: s.name, email: s.email, score: 0, breakdown: {}, raw: {} }));
+      : teamStudents.map((s) => ({
+          name: s.name,
+          email: s.email,
+          score: 0,
+          breakdown: {},
+          raw: {},
+        }));
+  
     const q = query.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(s =>
-      (s.name || "").toLowerCase().includes(q) ||
-      (s.email || "").toLowerCase().includes(q)
-    );
-  }, [scores, teamStudents, query]);
+  
+    return list.filter((s) => {
+      const matchesQuery =
+        !q ||
+        (s.name || "").toLowerCase().includes(q) ||
+        (s.email || "").toLowerCase().includes(q);
+  
+      const level = badgeFromScore(s.score || 0);
+      const matchesLevel =
+        selectedLevel === "all" || level === selectedLevel;
+  
+      return matchesQuery && matchesLevel;
+    });
+  }, [scores, teamStudents, query, selectedLevel]);
 
   // ---- Compute per-student CODE-ONLY weighted sums and max → Code Score %
   const codeScoreByKey = useMemo(() => {
@@ -270,9 +285,21 @@ export default function Dashboard({ onViewStudent, darkMode }) {
             text={`${scores?.studentsCount || 0} Students`}
           />
           <InfoInline
-            icon={<LinkIcon size={15} color={theme.mutedIcon} />}
-            text={scores?.team?.repo?.url || "Repository not connected"}
-          />
+  icon={<LinkIcon size={15} color={theme.mutedIcon} />}
+  text={
+    scores?.team?.repo?.url ||
+    scores?.team?.repo_url ||
+    scores?.team?.repoUrl ||
+    scores?.team?.repository_url ||
+    scores?.team?.repo ||
+    teams.find((t) => t.id === teamId)?.repo?.url ||
+    teams.find((t) => t.id === teamId)?.repo_url ||
+    teams.find((t) => t.id === teamId)?.repoUrl ||
+    teams.find((t) => t.id === teamId)?.repository_url ||
+    teams.find((t) => t.id === teamId)?.repo ||
+    "Repository not connected"
+  }
+/>
           
         </div>
       </div>
@@ -354,12 +381,35 @@ export default function Dashboard({ onViewStudent, darkMode }) {
               />
             </div>
 
-            <button style={ghostBtn(theme)} title="All Levels">
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <ChevronDown size={15} />
-                All Levels
-              </span>
-            </button>
+            <div style={{ position: "relative" }}>
+  <ChevronDown
+    size={15}
+    color={theme.mutedIcon}
+    style={{
+      position: "absolute",
+      right: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      pointerEvents: "none",
+    }}
+  />
+  <select
+    value={selectedLevel}
+    onChange={(e) => setSelectedLevel(e.target.value)}
+    style={{
+      ...ghostBtn(theme),
+      paddingRight: 30,
+      appearance: "none",
+      minWidth: 130,
+    }}
+    title="Filter by contribution level"
+  >
+    <option value="all">All Levels</option>
+    <option value="high">High Contributor</option>
+    <option value="medium">Medium Contributor</option>
+    <option value="low">Low Contributor</option>
+  </select>
+</div>
           </div>
         </div>
       </div>
