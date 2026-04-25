@@ -409,8 +409,12 @@ function scoreStudents(students, rules = null) {
   const totals = students.map((_, i) =>
     dims.reduce((sum, d) => sum + (normVectors[d][i] || 0) * (w[d] || 0), 0)
   );
-  const maxTotal = Math.max(...totals, 1);
-  const percent = totals.map(t => +(100 * (t / maxTotal)).toFixed(2));
+
+  // Proportional scoring — all scores add up to 100% across the team
+  const teamTotal = totals.reduce((sum, t) => sum + t, 0);
+  const percent = teamTotal === 0
+    ? totals.map(() => +(100 / students.length).toFixed(2))
+    : totals.map(t => +(100 * (t / teamTotal)).toFixed(2));
 
   const ranked = students
     .map((s, i) => ({
