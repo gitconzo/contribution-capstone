@@ -9,10 +9,19 @@ IGNORE_EXTENSIONS = {
     ".pyc", ".pyo", ".exe", ".dll", ".so", ".dylib",
     ".png", ".jpg", ".jpeg", ".gif", ".ico",
     ".pdf", ".docx", ".xlsx", ".zip", ".tar", ".gz",
+    ".pem", '.json'
 }
 IGNORE_FILENAMES = {
     "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
-    "package.json", ".gitignore", ".env"
+    "package.json", ".gitignore", ".env", "package-lock 2.json",
+    "cacert.pem","global-bundle.pem", ".DS_Store",
+    ".env.local", ".env.production", ".env.development",  
+    "webpack.config.js", "babel.config.js",
+    "jest.config.js", "eslint.config.js", ".eslintrc",
+    ".prettierrc", ".prettierignore",
+    "tsconfig.json", "jsconfig.json",
+    "Makefile", "Dockerfile",
+    ".gitattributes",
 }
 
 def should_ignore(path: str) -> bool:

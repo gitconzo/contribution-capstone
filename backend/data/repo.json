@@ -1,5 +1,6 @@
 {
-  "url": "https://github.com/gitconzo/contribution-capstone",
+  "url": "https://github.com/gitconzo/contribution-capstone/tree/dynamic-file-registry",
   "owner": "gitconzo",
-  "repo": "contribution-capstone"
+  "repo": "contribution-capstone",
+  "branch": "dynamic-file-registry"
 }

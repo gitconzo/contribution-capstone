@@ -379,32 +379,38 @@ function scoreStudents(students, rules = null) {
     const r = {};
     dims.forEach(d => {
       switch (d) {
-        case "loc": r[d] = pickNumber(s.code.pctLOC); break;
-        case "editedCode": r[d] = pickNumber(s.code.editPct); break;
-        case "commits": r[d] = pickNumber(s.code.commitPct); break;
-        case "functions": r[d] = pickNumber(s.code.pctFunctions); break;
-        case "hotspots": r[d] = pickNumber(s.code.pctHotspots); break;
-        case "codeComplexity": r[d] = pickNumber(s.code.avgComplexity); break;
+        case "loc":               r[d] = pickNumber(s.code.pctLOC); break;
+        case "editedCode":        r[d] = pickNumber(s.code.editPct); break;
+        case "commits":           r[d] = pickNumber(s.code.commitPct); break;
+        case "functions":         r[d] = pickNumber(s.code.pctFunctions); break;
+        case "hotspots":          r[d] = pickNumber(s.code.pctHotspots); break;
+        case "codeComplexity":    r[d] = pickNumber(s.code.avgComplexity); break;
         case "avgSentenceLength": r[d] = pickNumber(s.docs.avgSentenceLength); break;
-        case "sentenceComplexity": r[d] = pickNumber(s.docs.sentenceComplexity); break;
-        case "wordCount": r[d] = pickNumber(s.docs.words); break;
-        case "readability": r[d] = pickNumber(s.docs.readability); break;
+        case "sentenceComplexity":r[d] = pickNumber(s.docs.sentenceComplexity); break;
+        case "wordCount":         r[d] = pickNumber(s.docs.words); break;
+        case "readability":       r[d] = pickNumber(s.docs.readability); break;
         default: r[d] = 0;
       }
     });
-    
-    // Add display-only fields to raw (not used in weighted score)
-    r.attendance = pickNumber(s.attendance.percentage);
-    r.meetings = pickNumber(s.attendance.meetings);
-    r.hours = pickNumber(s.attendance.hours);
-    r.codeCommits = pickNumber(s.code.commits);
-    r.documents = pickNumber(s.docs.docCount);
 
+    // Display-only fields — not used in weighted score
+    r.attendance  = pickNumber(s.attendance.percentage);
+    r.meetings    = pickNumber(s.attendance.meetings);
+    r.hours       = pickNumber(s.attendance.hours);
+    r.codeCommits = pickNumber(s.code.commits);
+    r.documents   = pickNumber(s.docs.docCount);
     return r;
   });
 
+  // Each student's value divided by the sum across the team
   const normVectors = {};
-  dims.forEach(d => (normVectors[d] = normalize(raw.map(r => r[d]))));
+  dims.forEach(d => {
+    const values = raw.map(r => r[d]);
+    const teamTotal = values.reduce((sum, v) => sum + v, 0);
+    normVectors[d] = teamTotal === 0
+      ? values.map(() => 1 / students.length)
+      : values.map(v => v / teamTotal);
+  });
 
   const totals = students.map((_, i) =>
     dims.reduce((sum, d) => sum + (normVectors[d][i] || 0) * (w[d] || 0), 0)
