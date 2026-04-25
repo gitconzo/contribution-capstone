@@ -1,9 +1,10 @@
 import os
 from git import Repo
 from ignoreFiles import should_ignore
+from datetime import datetime, timezone
 
 
-def get_commit_stats(tempFolder):
+def get_commit_stats(tempFolder, start_date=None, end_date=None):
     print("Reading commit stats from all branches...")
     repo = Repo(tempFolder)
     seen = set()
@@ -19,6 +20,21 @@ def get_commit_stats(tempFolder):
                 all_commits.append(commit)
         except Exception:
             continue
+    
+    if start_date or end_date:
+        def parse_dt(s):
+            dt = datetime.strptime(s, "%Y-%m-%d")
+            return dt.replace(tzinfo=timezone.utc)
+        
+        start_dt = parse_dt(start_date) if start_date else None
+        end_dt = parse_dt(end_date).replace(hour=23, minute=59, second=59) if end_date else None
+        
+        all_commits = [
+            c for c in all_commits
+            if (not start_dt or datetime.fromtimestamp(c.committed_date, tz=timezone.utc) >= start_dt)
+            and (not end_dt or datetime.fromtimestamp(c.committed_date, tz=timezone.utc) <= end_dt)
+        ]
+        print(f"Filtered to {len(all_commits)} commits between {start_date} and {end_date}")
 
     print(f"Found {len(all_commits)} unique commits across all branches")
 
