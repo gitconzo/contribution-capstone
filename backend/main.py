@@ -4,10 +4,13 @@ import tempfile
 import shutil
 import glob
 import stat
+import re
+import json
 from git import Repo
 from analyser import analyse_functions
 from LOC import calculate_LOC
 from metricsSetup import write_json, combine_json
+from commitStats import get_commit_stats, build_commits_json
 
 def cleanup_old_temps(directory):
     for item in glob.glob(os.path.join(directory, "tmp*")):
@@ -21,47 +24,78 @@ def force_remove(directory):
         func(path)
     shutil.rmtree(directory, onerror=handle_readonly)
 
+def parse_repo_url(repoURL):
+    match = re.match(r'(https://github\.com/[^/]+/[^/]+)(?:/tree/(.+))?', repoURL)
+    if match:
+        return match.group(1), match.group(2) or None
+    return repoURL, None
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--repo-url", required=True, dest="repo_url", help="Raw GitHub repo link or owner/repo")
+    p.add_argument("--repo-url", required=True, dest="repo_url")
     args = p.parse_args()
     repoURL = args.repo_url
-
+ 
     currentDirectory = os.getcwd()
-    cleanup_old_temps(currentDirectory)
-    tempFolder = tempfile.mkdtemp(dir=currentDirectory)
+    tempFolder = tempfile.mkdtemp()
+ 
     try:
         print("Creating temporary folder ... Cloning Repository - this could take a while ...")
-        Repo.clone_from(repoURL, tempFolder)
+        cleanURL, branch = parse_repo_url(repoURL)
+        if branch:
+            Repo.clone_from(cleanURL, tempFolder, branch=branch)
+        else:
+            Repo.clone_from(cleanURL, tempFolder)
         print(f"Repository cloned to: {tempFolder}")
+ 
         results = analyse_functions(tempFolder)
         locPercentage = calculate_LOC(tempFolder)
+        commitStats = get_commit_stats(tempFolder)
+ 
     except Exception as e:
-        print(f"Error cloning repository: {e}")
-        results, locPercentage = {}, {}
+        print(f"Error during analysis: {e}")
+        results, locPercentage, commitStats = {}, {}, {}
     finally:
         force_remove(tempFolder)
-
-    # Write to data/output.json to match combine_json inputs
+ 
     dataDir = os.path.join(currentDirectory, "data")
+    os.makedirs(dataDir, exist_ok=True)
+ 
+    # Write output.json (complexity + LOC)
     outputJson = os.path.join(dataDir, "output.json")
     write_json(outputJson, repoURL, results, locPercentage)
-
+ 
+    # Write commits.json from git log
+    commitsJson = os.path.join(dataDir, "commits.json")
+    commitsData = build_commits_json(commitStats)
+    with open(commitsJson, "w", encoding="utf-8") as f:
+        json.dump(commitsData, f, indent=2)
+    print(f"Wrote {len(commitsData)} commit entries to {commitsJson}")
+ 
     print("\n Author Complexity")
-    for author, stats in results.items():
+    for author, s in results.items():
         pct = locPercentage.get(author, 0.0)
-        print(f"{author}: {stats}, LOC: {pct}%")
-
+        print(f"{author}: {s}, LOC: {pct}%")
+ 
     print("\n Author %LOC")
     for author, pct in locPercentage.items():
         print(f"{author}: {pct}% LOC")
-
-    # Merge with commits
+ 
+    print("\n Author Commits")
+    by_author = {}
+    for c in commitStats:
+        a = c["author"]
+        by_author[a] = by_author.get(a, 0) + 1
+    for author, count in by_author.items():
+        print(f"{author}: {count} commits")
+ 
+    # Combine everything into finalStats.json
     combine_json(
         outputJson=outputJson,
-        commitsJson=os.path.join(dataDir, "commits.json"),
+        commitsJson=commitsJson,
         finalStatsJson=os.path.join(dataDir, "finalStats.json"),
     )
-
+ 
+ 
 if __name__ == "__main__":
     main()
