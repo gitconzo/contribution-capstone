@@ -93,6 +93,31 @@ router.get("/file", async (req, res) => {
   }
 });
 
+// GET /api/uploads/by-team?teamId=...
+// Returns all files for a team, grouped by student — no S3 keys exposed
+router.get("/by-team", async (req, res) => {
+  try {
+    const { teamId } = req.query;
+    if (!teamId) return res.status(400).json({ error: "Missing teamId" });
+
+    const result = await db.query(
+      `SELECT
+         id, team_id, original_name, detected_type, user_type,
+         uploaded_by_name, uploaded_by_email, upload_scope,
+         approval_status, status, upload_date, size, decline_reason, parse_message
+       FROM file_registry
+       WHERE team_id = $1
+       ORDER BY uploaded_by_email ASC, upload_date DESC`,
+      [teamId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("GET /api/uploads/by-team error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/uploads/:id/download
 // Returns a presigned download URL for a file stored in S3
 router.get("/:id/download", async (req, res) => {
