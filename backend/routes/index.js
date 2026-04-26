@@ -6,6 +6,7 @@ router.use("/teams",   require("./teams/GET"));
 router.use("/teams",   require("./teams/POST"));
 router.use("/teams",   require("./teams/PUT"));
 router.use("/teams",   require("./teams/DELETE"));
+router.use("/teams",   require("./teams/SPRINTS"));
 
 router.use("/rules",   require("./rules/GET"));
 router.use("/rules",   require("./rules/POST"));
@@ -19,7 +20,6 @@ router.use("/uploads", require("./uploads/DELETE"));
 router.use("/uploads", require("./uploads/STUDENT_POST"));
 router.use("/uploads", require("./uploads/APPROVAL"));
 router.use("/teams/profile-photo", require("./teams/PROFILE_PHOTO"));
-
 
 router.use("/export", require("./export/GET"));
 

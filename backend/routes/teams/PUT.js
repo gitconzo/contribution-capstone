@@ -35,7 +35,7 @@ router.put("/:id", async (req, res) => {
 
 // PUT /api/teams/:id/students/:email — edit a student
 router.put("/:id/students/:email", async (req, res) => {
-  const { name, email, github } = req.body || {};
+  const { name, email, github, role } = req.body || {};
 
   try {
     const studentCheck = await db.query(
@@ -44,9 +44,39 @@ router.put("/:id/students/:email", async (req, res) => {
     );
     if (!studentCheck.rows.length) return res.status(404).json({ error: "Student not found" });
 
-    if (name)   await db.query("UPDATE students SET name = $1   WHERE team_id = $2 AND email = $3", [name,   req.params.id, req.params.email]);
-    if (email)  await db.query("UPDATE students SET email = $1  WHERE team_id = $2 AND email = $3", [email,  req.params.id, req.params.email]);
-    if (github !== undefined) await db.query("UPDATE students SET github = $1 WHERE team_id = $2 AND email = $3", [github, req.params.id, req.params.email]);
+    if (name) {
+      await db.query(
+        "UPDATE students SET name = $1 WHERE team_id = $2 AND email = $3",
+        [name, req.params.id, req.params.email]
+      );
+    }
+    
+    if (email) {
+      await db.query(
+        "UPDATE students SET email = $1 WHERE team_id = $2 AND email = $3",
+        [email, req.params.id, req.params.email]
+      );
+    }
+    
+    if (github !== undefined) {
+      await db.query(
+        "UPDATE students SET github = $1 WHERE team_id = $2 AND email = $3",
+        [github, req.params.id, req.params.email]
+      );
+    }
+    
+    if (role !== undefined) {
+      const allowedRoles = ["member", "leader", "scrum_master"];
+    
+      if (!allowedRoles.includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+    
+      await db.query(
+        "UPDATE students SET role = $1 WHERE team_id = $2 AND email = $3",
+        [role, req.params.id, req.params.email]
+      );
+    }
 
     const teamRes     = await db.query("SELECT * FROM teams WHERE id = $1", [req.params.id]);
     const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [req.params.id]);

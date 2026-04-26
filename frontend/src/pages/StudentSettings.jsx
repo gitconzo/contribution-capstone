@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { User } from "lucide-react";
+import { User, X } from "lucide-react";
+import Cropper from "react-easy-crop";
 import { changeCurrentUserPassword } from "../utils/cognitoAuth";
 import { apiFetch } from "../utils/api";
 
@@ -85,8 +86,15 @@ export default function StudentSettings({ darkMode, studentTeams = [], selectedT
   const [loading, setLoading] = useState(false);
 
   const [profileImage, setProfileImage] = useState("");
-  const [photoMessage, setPhotoMessage] = useState("");
-  const [photoError, setPhotoError] = useState("");
+const [photoMessage, setPhotoMessage] = useState("");
+const [photoError, setPhotoError] = useState("");
+
+const [cropModalOpen, setCropModalOpen] = useState(false);
+const [imageToCrop, setImageToCrop] = useState(null);
+const [crop, setCrop] = useState({ x: 0, y: 0 });
+const [zoom, setZoom] = useState(1);
+const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+const [croppedFile, setCroppedFile] = useState(null);
 
   const selectedTeamId = selectedTeamIdProp;
   const [selectedDocType, setSelectedDocType] = useState("worklog");
@@ -404,6 +412,149 @@ export default function StudentSettings({ darkMode, studentTeams = [], selectedT
     }
   }
 
+  function createImage(url) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener("load", () => resolve(image));
+      image.addEventListener("error", (error) => reject(error));
+      image.setAttribute("crossOrigin", "anonymous");
+      image.src = url;
+    });
+  }
+
+  async function getCroppedImg(imageSrc, pixelCrop) {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const file = new File([blob], `cropped-profile-${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
+        resolve(file);
+      }, "image/jpeg");
+    });
+  }
+
+  const onCropComplete = (_, croppedAreaPixelsValue) => {
+    setCroppedAreaPixels(croppedAreaPixelsValue);
+  };
+
+  async function handleCropSave() {
+    try {
+      if (!imageToCrop || !croppedAreaPixels) return;
+  
+      const cropped = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      setCroppedFile(cropped);
+      setCropModalOpen(false);
+      setPhotoMessage("");
+      setPhotoError("");
+  
+      await uploadCroppedPhoto(cropped);
+    } catch (error) {
+      console.error("Crop failed:", error);
+      setPhotoError("Failed to crop image.");
+    }
+  }
+
+  async function uploadCroppedPhoto(file) {
+    setPhotoMessage("");
+    setPhotoError("");
+  
+    if (!file) {
+      setPhotoError("No cropped image found.");
+      return;
+    }
+  
+    if (!selectedTeamId) {
+      setPhotoError("Please select a group first.");
+      return;
+    }
+  
+    try {
+      const safeEmail = savedUser?.email || "student";
+      const photoFileName = `profile-${Date.now()}.jpg`;
+      const folder = `profile-photos/${safeEmail}`;
+  
+      const presignRes = await apiFetch(
+        `/api/uploads/presign?filename=${encodeURIComponent(photoFileName)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(file.type || "image/jpeg")}&folder=${encodeURIComponent(folder)}`
+      );
+  
+      const presignData = await presignRes.json().catch(() => ({}));
+      console.log("presign status:", presignRes.status);
+      console.log("presign data:", presignData);
+  
+      if (!presignRes.ok) {
+        setPhotoError(presignData.error || "Failed to get upload URL.");
+        return;
+      }
+  
+      const { url, s3Key } = presignData;
+  
+      const uploadRes = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "image/jpeg",
+        },
+      });
+  
+      console.log("S3 upload status:", uploadRes.status);
+  
+      if (!uploadRes.ok) {
+        const uploadText = await uploadRes.text().catch(() => "");
+        console.log("S3 upload response:", uploadText);
+        setPhotoError("Failed to upload cropped profile photo.");
+        return;
+      }
+  
+      const saveRes = await apiFetch(`/api/teams/profile-photo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: savedUser?.email,
+          teamId: selectedTeamId,
+          photoUrl: s3Key,
+        }),
+      });
+  
+      const saveData = await saveRes.json().catch(() => ({}));
+      console.log("save status:", saveRes.status);
+      console.log("save data:", saveData);
+  
+      if (!saveRes.ok) {
+        setPhotoError(saveData.error || "Failed to save profile photo.");
+        return;
+      }
+  
+      setProfileImage(URL.createObjectURL(file));
+      setPhotoMessage("Profile photo updated successfully.");
+      await onRefreshTeams?.();
+    } catch (error) {
+      console.error("Profile photo upload failed:", error);
+      setPhotoError(error.message || "Failed to upload profile photo.");
+    }
+  }
+
   return (
     <div
       style={{
@@ -546,7 +697,27 @@ export default function StudentSettings({ darkMode, studentTeams = [], selectedT
                   </div>
 
                   <div style={{ display: "grid", gap: 12 }}>
-                    <input type="file" accept="image/*" onChange={handlePhotoChange} />
+                  <input
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please select a valid image file.");
+      return;
+    }
+
+    setPhotoMessage("");
+    setPhotoError("");
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    setImageToCrop(URL.createObjectURL(file));
+    setCropModalOpen(true);
+  }}
+/>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
 
                       <button
@@ -935,13 +1106,142 @@ export default function StudentSettings({ darkMode, studentTeams = [], selectedT
                 </form>
               </div>
             )}
-          </div>
+                    </div>
         </div>
       </div>
+
+      {cropModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              background: theme.card,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 16,
+              padding: 20,
+              boxShadow: "0 12px 32px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <h3 style={{ margin: 0, color: theme.text }}>Crop Profile Photo</h3>
+              <button
+                type="button"
+                onClick={() => setCropModalOpen(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: theme.text,
+                  cursor: "pointer",
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                height: 320,
+                background: "#111",
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <label style={{ color: theme.text, fontSize: 14, fontWeight: 500 }}>
+                Zoom
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                style={{ width: "100%", marginTop: 8 }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 10,
+                marginTop: 18,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setCropModalOpen(false)}
+                style={{
+                  border: `1px solid ${theme.border}`,
+                  background: theme.cardSoft,
+                  color: theme.text,
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCropSave}
+                style={{
+                  border: "none",
+                  background: theme.btnBg,
+                  color: theme.btnText,
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Save Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
+      
 function menuButton(active, theme) {
   return {
     width: "100%",
