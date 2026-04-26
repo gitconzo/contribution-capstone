@@ -14,7 +14,7 @@ const PARSERS = {
   worklog:      { extensions: [".docx", ".pdf"], script: path.join(ROOT_DIR, "parsers", "worklog_parser.py"),              label: "Worklog",      combineAfter: false },
   sprint_report:{ extensions: [".docx"],         script: path.join(ROOT_DIR, "parsers", "parse_sprint_report_docx.py"),    label: "Sprint Report",combineAfter: true  },
   project_plan: { extensions: [".docx"],         script: path.join(ROOT_DIR, "parsers", "parse_project_plan_docx.py"),     label: "Project Plan", combineAfter: true  },
-  peer_review:  { extensions: [".docx"],         script: path.join(ROOT_DIR, "parsers", "parse_peer_review_docx.py"),      label: "Peer Review",  combineAfter: false },
+  peer_review:  { extensions: [".docx"],         script: path.join(ROOT_DIR, "parsers", "parse_peer_review.py"),      label: "Peer Review",  combineAfter: false },
 };
 
 async function parseEntry(entry) {
