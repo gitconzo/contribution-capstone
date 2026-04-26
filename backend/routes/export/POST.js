@@ -1,4 +1,4 @@
-// backend/routes/export/GET.js
+// backend/routes/export/POST.js
 const router = require("express").Router();
 const { ROOT_DIR } = require("../../utils/config");
 const { readActiveId } = require("../../utils/activeTeamUtils");
@@ -9,9 +9,9 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 // GET /api/export?teamId=...
-router.get("/", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const teamId = req.query.teamId || readActiveId();
+    const teamId = req.body?.teamId || readActiveId();
     if (!teamId) return res.status(400).json({ error: "Missing teamId" });
 
     const payload = await aggregateTeamScores({ teamId, rootDir: ROOT_DIR });
@@ -26,14 +26,11 @@ router.get("/", async (req, res) => {
     const jsonPath = path.join(tmpDir, `data_${ts}.json`);
 
     // Filter to selected students if provided
-    function parseStudentFilter(query) {
-      if (!query.students) return null;
-      return query.students.split(",").map(email => email.trim().toLowerCase());
-    }
+    const { selectedEmails, sections: exportSections = {} } = req.body || {};
+    const includeCharts = exportSections.charts !== false;
 
-    const studentFilter = parseStudentFilter(req.query);
-    const ranking = studentFilter
-      ? payload.ranking.filter(student => studentFilter.includes((student.email || "").toLowerCase()))
+    const ranking = selectedEmails?.length
+      ? payload.ranking.filter(s => selectedEmails.includes(s.email))
       : payload.ranking;
     const teamCode = payload.team?.name?.replace(/\s+/g, "_") || teamId;
 
@@ -92,57 +89,60 @@ for col in ws.columns:
 num_students = len(data)
 names = Reference(ws, min_col=2, min_row=2, max_row=num_students+1)
 
-chart1 = PieChart()
-chart1.title = "Overall Contribution Score"
-chart1.style = 10
-chart1.width = 18
-chart1.height = 12
-pie_data = Reference(ws, min_col=4, min_row=1, max_row=num_students+1)
-chart1.add_data(pie_data, titles_from_data=True)
-chart1.set_categories(names)
-ws.add_chart(chart1, "AC2")
+include_charts = ${includeCharts ? 'True' : 'False'}
 
-# Chart 2: Code metrics grouped bar
-chart2 = BarChart()
-chart2.type = "col"
-chart2.grouping = "clustered"
-chart2.title = "Code Metrics (Normalised)"
-chart2.y_axis.title = "Normalised Score (0-100)"
-chart2.x_axis.title = "Student"
-chart2.style = 10
-chart2.width = 22
-chart2.height = 12
-chart2.x_axis.tickLblPos = "low"
-chart2.x_axis.delete = False
-chart2.y_axis.delete = False
-chart2.x_axis.majorTickMark = "out"
-chart2.y_axis.majorTickMark = "out"
-for col in range(9, 15):
-    chart2.add_data(Reference(ws, min_col=col, min_row=1, max_row=num_students+1), titles_from_data=True)
-cats2 = Reference(ws, min_col=2, min_row=2, max_row=num_students+1)
-chart2.set_categories(cats2)
-ws.add_chart(chart2, "AC28")
+chart_start_row = num_students + 4
 
-# Chart 3: Documentation metrics grouped bar
-chart3 = BarChart()
-chart3.type = "col"
-chart3.grouping = "clustered"
-chart3.title = "Documentation Metrics (Normalised)"
-chart3.y_axis.title = "Normalised Score (0-100)"
-chart3.x_axis.title = "Student"
-chart3.style = 10
-chart3.width = 22
-chart3.height = 12
-chart3.x_axis.tickLblPos = "low"
-chart3.x_axis.delete = False
-chart3.y_axis.delete = False
-chart3.x_axis.majorTickMark = "out"
-chart3.y_axis.majorTickMark = "out"
-for col in range(15, 19):
-    chart3.add_data(Reference(ws, min_col=col, min_row=1, max_row=num_students+1), titles_from_data=True)
-cats3 = Reference(ws, min_col=2, min_row=2, max_row=num_students+1)
-chart3.set_categories(cats3)
-ws.add_chart(chart3, "AC54")
+if include_charts:
+    chart1 = PieChart()
+    chart1.title = "Overall Contribution Score"
+    chart1.style = 10
+    chart1.width = 25
+    chart1.height = 15
+    pie_data = Reference(ws, min_col=4, min_row=1, max_row=num_students+1)
+    chart1.add_data(pie_data, titles_from_data=True)
+    chart1.set_categories(names)
+    ws.add_chart(chart1, f"A{chart_start_row}")
+
+    chart2 = BarChart()
+    chart2.type = "col"
+    chart2.grouping = "clustered"
+    chart2.title = "Code Metrics (Normalised)"
+    chart2.y_axis.title = "Normalised Score (0-100)"
+    chart2.x_axis.title = "Student"
+    chart2.style = 10
+    chart2.width = 30
+    chart2.height = 15
+    chart2.x_axis.tickLblPos = "low"
+    chart2.x_axis.delete = False
+    chart2.y_axis.delete = False
+    chart2.x_axis.majorTickMark = "out"
+    chart2.y_axis.majorTickMark = "out"
+    for col in range(9, 15):
+        chart2.add_data(Reference(ws, min_col=col, min_row=1, max_row=num_students+1), titles_from_data=True)
+    cats2 = Reference(ws, min_col=2, min_row=2, max_row=num_students+1)
+    chart2.set_categories(cats2)
+    ws.add_chart(chart2, f"J{chart_start_row}")
+
+    chart3 = BarChart()
+    chart3.type = "col"
+    chart3.grouping = "clustered"
+    chart3.title = "Documentation Metrics (Normalised)"
+    chart3.y_axis.title = "Normalised Score (0-100)"
+    chart3.x_axis.title = "Student"
+    chart3.style = 10
+    chart3.width = 30
+    chart3.height = 15
+    chart3.x_axis.tickLblPos = "low"
+    chart3.x_axis.delete = False
+    chart3.y_axis.delete = False
+    chart3.x_axis.majorTickMark = "out"
+    chart3.y_axis.majorTickMark = "out"
+    for col in range(15, 19):
+        chart3.add_data(Reference(ws, min_col=col, min_row=1, max_row=num_students+1), titles_from_data=True)
+    cats3 = Reference(ws, min_col=2, min_row=2, max_row=num_students+1)
+    chart3.set_categories(cats3)
+    ws.add_chart(chart3, f"P{chart_start_row}")
 
 wb.save(r"${outPath.replace(/\\/g, "\\\\")}")
 `;

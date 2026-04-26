@@ -405,10 +405,12 @@ export default function ExportReport({ darkMode }) {
       } else if (selectedFormat === "excel") {
         const teamId = team?.id;
         if (!teamId) throw new Error("No active team");
-        const params = new URLSearchParams({ teamId });
-        if (selectedStudents.length) params.set("students", selectedStudents.join(","));
-        params.set("sections", Object.entries(sections).filter(([, v]) => v).map(([k]) => k).join(","));
-        const res = await apiFetch(`/api/export?${params}`);
+        const selectedEmails = selectedStudents.length ? selectedStudents : ranking.map(s => s.email);
+        const res = await apiFetch("/api/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teamId, selectedEmails, sections }),
+        });
         if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Export failed"); }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);

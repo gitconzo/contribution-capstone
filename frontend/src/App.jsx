@@ -18,6 +18,7 @@ import { Login } from "./pages/Login";
 import ForgotUsername from "./pages/ForgotUsername";
 import ForgotPassword from "./pages/ForgotPassword";
 import ExportReport from "./pages/ExportReport";
+import FileExplorer from "./pages/FileExplorer";
 import DefaultPasswordNotice from "./components/DefaultPasswordNotice";
 
 function Shell() {
@@ -134,6 +135,7 @@ function Shell() {
     if (pathname.startsWith("/upload")) return "upload";
     if (pathname.startsWith("/setup-team")) return "setup-team";
     if (pathname.startsWith("/export")) return "export";
+    if (pathname.startsWith("/files")) return "files";
     if (pathname.startsWith("/student-dashboard")) return "student-dashboard";
     if (pathname.startsWith("/settings")) return "settings";
     if (pathname.startsWith("/lecturer-settings")) return "lecturer-settings";
@@ -146,6 +148,7 @@ function Shell() {
     else if (key === "upload") nav("/upload");
     else if (key === "setup-team") nav("/setup-team");
     else if (key === "export") nav("/export");
+    else if (key === "files") nav("/files");
     else if (key === "student-dashboard") nav("/student-dashboard");
     else if (key === "settings") nav("/settings");
     else if (key === "lecturer-settings") nav("/lecturer-settings");
@@ -325,6 +328,16 @@ function Shell() {
             <Route
               path="/export"
               element={isTeacher ? <ExportReport darkMode={dark} /> : <Navigate to="/student-dashboard" replace />}
+            />
+            <Route
+              path="/files"
+              element={
+                isTeacher ? (
+                  <FileExplorer darkMode={dark} teams={teams} activeTeamId={teamId} />
+                ) : (
+                  <Navigate to="/student-dashboard" replace />
+                )
+              }
             />
 
             <Route

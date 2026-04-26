@@ -21,7 +21,12 @@ router.use("/uploads", require("./uploads/STUDENT_POST"));
 router.use("/uploads", require("./uploads/APPROVAL"));
 router.use("/teams/profile-photo", require("./teams/PROFILE_PHOTO"));
 
+
 router.use("/export", require("./export/GET"));
+
+
+router.use("/export", require("./export/POST"));
+
 
 router.use("/scores",  require("./scores/GET"));
 

@@ -116,8 +116,10 @@ function scoreStudents(students, rules = null) {
   );
 
   // Scale so the top student always gets 100%
-  const maxTotal = Math.max(...weightedTotals, 1);
-  const percentages = weightedTotals.map(total => +(100 * (total / maxTotal)).toFixed(2));
+  const teamTotal = weightedTotals.reduce((sum, t) => sum + t, 0);
+  const percentages = teamTotal === 0
+    ? weightedTotals.map(() => +(100 / students.length).toFixed(2))
+    : weightedTotals.map(total => +(100 * (total / teamTotal)).toFixed(2));
 
   const ranked = students
     .map((student, index) => ({
@@ -127,6 +129,7 @@ function scoreStudents(students, rules = null) {
       breakdown: Object.fromEntries(dimensions.map(dimension => [dimension, +(normalisedVectors[dimension][index] || 0).toFixed(4)])),
       score: percentages[index],
       raw: rawScores[index],
+      expectedShare: +(100 / students.length).toFixed(2)
     }))
     .sort((first, second) => second.score - first.score)
     .map((result, index) => ({ rank: index + 1, ...result }));

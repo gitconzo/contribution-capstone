@@ -1,20 +1,50 @@
 import os
+import re
 import lizard
 from git import Repo
 from collections import defaultdict
 from ignoreFiles import should_ignore, IGNORE_DIRS
 
 
-def calculate_hotspots(complexity, commitFrequency, maxComplexity, maxFrequency):
+def calculate_hotspots(complexity, callFrequency, maxComplexity, maxFrequency):
     normComplexity = complexity / maxComplexity if maxComplexity else 0
-    normFrequency = commitFrequency / maxFrequency if maxFrequency else 0
+    normFrequency = callFrequency / maxFrequency if maxFrequency else 0
     return round(0.5 * normComplexity + 0.5 * normFrequency, 4)
 
 
-# Analysing each function in the repo 
+def calculate_call_frequency(tempFolder, analyseRepo):
+    callCounts = defaultdict(int)
+
+    allFunctionNames = set()
+    for file in analyseRepo:
+        for func in file.function_list:
+            if func.name:
+                allFunctionNames.add(func.name)
+
+    for root, dirs, files in os.walk(tempFolder):
+        dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
+        for filename in files:
+            absPath = os.path.join(root, filename)
+            relPath = os.path.relpath(absPath, tempFolder)
+            if should_ignore(relPath):
+                continue
+            try:
+                with open(absPath, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                for funcName in allFunctionNames:
+                    count = len(re.findall(rf'\b{re.escape(funcName)}\s*\(', content))
+                    callCounts[funcName] += count
+            except Exception:
+                continue
+
+    return callCounts
+
+
+# Analysing each function in the repo
 def analyse_functions(tempFolder):
     print("Analysing repository... please wait ...")
-    analyseRepo = list(lizard.analyze([tempFolder]))
+    exclude_pattern = [f"*/{d}/*" for d in IGNORE_DIRS]
+    analyseRepo = list(lizard.analyze([tempFolder], exclude_pattern=exclude_pattern))
     repo = Repo(tempFolder)
 
     Authors = defaultdict(list)
@@ -31,7 +61,13 @@ def analyse_functions(tempFolder):
         print("No functions found in repository.")
         return {}
 
-    functionData = []
+    # Calculate call frequency for all functions
+    callCounts = calculate_call_frequency(tempFolder, analyseRepo)
+
+    # First pass — collect all function data for percentage_of_functions_written
+    # and hotspot analysis
+    functionData = []      # only complex functions (hotspot candidates)
+    allFunctionData = []   # all functions (for ownership percentages)
 
     for file in analyseRepo:
         relPath = os.path.relpath(file.filename, tempFolder)
@@ -48,13 +84,9 @@ def analyse_functions(tempFolder):
                 continue
 
             linesInFunction = defaultdict(int)
-            commitHashes = set()
             currentAuthor = None
             for line in blameOutput.splitlines():
-                parts = line.split()
-                if parts and len(parts[0]) == 40 and all(c in '0123456789abcdef' for c in parts[0]):
-                    commitHashes.add(parts[0])
-                elif line.startswith("author "):
+                if line.startswith("author "):
                     currentAuthor = line.replace("author ", "").strip()
                 elif line.startswith("\t") and currentAuthor:
                     linesInFunction[currentAuthor] += 1
@@ -63,37 +95,31 @@ def analyse_functions(tempFolder):
             if totalLines == 0:
                 continue
 
-            commitFrequency = len(commitHashes)
+            complexity = (func.cyclomatic_complexity / 10) + (func.token_count / 100)
+            callFrequency = callCounts.get(func.name, 0)
 
-            complexity = (
-                (func.cyclomatic_complexity / 10) + (func.token_count / 100)
-            )
-
-            functionData.append({
+            entry = {
                 "complexity": complexity,
-                "commitFrequency": commitFrequency,
+                "callFrequency": callFrequency,
+                "funcName": func.name,
                 "linesInFunction": dict(linesInFunction),
                 "totalLines": totalLines,
-            })
-            
+            }
 
-    maxComplexity = max(d["complexity"] for d in functionData) or 1
-    maxFrequency = max(d["commitFrequency"] for d in functionData) or 1
+            allFunctionData.append(entry)
 
-    hotspotScore = [
-        calculate_hotspots(d["complexity"], d["commitFrequency"], maxComplexity, maxFrequency)
-        for d in functionData
-    ]
-    hotspotScore.sort()
-    hotspotThreshold = hotspotScore[int(len(hotspotScore) * 0.75)]
+            # Only non-trivial functions are hotspot candidates
+            if complexity >= 0.5:
+                functionData.append(entry)
 
-    authorHotspots = defaultdict(float)
-    totalHotspots = 0
+    if not allFunctionData:
+        print("No function data collected.")
+        return {}
 
-    for d in functionData:
+    # Compute ownership for all functions
+    for d in allFunctionData:
         linesInFunction = d["linesInFunction"]
         complexity = d["complexity"]
-        commitFrequency = d["commitFrequency"]
         totalLines = d["totalLines"]
 
         totalFunctions += 1
@@ -107,15 +133,35 @@ def analyse_functions(tempFolder):
         for a in owners:
             authorsFunctions[a] += share
 
-        if calculate_hotspots(complexity, commitFrequency, maxComplexity, maxFrequency) >= hotspotThreshold:
-            totalHotspots += 1
-            for a in owners:
-                authorHotspots[a] += share
+    # Compute hotspots using call frequency
+    authorHotspots = defaultdict(float)
+    totalHotspots = 0
+
+    if functionData:
+        maxComplexity = max(d["complexity"] for d in functionData) or 1
+        maxFrequency = max(d["callFrequency"] for d in functionData) or 1
+
+        hotspotScores = [
+            calculate_hotspots(d["complexity"], d["callFrequency"], maxComplexity, maxFrequency)
+            for d in functionData
+        ]
+        sortedScores = sorted(hotspotScores)
+        hotspotThreshold = sortedScores[int(len(sortedScores) * 0.75)]
+
+        for d, score in zip(functionData, hotspotScores):
+            if score >= hotspotThreshold:
+                linesInFunction = d["linesInFunction"]
+                maxLines = max(linesInFunction.values())
+                owners = [a for a, n in linesInFunction.items() if n == maxLines]
+                share = 1.0 / len(owners)
+                totalHotspots += 1
+                for a in owners:
+                    authorHotspots[a] += share
 
     scores = {}
-    for author, complexity in Authors.items():
-        total = sum(complexity)
-        count = len(complexity)
+    for author, complexityList in Authors.items():
+        total = sum(complexityList)
+        count = len(complexityList)
         owned = authorsFunctions.get(author, 0.0)
         funcPercentage = round((owned / totalFunctions) * 100, 2) if totalFunctions else 0.0
         average = total / count if count else 0.0

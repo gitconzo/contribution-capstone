@@ -137,7 +137,7 @@ router.post("/confirm", async (req, res) => {
     },
     peer_review: {
       extensions: [".docx"],
-      script: path.join(ROOT_DIR, "parsers", "parse_peer_review_docx.py"),
+      script: path.join(ROOT_DIR, "parsers", "parse_peer_review.py"),
       label: "Peer Review",
       combineAfter: false,
     },

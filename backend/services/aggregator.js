@@ -265,26 +265,27 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
 
 
 // ---------- Peer Review ----------
-function loadPeerReviewMetrics(rootDir, aliasMap) {
-  const registry = safeReadJSON(path.join(rootDir, "fileRegistry.json"), []);
-  
-  // Collect all parsed peer review JSON files
+async function loadPeerReviewMetrics(teamId, rootDir, aliasMap) {
+  const result = await db.query(
+    `SELECT json_path FROM file_registry
+     WHERE team_id = $1
+       AND (user_type = 'peer_review' OR detected_type = 'peer_review')
+       AND status = 'parsed'
+       AND json_path IS NOT NULL`,
+    [teamId]
+  );
+
   const peerFiles = [];
-  registry.forEach(r => {
-    const type = r.userType || r.detectedType || "unknown";
-    if (type !== "peer_review") return;
-    const relJson = r?.parseInfo?.jsonPath;
-    if (!relJson) return;
-    const abs = path.join(rootDir, relJson);
-    const data = safeReadJSON(abs, null);
+  for (const row of result.rows) {
+    const data = safeReadJSON(path.join(rootDir, row.json_path), null);
     if (data?.scores) peerFiles.push(data);
-  });
- 
+  }
+
   if (!peerFiles.length) return null;
- 
+
   // Aggregate all peer scores per student
   const studentScores = {}; // { studentIdx: [score, score, ...] }
- 
+
   peerFiles.forEach(file => {
     Object.entries(file.scores || {}).forEach(([name, scoreArr]) => {
       const idx = matchStudentIndex(aliasMap, name);
@@ -293,7 +294,7 @@ function loadPeerReviewMetrics(rootDir, aliasMap) {
       scoreArr.forEach(s => studentScores[idx].push(s));
     });
   });
- 
+
   return studentScores;
 }
  
@@ -379,38 +380,48 @@ function scoreStudents(students, rules = null) {
     const r = {};
     dims.forEach(d => {
       switch (d) {
-        case "loc": r[d] = pickNumber(s.code.pctLOC); break;
-        case "editedCode": r[d] = pickNumber(s.code.editPct); break;
-        case "commits": r[d] = pickNumber(s.code.commitPct); break;
-        case "functions": r[d] = pickNumber(s.code.pctFunctions); break;
-        case "hotspots": r[d] = pickNumber(s.code.pctHotspots); break;
-        case "codeComplexity": r[d] = pickNumber(s.code.avgComplexity); break;
+        case "loc":               r[d] = pickNumber(s.code.pctLOC); break;
+        case "editedCode":        r[d] = pickNumber(s.code.editPct); break;
+        case "commits":           r[d] = pickNumber(s.code.commitPct); break;
+        case "functions":         r[d] = pickNumber(s.code.pctFunctions); break;
+        case "hotspots":          r[d] = pickNumber(s.code.pctHotspots); break;
+        case "codeComplexity":    r[d] = pickNumber(s.code.avgComplexity); break;
         case "avgSentenceLength": r[d] = pickNumber(s.docs.avgSentenceLength); break;
-        case "sentenceComplexity": r[d] = pickNumber(s.docs.sentenceComplexity); break;
-        case "wordCount": r[d] = pickNumber(s.docs.words); break;
-        case "readability": r[d] = pickNumber(s.docs.readability); break;
+        case "sentenceComplexity":r[d] = pickNumber(s.docs.sentenceComplexity); break;
+        case "wordCount":         r[d] = pickNumber(s.docs.words); break;
+        case "readability":       r[d] = pickNumber(s.docs.readability); break;
         default: r[d] = 0;
       }
     });
-    
-    // Add display-only fields to raw (not used in weighted score)
-    r.attendance = pickNumber(s.attendance.percentage);
-    r.meetings = pickNumber(s.attendance.meetings);
-    r.hours = pickNumber(s.attendance.hours);
-    r.codeCommits = pickNumber(s.code.commits);
-    r.documents = pickNumber(s.docs.docCount);
 
+    // Display-only fields — not used in weighted score
+    r.attendance  = pickNumber(s.attendance.percentage);
+    r.meetings    = pickNumber(s.attendance.meetings);
+    r.hours       = pickNumber(s.attendance.hours);
+    r.codeCommits = pickNumber(s.code.commits);
+    r.documents   = pickNumber(s.docs.docCount);
     return r;
   });
 
+  // Each student's value divided by the sum across the team
   const normVectors = {};
-  dims.forEach(d => (normVectors[d] = normalize(raw.map(r => r[d]))));
+  dims.forEach(d => {
+    const values = raw.map(r => r[d]);
+    const teamTotal = values.reduce((sum, v) => sum + v, 0);
+    normVectors[d] = teamTotal === 0
+      ? values.map(() => 1 / students.length)
+      : values.map(v => v / teamTotal);
+  });
 
   const totals = students.map((_, i) =>
     dims.reduce((sum, d) => sum + (normVectors[d][i] || 0) * (w[d] || 0), 0)
   );
-  const maxTotal = Math.max(...totals, 1);
-  const percent = totals.map(t => +(100 * (t / maxTotal)).toFixed(2));
+
+  // Proportional scoring — all scores add up to 100% across the team
+  const teamTotal = totals.reduce((sum, t) => sum + t, 0);
+  const percent = teamTotal === 0
+    ? totals.map(() => +(100 / students.length).toFixed(2))
+    : totals.map(t => +(100 * (t / teamTotal)).toFixed(2));
 
   const ranked = students
     .map((s, i) => ({
@@ -498,9 +509,9 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
 
   const scored = scoreStudents(students, rules);
 
- if (usePeerReview) {
-    const aliasMap = buildAliasMap(team); // use original team with DB aliases
-    const peerData = loadPeerReviewMetrics(rootDir, aliasMap);
+  if (usePeerReview) {
+    const aliasMap = buildAliasMap(team);
+    const peerData = await loadPeerReviewMetrics(teamId, rootDir, aliasMap);
     if (peerData) {
         scored.ranking = applyPeerMultiplier(students, scored.ranking, peerData);
         scored.ranking = scored.ranking

@@ -1,6 +1,6 @@
 // frontend/src/components/Navigation.jsx
 import React from "react";
-import { Users, LayoutDashboard, Settings, Upload, UserPlus, Download, Moon, Sun, LogOut } from "lucide-react";
+import { Users, LayoutDashboard, Settings, Upload, UserPlus, Download, Moon, Sun, LogOut, FolderOpen } from "lucide-react";
 
 export default function Navigation({
   currentPage,
@@ -19,10 +19,11 @@ export default function Navigation({
       ]
     : [
         { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={15} /> },
-        { key: "rules", label: "Rule Settings", icon: <Settings size={15} /> },
-        { key: "upload", label: "Upload Data", icon: <Upload size={15} /> },
-        { key: "setup-team", label: "Setup Team", icon: <UserPlus size={15} /> },
-        { key: "export", label: "Export Report", icon: <Download size={15} /> },
+        { key: "rules", label: "Rules", icon: <Settings size={15} /> },
+        { key: "upload", label: "Upload", icon: <Upload size={15} /> },
+        { key: "setup-team", label: "Teams", icon: <UserPlus size={15} /> },
+        { key: "export", label: "Export", icon: <Download size={15} /> },
+        { key: "files", label: "Files", icon: <FolderOpen size={15} /> },
         { key: "lecturer-settings", label: "Settings", icon: <Settings size={15} /> },
       ];
 
@@ -98,9 +99,9 @@ export default function Navigation({
           <div
             style={{
               display: "flex",
-              gap: 8,
-              marginLeft: 10,
-              flexWrap: "wrap",
+              gap: 5,
+              marginLeft: 8,
+              flexWrap: "nowrap",
               alignItems: "center",
             }}
           >
@@ -124,9 +125,9 @@ export default function Navigation({
                       : "1px solid #e5e7eb",
                     background: active ? "#000" : darkMode ? "#111827" : "#fff",
                     color: active ? "#fff" : darkMode ? "#e5e7eb" : "#4b5563",
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: 500,
-                    padding: "8px 12px",
+                    padding: "7px 9px",
                     borderRadius: 10,
                     cursor: "pointer",
                     transition: "all 0.15s ease",

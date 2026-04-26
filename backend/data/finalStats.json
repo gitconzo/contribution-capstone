@@ -1,39 +1,42 @@
 {
+  "Kavinduwer11": {
+    "average_complexity": 0.977,
+    "percentage_of_functions_written": 27.96,
+    "percentage_of_hotspots": 19.44,
+    "percentage_of_LOC": 31.21,
+    "commits": 15,
+    "additions": 8582,
+    "deletions": 1449,
+    "commit_percentage": 14.42,
+    "edit_percentage": 23.09
+  },
   "gitconzo": {
-    "average_complexity": 3.425,
-    "percentage_of_functions_written": 91.39,
-    "percentage_of_hotspots": 88.39,
-    "percentage_of_LOC": 97.86,
-    "commits": 12,
-    "additions": 211036,
-    "deletions": 37528,
-    "commit_percentage": 70.59,
-    "edit_percentage": 23.98
+    "average_complexity": 1.13,
+    "percentage_of_functions_written": 67.13,
+    "percentage_of_hotspots": 73.61,
+    "percentage_of_LOC": 64.77,
+    "commits": 55,
+    "additions": 15914,
+    "deletions": 7916,
+    "commit_percentage": 52.88,
+    "edit_percentage": 54.84
   },
   "jasonv47": {
-    "average_complexity": 2.627,
-    "percentage_of_functions_written": 8.61,
-    "percentage_of_hotspots": 11.61,
-    "percentage_of_LOC": 2.11,
-    "commits": 2,
-    "additions": 1152,
-    "deletions": 113,
-    "commit_percentage": 11.76,
-    "edit_percentage": 0.12
+    "average_complexity": 1.187,
+    "percentage_of_functions_written": 4.92,
+    "percentage_of_hotspots": 6.94,
+    "percentage_of_LOC": 4.01,
+    "commits": 18,
+    "additions": 3305,
+    "deletions": 788,
+    "commit_percentage": 17.31,
+    "edit_percentage": 9.42
   },
   "urjenz": {
-    "percentage_of_LOC": 0.03,
-    "commits": 1,
-    "additions": 760553,
-    "deletions": 0,
-    "commit_percentage": 5.88,
-    "edit_percentage": 73.36
-  },
-  "Kavinduwer11": {
-    "commits": 2,
-    "additions": 14540,
-    "deletions": 11778,
-    "commit_percentage": 11.76,
-    "edit_percentage": 2.54
+    "commits": 16,
+    "additions": 4711,
+    "deletions": 787,
+    "commit_percentage": 15.38,
+    "edit_percentage": 12.65
   }
 }

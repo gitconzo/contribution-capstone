@@ -111,7 +111,7 @@ def parse_peer_review(docx_path):
  
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python parse_peer_review_docx.py <input.docx> <output.json>")
+        print("Usage: python parse_peer_review.py <input.docx> <output.json>")
         sys.exit(1)
  
     docx_path = sys.argv[1]
