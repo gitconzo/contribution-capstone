@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { apiFetch } from "../utils/api";
+import SprintManager from "../components/SprintManager";
 
 const EMPTY_STUDENT = { name: "", email: "", github: "", aliases: "" };
 
@@ -390,7 +391,15 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
           </button>
         </div>
       </div>
-
+       {/* Global Sprint Management */}
+      <div style={card(theme, { marginTop: 16 })}>
+        <div style={{ fontWeight: 700, marginBottom: 4, color: theme.text }}>Sprint Management</div>
+        <div style={{ color: theme.subtext, fontSize: 13, marginBottom: 12 }}>
+          Manage sprints across all teams
+        </div>
+        <SprintManager teamId={null} allTeams={teams} darkMode={darkMode} globalMode />
+      </div>
+ 
       {/* Teams list */}
       <div style={card(theme, { marginTop: 16 })}>
         <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>Existing Teams</div>
@@ -603,6 +612,8 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                           </button>
                         )}
                       </div>
+
+                       
 
                       {/* Edit team details */}
                       <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 12 }}>

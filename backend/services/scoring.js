@@ -104,10 +104,14 @@ function scoreStudents(students, rules = null) {
     return scores;
   });
 
-  // Normalise each dimension across all students
+  // proportion of team total for every metric
   const normalisedVectors = {};
   dimensions.forEach(dimension => {
-    normalisedVectors[dimension] = normalize(rawScores.map(score => score[dimension]));
+    const values = rawScores.map(score => score[dimension]);
+    const teamTotal = values.reduce((sum, v) => sum + v, 0);
+    normalisedVectors[dimension] = teamTotal === 0
+      ? values.map(() => 1 / students.length)
+      : values.map(v => v / teamTotal);
   });
 
   // Compute weighted total for each student
@@ -115,7 +119,7 @@ function scoreStudents(students, rules = null) {
     dimensions.reduce((sum, dimension) => sum + (normalisedVectors[dimension][index] || 0) * (weights[dimension] || 0), 0)
   );
 
-  // Scale so the top student always gets 100%
+  // proportion of team total for every metric
   const teamTotal = weightedTotals.reduce((sum, t) => sum + t, 0);
   const percentages = teamTotal === 0
     ? weightedTotals.map(() => +(100 / students.length).toFixed(2))

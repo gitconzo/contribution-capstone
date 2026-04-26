@@ -3,6 +3,13 @@ from git import Repo
 from ignoreFiles import should_ignore
 from datetime import datetime, timezone
 
+def parse_date(date_str):
+    """Parse YYYY-MM-DD string to timezone-aware datetime."""
+    if not date_str:
+        return None
+    dt = datetime.strptime(date_str, "%Y-%m-%d")
+    return dt.replace(tzinfo=timezone.utc)
+
 
 def get_commit_stats(tempFolder, start_date=None, end_date=None):
     print("Reading commit stats from all branches...")

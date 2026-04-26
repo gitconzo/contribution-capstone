@@ -19,6 +19,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [resetting, setResetting] = useState(false);
 
+  const [sprints, setSprints] = useState([]);
+  const [selectedSprint, setSelectedSprint] = useState("overall");
+  const [sprintScores, setSprintScores] = useState(null);
+
   const theme = darkMode
     ? {
         pageBg: "#0b1120",
@@ -65,12 +69,19 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         sessionStorage.removeItem("dashboardScoresCache");
         sessionStorage.removeItem("dashboardStudentsCache");
       }
+      if (resolvedId) {
+        apiFetch(`/api/sprints/team/${resolvedId}`)
+          .then(r => r.json())
+          .then(data => setSprints(Array.isArray(data) ? data : []))
+          .catch(() => setSprints([]));
+      }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!teamId) return;
     // Don't re-fetch on peerReview toggle when peer review is off and we have cached scores
+    if (selectedSprint !== "overall") return;
     const url = `/api/scores?teamId=${encodeURIComponent(teamId)}${peerReview ? "&usePeerReview=true" : ""}`;
     apiFetch(url)
       .then(r => r.json())
@@ -88,11 +99,25 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         sessionStorage.setItem("dashboardStudentsCache", JSON.stringify(students));
       })
       .catch(() => setTeamStudents([]));
-  }, [teamId, peerReview]);
+  }, [teamId, peerReview, selectedSprint]);
+
+
+  useEffect(() => {
+    if (!teamId || selectedSprint === "overall") {
+      setSprintScores(null);
+      return;
+    }
+    apiFetch(`/api/sprints/${selectedSprint}/scores/${teamId}`)
+      .then(r => r.json())
+      .then(data => setSprintScores(data))
+      .catch(() => setSprintScores(null));
+  }, [selectedSprint, teamId]);
+
+  const activeScores = selectedSprint === "overall" ? scores : sprintScores;
 
   const students = useMemo(() => {
-    const list = scores?.ranking?.length
-      ? scores.ranking
+    const list = activeScores?.ranking?.length
+      ? activeScores.ranking
       : teamStudents.map((s) => ({
           name: s.name,
           email: s.email,
@@ -115,14 +140,14 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   
       return matchesQuery && matchesLevel;
     });
-  }, [scores, teamStudents, query, selectedLevel]);
+  }, [activeScores, teamStudents, query, selectedLevel]);
 
   // ---- Compute per-student CODE-ONLY weighted sums and max → Code Score %
   const codeScoreByKey = useMemo(() => {
-    const ranking = scores?.ranking || [];
+    const ranking = activeScores?.ranking || [];
     if (!ranking.length) return new Map();
 
-    const weights = scores?.weights || {};
+    const weights = activeScores?.weights || {};
     const defaultWeights = {
       loc: 12, editedCode: 10, commits: 7,
       functions: 12, hotspots: 10, codeComplexity: 9
@@ -148,15 +173,16 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       map.set(r.email || r.name, pct);
     });
     return map;
-  }, [scores]);
+  }, [activeScores]);
 
   const kpis = useMemo(() => {
-    const list = scores?.ranking || [];
+    const list = activeScores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
     const avg = Math.round((list.reduce((s, r) => s + (r.score || 0), 0) / list.length) * 10) / 10;
     const high = `${list.filter(r => r.score >= 80).length}/${list.length}`;
     return { avg, high, commits: 0 };
-  }, [scores]);
+  }, [activeScores]);
+
 
   const handleReset = async () => {
     if (!window.confirm("This will clear all scores and analysis for this team. Uploaded files will be kept. Are you sure?")) return;
@@ -233,14 +259,38 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           {peerReview ? "✓ Peer Review On" : "Peer Review Off"}
         </button>
 
+        {sprints.length > 0 && (
+          <select
+            value={selectedSprint}
+            onChange={e => {
+              setSelectedSprint(e.target.value);
+              setSprintScores(null);
+            }}
+            style={selectBox(theme)}
+          >
+            <option value="overall">Overall Score</option>
+            {sprints.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.start_date} → {s.end_date})
+              </option>
+            ))}
+          </select>
+        )}
+
         <select
           value={teamId}
           onChange={async (e) => {
             const newTeamId = e.target.value;
             setTeamId(newTeamId);
+            setSelectedSprint("overall");
+            setSprintScores(null);
             localStorage.setItem("dashboardTeamId", newTeamId);
             setScores(null);
             setTeamStudents([]);
+            apiFetch(`/api/sprints/team/${newTeamId}`)
+              .then(r => r.json())
+              .then(data => setSprints(Array.isArray(data) ? data : []))
+              .catch(() => setSprints([]));
             sessionStorage.removeItem("dashboardScoresCache");
             sessionStorage.removeItem("dashboardStudentsCache");
             await apiFetch("/api/teams/active", {
@@ -249,7 +299,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
               body: JSON.stringify({ id: newTeamId }),
             });
           }}
-          style={selectBox(theme)}
+          style={{ ...selectBox(theme), minWidth: 160, width: "auto" }}
           title="Select project or team"
         >
           {teams.map((t) => (
@@ -264,10 +314,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       {/* project card */}
       <div style={card(theme, { marginTop: 16, padding: 16 })}>
         <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>
-          {scores?.team?.name || "—"}
+          {activeScores?.team?.name || "—"}
         </div>
         <div style={{ color: theme.subtext, fontSize: 14 }}>
-          {scores?.team?.code || ""}
+          {activeScores?.team?.code || ""}
         </div>
 
         <div
@@ -282,16 +332,16 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         >
           <InfoInline
             icon={<Users size={15} color={theme.mutedIcon} />}
-            text={`${scores?.studentsCount || 0} Students`}
+            text={`${activeScores?.studentsCount || 0} Students`}
           />
           <InfoInline
   icon={<LinkIcon size={15} color={theme.mutedIcon} />}
   text={
-    scores?.team?.repo?.url ||
-    scores?.team?.repo_url ||
-    scores?.team?.repoUrl ||
-    scores?.team?.repository_url ||
-    scores?.team?.repo ||
+    activeScores?.team?.repo?.url ||
+    activeScores?.team?.repo_url ||
+    activeScores?.team?.repoUrl ||
+    activeScores?.team?.repository_url ||
+    activeScores?.team?.repo ||
     teams.find((t) => t.id === teamId)?.repo?.url ||
     teams.find((t) => t.id === teamId)?.repo_url ||
     teams.find((t) => t.id === teamId)?.repoUrl ||
@@ -428,7 +478,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           const breakdown = s.breakdown || {};
           const raw = s.raw || {};
 
-          const weights = scores?.weights || {};
+          const weights = activeScores?.weights || {};
           const docWeights = {
             avgSentenceLength: weights.avgSentenceLength ?? 5,
             sentenceComplexity: weights.sentenceComplexity ?? 5,
@@ -483,7 +533,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                 <div style={{ fontWeight: 700, color: scoreColor(s.score), fontSize: 32 }}>
                   {Math.round(s.score) || "—"}
                 </div>
-                {scores?.peerReviewApplied && s.peerMultiplier && (
+                {activeScores?.peerReviewApplied && s.peerMultiplier && (
                   <div style={{ fontSize: 11, color: theme.subtext, marginTop: 2 }}>
                     Base: {Math.round(s.baseScore)}% × {s.peerMultiplier}
                   </div>

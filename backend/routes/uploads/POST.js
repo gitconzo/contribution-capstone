@@ -33,6 +33,7 @@ router.post("/", async (req, res) => {
     mimetype,
     teamId,
     userType,
+    sprintId,
     uploadedByName,
     uploadedByEmail,
   } = req.body || {};
@@ -57,10 +58,11 @@ router.post("/", async (req, res) => {
           size,
           detected_type,
           status,
+          sprint_id,
           uploaded_by_name,
           uploaded_by_email
         )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'uploaded', $9, $10)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'uploaded', $9, $10, $11)`,
       [
         id,
         teamId || null,
@@ -70,6 +72,7 @@ router.post("/", async (req, res) => {
         mimetype || null,
         size || null,
         detectedType,
+        sprintId || null,
         uploadedByName || null,
         uploadedByEmail || null,
       ]
