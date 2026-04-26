@@ -265,26 +265,27 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
 
 
 // ---------- Peer Review ----------
-function loadPeerReviewMetrics(rootDir, aliasMap) {
-  const registry = safeReadJSON(path.join(rootDir, "fileRegistry.json"), []);
-  
-  // Collect all parsed peer review JSON files
+async function loadPeerReviewMetrics(teamId, rootDir, aliasMap) {
+  const result = await db.query(
+    `SELECT json_path FROM file_registry
+     WHERE team_id = $1
+       AND (user_type = 'peer_review' OR detected_type = 'peer_review')
+       AND status = 'parsed'
+       AND json_path IS NOT NULL`,
+    [teamId]
+  );
+
   const peerFiles = [];
-  registry.forEach(r => {
-    const type = r.userType || r.detectedType || "unknown";
-    if (type !== "peer_review") return;
-    const relJson = r?.parseInfo?.jsonPath;
-    if (!relJson) return;
-    const abs = path.join(rootDir, relJson);
-    const data = safeReadJSON(abs, null);
+  for (const row of result.rows) {
+    const data = safeReadJSON(path.join(rootDir, row.json_path), null);
     if (data?.scores) peerFiles.push(data);
-  });
- 
+  }
+
   if (!peerFiles.length) return null;
- 
+
   // Aggregate all peer scores per student
   const studentScores = {}; // { studentIdx: [score, score, ...] }
- 
+
   peerFiles.forEach(file => {
     Object.entries(file.scores || {}).forEach(([name, scoreArr]) => {
       const idx = matchStudentIndex(aliasMap, name);
@@ -293,7 +294,7 @@ function loadPeerReviewMetrics(rootDir, aliasMap) {
       scoreArr.forEach(s => studentScores[idx].push(s));
     });
   });
- 
+
   return studentScores;
 }
  
@@ -508,9 +509,9 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
 
   const scored = scoreStudents(students, rules);
 
- if (usePeerReview) {
-    const aliasMap = buildAliasMap(team); // use original team with DB aliases
-    const peerData = loadPeerReviewMetrics(rootDir, aliasMap);
+  if (usePeerReview) {
+    const aliasMap = buildAliasMap(team);
+    const peerData = await loadPeerReviewMetrics(teamId, rootDir, aliasMap);
     if (peerData) {
         scored.ranking = applyPeerMultiplier(students, scored.ranking, peerData);
         scored.ranking = scored.ranking
