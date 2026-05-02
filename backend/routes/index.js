@@ -2,11 +2,11 @@
 // Mounts every API route group. server.js does: app.use("/api", require("./routes"))
 const router = require("express").Router();
 
+router.use("/teams",   require("./teams/SPRINTS"));
 router.use("/teams",   require("./teams/GET"));
 router.use("/teams",   require("./teams/POST"));
 router.use("/teams",   require("./teams/PUT"));
 router.use("/teams",   require("./teams/DELETE"));
-router.use("/teams",   require("./teams/SPRINTS"));
 
 router.use("/rules",   require("./rules/GET"));
 router.use("/rules",   require("./rules/POST"));
@@ -23,10 +23,6 @@ router.use("/teams/profile-photo", require("./teams/PROFILE_PHOTO"));
 
 
 router.use("/export", require("./export/POST"));
-
-
-router.use("/export", require("./export/POST"));
-
 
 router.use("/scores",  require("./scores/GET"));
 
