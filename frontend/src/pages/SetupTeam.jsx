@@ -3,21 +3,86 @@ import { apiFetch } from "../utils/api";
 
 const EMPTY_STUDENT = { name: "", email: "", github: "", aliases: "" };
 const EMPTY_SPRINT   = { sprint_number: "", start_date: "", end_date: "", scrum_master_email: "" };
+const EMPTY_BREAK    = { label: "", start_date: "", end_date: "" };
 
+// ── Date helpers ──────────────────────────────────────────────────────────────
 function addDays(dateStr, days) {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  // Use local Date constructor (year, month, day) to avoid any UTC/timezone shift
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
-function generateSprints(startDate, sprintCount, sprintLengthDays) {
+
+// Count how many days in [start, end] overlap with any break period
+// Count how many days in [rangeStart, rangeEnd] overlap with any break period
+// Compare two yyyy-mm-dd strings without any Date/timezone conversion
+function dateCmp(a, b) {
+  // returns -1, 0, or 1
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+// Check if a single date falls inside any break period (pure string compare)
+function isBreakDay(dateStr, breaks) {
+  return breaks.some(br => {
+    if (!br.start_date || !br.end_date) return false;
+    return dateCmp(dateStr, br.start_date) >= 0 && dateCmp(dateStr, br.end_date) <= 0;
+  });
+}
+
+// Generate sprints walking day-by-day, skipping break days
+// so each sprint always contains exactly sprintLengthDays active (non-break) days
+function generateSprints(startDate, sprintCount, sprintLengthDays, breaks = []) {
   const sprints = [];
   let cursor = startDate;
   for (let i = 1; i <= sprintCount; i++) {
-    const end = addDays(cursor, sprintLengthDays - 1);
+    let workDays = 0;
+    let day = cursor;
+    while (workDays < sprintLengthDays) {
+      if (!isBreakDay(day, breaks)) workDays++;
+      if (workDays < sprintLengthDays) day = addDays(day, 1);
+    }
+    const end = day;
     sprints.push({ sprint_number: i, start_date: cursor, end_date: end, scrum_master_email: "" });
     cursor = addDays(end, 1);
+    // If next cursor lands inside a break, jump past it
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const br of breaks) {
+        if (!br.start_date || !br.end_date) continue;
+        if (dateCmp(cursor, br.start_date) >= 0 && dateCmp(cursor, br.end_date) <= 0) {
+          cursor = addDays(br.end_date, 1);
+          changed = true;
+        }
+      }
+    }
   }
   return sprints;
+}
+
+
+
+// Format a yyyy-mm-dd string to dd-mm-yyyy for display
+function fmtDate(d) {
+  if (!d) return "—";
+  // Extract date part directly from string — avoids ALL timezone issues
+  const str = typeof d === "string" ? d : String(d);
+  const ymd = str.split("T")[0]; // "2026-05-11"
+  const parts = ymd.split("-");
+  if (parts.length !== 3) return ymd;
+  return `${parts[2]}-${parts[1]}-${parts[0]}`; // "11-05-2026"
+}
+
+// Convert a date value from API to yyyy-mm-dd for input[type=date] — uses UTC to avoid timezone shift
+function toInputDate(d) {
+  if (!d) return "";
+  // Extract yyyy-mm-dd directly from string to avoid timezone shift
+  const str = typeof d === "string" ? d : String(d);
+  return str.split("T")[0]; // Always returns "yyyy-mm-dd"
 }
 
 export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
@@ -50,33 +115,33 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   const [editStudentGithub, setEditStudentGithub] = useState("");
 
   // ── Per-team sprints ──
-  const [sprintsByTeam, setSprintsByTeam]     = useState({});
+  const [sprintsByTeam, setSprintsByTeam]       = useState({});
   const [addingSprintToId, setAddingSprintToId] = useState(null);
-  const [newSprint, setNewSprint]             = useState({ ...EMPTY_SPRINT });
-  const [editingSprint, setEditingSprint]     = useState(null);
-  const [editSprint, setEditSprint]           = useState({ ...EMPTY_SPRINT });
-  const [sprintError, setSprintError]         = useState("");
+  const [newSprint, setNewSprint]               = useState({ ...EMPTY_SPRINT });
+  const [editingSprint, setEditingSprint]       = useState(null);
+  const [editSprint, setEditSprint]             = useState({ ...EMPTY_SPRINT });
+  const [sprintError, setSprintError]           = useState("");
 
-  // ── Global Sprint Template ──
-  const [templateOpen, setTemplateOpen]   = useState(false);
-  const [tplMode, setTplMode]             = useState("auto");  // "auto" | "manual"
-  const [tplTargets, setTplTargets]       = useState([]);
-  const [tplApplying, setTplApplying]     = useState(false);
-  const [tplResult, setTplResult]         = useState("");
+  // ── Sprint Template ──
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [tplMode, setTplMode]           = useState("auto");
+  const [tplTargets, setTplTargets]     = useState([]);
+  const [tplApplying, setTplApplying]   = useState(false);
+  const [tplResult, setTplResult]       = useState("");
   // Auto mode
   const [tplStart, setTplStart]   = useState("");
   const [tplCount, setTplCount]   = useState(4);
   const [tplLength, setTplLength] = useState(21);
+  // Campus break periods
+  const [tplBreaks, setTplBreaks] = useState([]);
+  const addTplBreak    = () => setTplBreaks(p => [...p, { ...EMPTY_BREAK }]);
+  const removeTplBreak = (i) => setTplBreaks(p => p.filter((_, idx) => idx !== i));
+  const updateTplBreak = (i, f, v) => setTplBreaks(p => p.map((b, idx) => idx === i ? { ...b, [f]: v } : b));
   // Manual mode
-  const [tplManual, setTplManual] = useState([
-    { sprint_number: 1, start_date: "", end_date: "" },
-  ]);
-  const addTplManualRow = () =>
-    setTplManual(p => [...p, { sprint_number: p.length + 1, start_date: "", end_date: "" }]);
-  const removeTplManualRow = (i) =>
-    setTplManual(p => p.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, sprint_number: idx + 1 })));
-  const updateTplManual = (i, f, v) =>
-    setTplManual(p => p.map((s, idx) => idx === i ? { ...s, [f]: v } : s));
+  const [tplManual, setTplManual] = useState([{ sprint_number: 1, start_date: "", end_date: "" }]);
+  const addTplManualRow    = () => setTplManual(p => [...p, { sprint_number: p.length + 1, start_date: "", end_date: "" }]);
+  const removeTplManualRow = (i) => setTplManual(p => p.filter((_, idx) => idx !== i).map((s, idx) => ({ ...s, sprint_number: idx + 1 })));
+  const updateTplManual    = (i, f, v) => setTplManual(p => p.map((s, idx) => idx === i ? { ...s, [f]: v } : s));
 
   const theme = darkMode
     ? {
@@ -90,6 +155,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
         sprintRowBg:"#131f35", tplBg:"#0c1a30", tplBorder:"#1e3a5f",
         tabActiveBg:"#1e3a5f", tabActiveText:"#93c5fd",
         tabInactiveBg:"transparent", tabInactiveText:"#64748b",
+        breakBg:"#1a1207", breakBorder:"#78350f",
       }
     : {
         pageBg:"#f8fafc", card:"#ffffff", cardAlt:"#ffffff",
@@ -102,23 +168,19 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
         sprintRowBg:"#f0f7ff", tplBg:"#eff6ff", tplBorder:"#bfdbfe",
         tabActiveBg:"#dbeafe", tabActiveText:"#1d4ed8",
         tabInactiveBg:"transparent", tabInactiveText:"#64748b",
+        breakBg:"#fffbeb", breakBorder:"#fde68a",
       };
 
   // ── Student row helpers ──
-  const updateNewStudent = (i, f, v) =>
-    setNewStudents(p => p.map((s, idx) => idx === i ? { ...s, [f]: v } : s));
+  const updateNewStudent    = (i, f, v) => setNewStudents(p => p.map((s, idx) => idx === i ? { ...s, [f]: v } : s));
   const addNewStudentRow    = () => setNewStudents(p => [...p, { ...EMPTY_STUDENT }]);
   const removeNewStudentRow = (i) => setNewStudents(p => p.filter((_, idx) => idx !== i));
 
   // ── Create-form sprint helpers ──
-  const nextCreateSprintNum = () =>
-    createSprints.length > 0 ? Math.max(...createSprints.map(s => s.sprint_number)) + 1 : 1;
-  const addCreateSprint = () =>
-    setCreateSprints(p => [...p, { ...EMPTY_SPRINT, sprint_number: nextCreateSprintNum() }]);
-  const updateCreateSprint = (i, f, v) =>
-    setCreateSprints(p => p.map((s, idx) => idx === i ? { ...s, [f]: v } : s));
-  const removeCreateSprint = (i) =>
-    setCreateSprints(p => p.filter((_, idx) => idx !== i));
+  const nextCreateSprintNum = () => createSprints.length > 0 ? Math.max(...createSprints.map(s => s.sprint_number)) + 1 : 1;
+  const addCreateSprint     = () => setCreateSprints(p => [...p, { ...EMPTY_SPRINT, sprint_number: nextCreateSprintNum() }]);
+  const updateCreateSprint  = (i, f, v) => setCreateSprints(p => p.map((s, idx) => idx === i ? { ...s, [f]: v } : s));
+  const removeCreateSprint  = (i) => setCreateSprints(p => p.filter((_, idx) => idx !== i));
 
   const loadTeams = async () => {
     setError("");
@@ -158,9 +220,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   // ── Create team ──
   const onCreate = async () => {
     setError("");
-    if (!name.trim() || !code.trim() || !repoUrl.trim()) {
-      setError("Team Name, Project Code, and Repository URL are required."); return;
-    }
+    if (!name.trim() || !code.trim() || !repoUrl.trim()) { setError("Team Name, Project Code, and Repository URL are required."); return; }
     const validStudents = newStudents.filter(s => s.name.trim() && s.email.trim());
     if (!validStudents.length) { setError("At least one student is required."); return; }
     setCreating(true);
@@ -179,10 +239,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
       if (createSprints.length > 0) {
         for (const sp of createSprints) {
           if (!sp.start_date || !sp.end_date) continue;
-          await apiFetch(`/api/teams/${json.id}/sprints`, {
-            method:"POST", headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({ sprint_number: Number(sp.sprint_number), start_date: sp.start_date, end_date: sp.end_date, scrum_master_email: null }),
-          });
+          await apiFetch(`/api/teams/${json.id}/sprints`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ sprint_number: Number(sp.sprint_number), start_date: sp.start_date, end_date: sp.end_date, scrum_master_email: null }) });
         }
       }
       await loadTeams();
@@ -193,8 +250,8 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   };
 
   // ── Edit/delete team ──
-  const onEditTeam = (t) => { setEditingId(t.id); setEditName(t.name); setEditCode(t.code); setEditRepo(t.repo?.url || ""); };
-  const onSaveTeam = async (id) => {
+  const onEditTeam  = (t) => { setEditingId(t.id); setEditName(t.name); setEditCode(t.code); setEditRepo(t.repo?.url || ""); };
+  const onSaveTeam  = async (id) => {
     try {
       const res = await apiFetch(`/api/teams/${id}`, { method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ name:editName, code:editCode, repo:normalizeRepo(editRepo) }) });
       if (!res.ok) throw new Error("Failed to update team");
@@ -243,10 +300,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   };
 
   // ── Sprint CRUD (existing teams) ──
-  const nextSprintNum = (teamId) => {
-    const s = sprintsByTeam[teamId] || [];
-    return s.length ? Math.max(...s.map(x => x.sprint_number)) + 1 : 1;
-  };
+  const nextSprintNum = (teamId) => { const s = sprintsByTeam[teamId] || []; return s.length ? Math.max(...s.map(x => x.sprint_number)) + 1 : 1; };
   const onAddSprint = async (teamId) => {
     setSprintError("");
     const { sprint_number, start_date, end_date, scrum_master_email } = newSprint;
@@ -260,7 +314,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   };
   const onEditSprint = (teamId, sprint) => {
     setEditingSprint({ teamId, sprintId:sprint.id });
-    setEditSprint({ sprint_number:sprint.sprint_number, start_date:sprint.start_date?.split("T")[0]||"", end_date:sprint.end_date?.split("T")[0]||"", scrum_master_email:sprint.scrum_master_email||"" });
+    setEditSprint({ sprint_number:sprint.sprint_number, start_date:toInputDate(sprint.start_date), end_date:toInputDate(sprint.end_date), scrum_master_email:sprint.scrum_master_email||"" });
     setSprintError("");
   };
   const onSaveSprint = async () => {
@@ -284,60 +338,82 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
     } catch (e) { setSprintError(e.message); }
   };
 
-  // ── Global Sprint Template: apply ──
+  // ── Template ──
+  const validBreaks    = tplBreaks.filter(b => b.start_date && b.end_date);
   const tplAutoPreview = tplStart && tplCount > 0 && tplLength > 0
-    ? generateSprints(tplStart, tplCount, tplLength) : [];
+    ? generateSprints(tplStart, tplCount, tplLength, validBreaks) : [];
 
-  const toggleTplTarget = (id) =>
-    setTplTargets(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  const toggleTplTarget = (id) => setTplTargets(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
   const applyTemplate = async () => {
     setTplResult("");
     if (!tplTargets.length) { setTplResult("Select at least one team."); return; }
-
     let sprints = [];
     if (tplMode === "auto") {
       if (!tplStart) { setTplResult("Please set a start date."); return; }
-      sprints = generateSprints(tplStart, tplCount, tplLength);
+      sprints = generateSprints(tplStart, tplCount, tplLength, validBreaks);
     } else {
       const valid = tplManual.filter(s => s.start_date && s.end_date);
       if (!valid.length) { setTplResult("Add at least one sprint with start and end dates."); return; }
       sprints = valid;
     }
 
+    // Check if any selected teams already have sprints
+    let teamsWithSprints = 0;
+    for (const teamId of tplTargets) {
+      try {
+        const res = await apiFetch(`/api/teams/${teamId}/sprints`);
+        if (res.ok) {
+          const existing = await res.json();
+          if (existing.length > 0) teamsWithSprints++;
+        }
+      } catch {}
+    }
+
+    if (teamsWithSprints > 0) {
+      const confirmed = window.confirm(
+        `${teamsWithSprints} team${teamsWithSprints!==1?"s":""} already ha${teamsWithSprints!==1?"ve":"s"} sprints. They will be deleted and replaced with the new schedule. Continue?`
+      );
+      if (!confirmed) return;
+    }
+
     setTplApplying(true);
     let ok = 0, fail = 0;
+
     for (const teamId of tplTargets) {
+      // Step 1: delete all existing sprints for this team
+      try {
+        const existing = await apiFetch(`/api/teams/${teamId}/sprints`);
+        if (existing.ok) {
+          const existingSprints = await existing.json();
+          for (const sp of existingSprints) {
+            await apiFetch(`/api/teams/${teamId}/sprints/${sp.id}`, { method:"DELETE" });
+          }
+        }
+      } catch { /* continue even if delete fails */ }
+
+      // Step 2: create new sprints
       for (const sp of sprints) {
         try {
-          const res = await apiFetch(`/api/teams/${teamId}/sprints`, {
-            method:"POST", headers:{"Content-Type":"application/json"},
-            body: JSON.stringify({ sprint_number:sp.sprint_number, start_date:sp.start_date, end_date:sp.end_date, scrum_master_email:null }),
-          });
+          const res = await apiFetch(`/api/teams/${teamId}/sprints`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ sprint_number:sp.sprint_number, start_date:sp.start_date, end_date:sp.end_date, scrum_master_email:null }) });
           if (res.ok) ok++; else fail++;
         } catch { fail++; }
       }
-      if (sprintsByTeam[teamId]) await loadSprints(teamId);
+
+      await loadSprints(teamId);
     }
+
     setTplApplying(false);
-    setTplResult(`✓ Applied ${ok} sprint${ok!==1?"s":""} across ${tplTargets.length} team${tplTargets.length!==1?"s":""}${fail ? ` (${fail} skipped — already exist)` : ""}.`);
+    setTplResult(`✓ Replaced sprints for ${tplTargets.length} team${tplTargets.length!==1?"s":""} — ${ok} sprint${ok!==1?"s":""} created.${fail ? ` (${fail} failed)` : ""}`);
   };
 
-  // ── Display helpers ──
-  const getRoleBadgeStyle = (role) => {
-    const base = { fontSize:10, padding:"2px 6px", borderRadius:999, fontWeight:600 };
-    if (role === "leader")       return { ...base, background:"#dbeafe", color:"#1d4ed8" };
-    if (role === "scrum_master") return { ...base, background:"#fef3c7", color:"#92400e" };
-    return { ...base, background:"#e5e7eb", color:"#374151" };
-  };
-  const getRoleLabel = (role) => {
-    if (role === "leader") return "leader";
-    if (role === "scrum_master") return "scrum master";
-    return "member";
-  };
-  const formatDate = (d) => {
-    if (!d) return "—";
-    return new Date(d).toLocaleDateString("en-AU", { day:"numeric", month:"short", year:"numeric" });
+  // ── Role display helpers ──
+  const getRoleBadges = (roleStr) => {
+    return String(roleStr || "member").split(",").map(r => r.trim()).filter(Boolean).map(r => {
+      if (r === "leader")       return { key:r, label:"leader",       bg:"#dbeafe", color:"#1d4ed8" };
+      if (r === "scrum_master") return { key:r, label:"scrum master", bg:"#fef3c7", color:"#92400e" };
+      return                           { key:r, label:"member",       bg:"#e5e7eb", color:"#374151" };
+    });
   };
 
   // ────────────────────────────────────────────────────────────────────────────
@@ -354,15 +430,13 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
       )}
 
       {/* ══════════════════════════════════════════════════════
-          ⚡ GLOBAL SPRINT TEMPLATE
+           SPRINT TEMPLATE
       ══════════════════════════════════════════════════════ */}
       <div style={{ ...cardStyle(theme), marginBottom:16, border:`1px solid ${theme.tplBorder}`, background:theme.tplBg }}>
-
-        {/* Header */}
         <div onClick={() => { setTemplateOpen(p => !p); setTplResult(""); }} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }}>
           <div>
             <div style={{ fontWeight:700, color:theme.text, display:"flex", alignItems:"center", gap:8 }}>
-              <span style={{ fontSize:16 }}>⚡</span> Global Sprint Template
+              Sprint Template
             </div>
             <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>
               Generate and apply identical sprint schedules to multiple teams at once
@@ -374,37 +448,22 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
         {templateOpen && (
           <div style={{ marginTop:14 }}>
 
-            {/* ── Mode tabs ── */}
-            <div style={{ display:"flex", gap:4, marginBottom:16, borderBottom:`1px solid ${theme.border}`, paddingBottom:0 }}>
+            {/* Mode tabs */}
+            <div style={{ display:"flex", gap:4, marginBottom:16, borderBottom:`1px solid ${theme.border}` }}>
               {[
-                { key:"auto",   label:"🔁 Auto Generate", desc:"Set start date + sprint length" },
-                { key:"manual", label:"✏️ Manual",          desc:"Define each sprint date yourself" },
+                { key:"auto",   label:"Auto Generate" },
+                { key:"manual", label:"Manual" },
               ].map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => { setTplMode(tab.key); setTplResult(""); }}
-                  style={{
-                    padding:"8px 18px",
-                    borderRadius:"8px 8px 0 0",
-                    border:`1px solid ${theme.border}`,
-                    borderBottom: tplMode === tab.key ? `2px solid #2d5db8` : `1px solid ${theme.border}`,
-                    background: tplMode === tab.key ? theme.tabActiveBg : theme.tabInactiveBg,
-                    color: tplMode === tab.key ? theme.tabActiveText : theme.tabInactiveText,
-                    fontWeight: tplMode === tab.key ? 700 : 400,
-                    cursor:"pointer",
-                    fontSize:13,
-                    marginBottom: tplMode === tab.key ? -1 : 0,
-                  }}
-                >
+                <button key={tab.key} onClick={() => { setTplMode(tab.key); setTplResult(""); }} style={{ padding:"8px 18px", borderRadius:"8px 8px 0 0", border:`1px solid ${theme.border}`, borderBottom: tplMode===tab.key ? "2px solid #2d5db8" : `1px solid ${theme.border}`, background: tplMode===tab.key ? theme.tabActiveBg : theme.tabInactiveBg, color: tplMode===tab.key ? theme.tabActiveText : theme.tabInactiveText, fontWeight: tplMode===tab.key ? 700 : 400, cursor:"pointer", fontSize:13, marginBottom: tplMode===tab.key ? -1 : 0 }}>
                   {tab.label}
                 </button>
               ))}
             </div>
 
-            {/* ── AUTO mode ── */}
+            {/* AUTO mode */}
             {tplMode === "auto" && (
               <div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 100px 120px", gap:10, marginBottom:12 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 100px 120px", gap:10, marginBottom:14 }}>
                   <Field label="Start Date (first sprint begins)" theme={theme}>
                     <input type="date" value={tplStart} onChange={e => setTplStart(e.target.value)} style={inp(theme)} />
                   </Field>
@@ -416,15 +475,62 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                   </Field>
                 </div>
 
+                {/* ── Campus Break Periods ── */}
+                <div style={{ marginBottom:14, background:theme.breakBg, border:`1px solid ${theme.breakBorder}`, borderRadius:10, padding:"10px 12px" }}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:13, color:theme.text }}>🗓 Campus Break Periods</div>
+                      <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>
+                        Breaks are automatically skipped 
+                      </div>
+                    </div>
+                    <button onClick={addTplBreak} style={{ ...btn({ fontSize:11, padding:"4px 10px", background:"#92400e" }) }}>+ Add Break</button>
+                  </div>
+
+                  {tplBreaks.length === 0 && (
+                    <div style={{ fontSize:12, color:theme.subtext, fontStyle:"italic" }}>No breaks defined — sprints will run continuously</div>
+                  )}
+
+                  <div style={{ display:"grid", gap:6 }}>
+                    {tplBreaks.map((br, i) => (
+                      <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr auto", gap:8, alignItems:"end" }}>
+                        <Field label="Break Name (e.g. Mid-Semester Break)" theme={theme}>
+                          <input type="text" value={br.label} onChange={e => updateTplBreak(i,"label",e.target.value)} placeholder="e.g. Mid-Semester Break" style={inp(theme)} />
+                        </Field>
+                        <Field label="Break Starts" theme={theme}>
+                          <input type="date" value={br.start_date} onChange={e => updateTplBreak(i,"start_date",e.target.value)} style={inp(theme)} />
+                        </Field>
+                        <Field label="Break Ends" theme={theme}>
+                          <input type="date" value={br.end_date} onChange={e => updateTplBreak(i,"end_date",e.target.value)} style={inp(theme)} />
+                        </Field>
+                        <button onClick={() => removeTplBreak(i)} style={{ ...btn({ background:"#b83232", padding:"8px 10px" }) }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Show which breaks are valid */}
+                  {validBreaks.length > 0 && (
+                    <div style={{ marginTop:8, display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {validBreaks.map((br, i) => (
+                        <span key={i} style={{ fontSize:11, padding:"2px 8px", borderRadius:999, background:"#fef3c7", color:"#92400e", border:"1px solid #fde68a", fontWeight:600 }}>
+                          {br.label || "Break"}: {fmtDate(br.start_date)} – {fmtDate(br.end_date)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Auto preview */}
                 {tplAutoPreview.length > 0 && (
                   <div style={{ marginBottom:12 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:theme.subtext, marginBottom:6 }}>Preview</div>
+                    <div style={{ fontSize:12, fontWeight:600, color:theme.subtext, marginBottom:6 }}>
+                      Preview {validBreaks.length > 0 ? `(breaks skipped)` : ""}
+                    </div>
                     <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                       {tplAutoPreview.map(sp => (
                         <div key={sp.sprint_number} style={{ background:theme.sprintRowBg, border:`1px solid ${theme.border}`, borderRadius:8, padding:"6px 12px", fontSize:12 }}>
                           <span style={{ fontWeight:700, color:"#2d5db8" }}>S{sp.sprint_number}</span>
-                          <span style={{ color:theme.subtext, marginLeft:6 }}>{formatDate(sp.start_date)} → {formatDate(sp.end_date)}</span>
+                          <span style={{ color:theme.subtext, marginLeft:6 }}>{fmtDate(sp.start_date)} → {fmtDate(sp.end_date)}</span>
                         </div>
                       ))}
                     </div>
@@ -433,16 +539,15 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
               </div>
             )}
 
-            {/* ── MANUAL mode ── */}
+            {/* MANUAL mode */}
             {tplMode === "manual" && (
               <div style={{ marginBottom:12 }}>
                 <div style={{ fontSize:12, color:theme.subtext, marginBottom:8 }}>
-                  Define each sprint's exact dates — these will be applied identically to all selected teams.
+                  Define each sprint's exact dates — applied identically to all selected teams.
                 </div>
                 <div style={{ display:"grid", gap:6 }}>
                   {tplManual.map((sp, i) => (
                     <div key={i} style={{ display:"grid", gridTemplateColumns:"60px 1fr 1fr auto", gap:8, alignItems:"end", background:theme.sprintRowBg, borderRadius:8, padding:"10px 12px", border:`1px solid ${theme.border}` }}>
-                      {/* Sprint # label */}
                       <div style={{ textAlign:"center" }}>
                         <div style={{ fontSize:9, color:theme.subtext, textTransform:"uppercase", letterSpacing:1 }}>Sprint</div>
                         <div style={{ fontWeight:800, fontSize:20, color:"#2d5db8", lineHeight:1 }}>{sp.sprint_number}</div>
@@ -453,11 +558,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                       <Field label="End Date" theme={theme}>
                         <input type="date" value={sp.end_date} onChange={e => updateTplManual(i,"end_date",e.target.value)} style={inp(theme)} />
                       </Field>
-                      <button
-                        onClick={() => removeTplManualRow(i)}
-                        disabled={tplManual.length === 1}
-                        style={{ ...btn({ background:"#b83232", padding:"8px 10px" }), opacity:tplManual.length===1?0.4:1 }}
-                      >✕</button>
+                      <button onClick={() => removeTplManualRow(i)} disabled={tplManual.length===1} style={{ ...btn({ background:"#b83232", padding:"8px 10px" }), opacity:tplManual.length===1?0.4:1 }}>✕</button>
                     </div>
                   ))}
                 </div>
@@ -465,7 +566,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
               </div>
             )}
 
-            {/* ── Team selection (shared) ── */}
+            {/* Team selection */}
             {teams.length > 0 && (
               <div style={{ marginBottom:12 }}>
                 <div style={{ fontSize:12, fontWeight:600, color:theme.subtext, marginBottom:6, display:"flex", alignItems:"center", gap:6 }}>
@@ -477,16 +578,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                   {teams.map(t => {
                     const selected = tplTargets.includes(t.id);
                     return (
-                      <button
-                        key={t.id}
-                        onClick={() => toggleTplTarget(t.id)}
-                        style={{
-                          fontSize:12, padding:"4px 12px", borderRadius:999, cursor:"pointer", fontWeight:600,
-                          border:`1px solid ${selected ? "#2d5db8" : theme.border}`,
-                          background: selected ? "#dbeafe" : theme.card,
-                          color: selected ? "#1d4ed8" : theme.subtext,
-                        }}
-                      >
+                      <button key={t.id} onClick={() => toggleTplTarget(t.id)} style={{ fontSize:12, padding:"4px 12px", borderRadius:999, cursor:"pointer", fontWeight:600, border:`1px solid ${selected?"#2d5db8":theme.border}`, background:selected?"#dbeafe":theme.card, color:selected?"#1d4ed8":theme.subtext }}>
                         {t.name} <span style={{ fontWeight:400 }}>({t.code})</span>
                       </button>
                     );
@@ -495,18 +587,13 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
               </div>
             )}
 
-            {/* ── Apply button ── */}
+            {/* Apply button */}
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <button onClick={applyTemplate} disabled={tplApplying} style={btn({ background:"#16a34a", opacity:tplApplying?0.6:1 })}>
                 {tplApplying ? "Applying…" : `Apply to ${tplTargets.length} team${tplTargets.length!==1?"s":""}`}
               </button>
-              {tplResult && (
-                <span style={{ fontSize:13, color: tplResult.startsWith("✓") ? "#16a34a" : theme.dangerText }}>
-                  {tplResult}
-                </span>
-              )}
+              {tplResult && <span style={{ fontSize:13, color: tplResult.startsWith("✓") ? "#16a34a" : "#991b1b" }}>{tplResult}</span>}
             </div>
-
           </div>
         )}
       </div>
@@ -525,8 +612,6 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
             <input value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="e.g. https://github.com/org/repo" style={inp(theme, { width:"100%" })} />
           </Field>
         </div>
-
-        {/* Students */}
         <div style={{ marginTop:10 }}>
           <div style={{ fontSize:12, color:theme.subtext, marginBottom:6 }}>Students</div>
           {newStudents.map((s, i) => (
@@ -540,26 +625,16 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
           ))}
           <button onClick={addNewStudentRow} style={dashedBtn(theme)}>+ Add Student</button>
         </div>
-
-        {/* Sprints at creation */}
         <div style={{ marginTop:16, borderTop:`1px solid ${theme.border}`, paddingTop:14 }}>
           <div style={{ fontSize:13, fontWeight:600, color:theme.text, marginBottom:4 }}>Sprints</div>
-          <div style={{ fontSize:12, color:theme.subtext, marginBottom:10 }}>
-            Optionally define a sprint schedule now — you can also add or edit sprints after creation.
-          </div>
+          <div style={{ fontSize:12, color:theme.subtext, marginBottom:10 }}>Optionally define a sprint schedule now — you can also add or edit sprints after creation.</div>
           {createSprints.length > 0 && (
             <div style={{ display:"grid", gap:6, marginBottom:8 }}>
               {createSprints.map((sp, i) => (
                 <div key={i} style={{ display:"grid", gridTemplateColumns:"80px 1fr 1fr auto", gap:6, alignItems:"end", background:theme.sprintRowBg, borderRadius:8, padding:"10px 12px", border:`1px solid ${theme.border}` }}>
-                  <Field label="Sprint #" theme={theme}>
-                    <input type="number" min="1" value={sp.sprint_number} onChange={e => updateCreateSprint(i,"sprint_number",e.target.value)} style={inp(theme)} />
-                  </Field>
-                  <Field label="Start Date" theme={theme}>
-                    <input type="date" value={sp.start_date} onChange={e => updateCreateSprint(i,"start_date",e.target.value)} style={inp(theme)} />
-                  </Field>
-                  <Field label="End Date" theme={theme}>
-                    <input type="date" value={sp.end_date} onChange={e => updateCreateSprint(i,"end_date",e.target.value)} style={inp(theme)} />
-                  </Field>
+                  <Field label="Sprint #" theme={theme}><input type="number" min="1" value={sp.sprint_number} onChange={e => updateCreateSprint(i,"sprint_number",e.target.value)} style={inp(theme)} /></Field>
+                  <Field label="Start Date" theme={theme}><input type="date" value={sp.start_date} onChange={e => updateCreateSprint(i,"start_date",e.target.value)} style={inp(theme)} /></Field>
+                  <Field label="End Date" theme={theme}><input type="date" value={sp.end_date} onChange={e => updateCreateSprint(i,"end_date",e.target.value)} style={inp(theme)} /></Field>
                   <button onClick={() => removeCreateSprint(i)} style={{ ...btn({ background:"#b83232", padding:"8px 10px" }), marginBottom:1 }}>✕</button>
                 </div>
               ))}
@@ -567,7 +642,6 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
           )}
           <button onClick={addCreateSprint} style={dashedBtn(theme)}>+ Add Sprint</button>
         </div>
-
         <div style={{ marginTop:14 }}>
           <button onClick={onCreate} disabled={creating} style={btn()}>{creating ? "Creating…" : "Create Team"}</button>
         </div>
@@ -585,24 +659,13 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
               const sprints    = sprintsByTeam[t.id] || [];
               return (
                 <div key={t.id} style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"hidden", background:theme.cardAlt }}>
-
-                  {/* Team header */}
-                  <div
-                    onClick={() => toggleExpand(t.id)}
-                    style={{ display:"grid", gridTemplateColumns:"1fr auto", alignItems:"center", gap:8, padding:"12px 14px", cursor:"pointer", transition:"background 0.15s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#1f2937" : "#f1f5f9"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
+                  <div onClick={() => toggleExpand(t.id)} style={{ display:"grid", gridTemplateColumns:"1fr auto", alignItems:"center", gap:8, padding:"12px 14px", cursor:"pointer", transition:"background 0.15s" }} onMouseEnter={e => e.currentTarget.style.background = darkMode?"#1f2937":"#f1f5f9"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <div>
                       <div style={{ fontWeight:600, color:theme.text, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                         {t.name}
                         <span style={{ color:theme.subtext, fontWeight:400 }}>({t.code})</span>
                         <span style={{ fontSize:11, color:theme.subtext }}>{t.students?.length||0} student{t.students?.length!==1?"s":""}</span>
-                        {sprints.length > 0 && (
-                          <span style={{ fontSize:11, background:"#dbeafe", color:"#1d4ed8", padding:"1px 7px", borderRadius:999, fontWeight:600 }}>
-                            {sprints.length} sprint{sprints.length!==1?"s":""}
-                          </span>
-                        )}
+                        {sprints.length > 0 && <span style={{ fontSize:11, background:"#dbeafe", color:"#1d4ed8", padding:"1px 7px", borderRadius:999, fontWeight:600 }}>{sprints.length} sprint{sprints.length!==1?"s":""}</span>}
                       </div>
                       <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>{t.repo?.url||"No repo set"}</div>
                     </div>
@@ -613,7 +676,6 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                     </div>
                   </div>
 
-                  {/* Expanded panel */}
                   {isExpanded && (
                     <div style={{ borderTop:`1px solid ${theme.border}`, padding:"12px 14px", display:"grid", gap:16 }}>
 
@@ -645,9 +707,11 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                                 ) : (
                                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr auto", alignItems:"center", background:theme.studentRowBg, borderRadius:8, padding:"8px 12px", border:`1px solid ${theme.border}`, opacity:isPending?0.5:1 }}>
                                     <div style={{fontSize:13}}>
-                                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                      <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                         <div style={{fontWeight:600,color:theme.text}}>{s.name}</div>
-                                        <span style={getRoleBadgeStyle(s.role)}>{getRoleLabel(s.role)}</span>
+                                        {getRoleBadges(s.role).map(b => (
+                                          <span key={b.key} style={{ fontSize:10, padding:"2px 6px", borderRadius:999, fontWeight:600, background:b.bg, color:b.color }}>{b.label}</span>
+                                        ))}
                                       </div>
                                       {isPending && <span style={{fontSize:11,fontWeight:600,color:"#f59e0b"}}>Pending setup</span>}
                                     </div>
@@ -676,7 +740,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                               <button onClick={()=>setAddingStudentToId(null)} style={btn({background:"#6b7280",fontSize:12,padding:"6px 10px"})}>Cancel</button>
                             </div>
                           </div>
-                        ):(
+                        ) : (
                           <button onClick={()=>setAddingStudentToId(t.id)} style={dashedBtn(theme,{marginTop:8})}>+ Add Student</button>
                         )}
                       </div>
@@ -692,8 +756,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                         </div>
                         {sprintError&&(
                           <div style={{background:theme.dangerBg,color:theme.dangerText,padding:"8px 12px",borderRadius:8,marginBottom:8,fontSize:13,border:`1px solid ${theme.dangerBorder}`,display:"flex",justifyContent:"space-between"}}>
-                            {sprintError}
-                            <button onClick={()=>setSprintError("")} style={{background:"none",border:"none",cursor:"pointer",color:theme.dangerText}}>✕</button>
+                            {sprintError}<button onClick={()=>setSprintError("")} style={{background:"none",border:"none",cursor:"pointer",color:theme.dangerText}}>✕</button>
                           </div>
                         )}
                         <div style={{display:"grid",gap:6}}>
@@ -724,11 +787,11 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                                     </div>
                                     <div>
                                       <div style={{fontSize:11,color:theme.subtext,marginBottom:2}}>Starts</div>
-                                      <div style={{fontWeight:600,fontSize:13,color:theme.text}}>{formatDate(sprint.start_date)}</div>
+                                      <div style={{fontWeight:600,fontSize:13,color:theme.text}}>{fmtDate(sprint.start_date)}</div>
                                     </div>
                                     <div>
                                       <div style={{fontSize:11,color:theme.subtext,marginBottom:2}}>Ends</div>
-                                      <div style={{fontWeight:600,fontSize:13,color:theme.text}}>{formatDate(sprint.end_date)}</div>
+                                      <div style={{fontWeight:600,fontSize:13,color:theme.text}}>{fmtDate(sprint.end_date)}</div>
                                     </div>
                                     <div>
                                       <div style={{fontSize:11,color:theme.subtext,marginBottom:4}}>Scrum Master</div>
@@ -804,7 +867,6 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   );
 }
 
-// ── Pure helpers ──────────────────────────────────────────────────────────────
 function normalizeRepo(url) {
   try {
     const u = new URL(url);

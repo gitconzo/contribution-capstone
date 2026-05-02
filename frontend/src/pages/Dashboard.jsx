@@ -6,6 +6,17 @@ import {
   GitCommitHorizontal, Eye, ChevronDown, Search, AlertTriangle,
 } from "lucide-react";
 
+// Format a date from API using UTC to avoid timezone shift (AEST = UTC+10 would shift midnight UTC back 1 day)
+function fmtSprintDate(d) {
+  if (!d) return "—";
+  // Extract yyyy-mm-dd directly — avoids ALL timezone issues
+  const str = typeof d === "string" ? d : String(d);
+  const ymd = str.split("T")[0];
+  const parts = ymd.split("-");
+  if (parts.length !== 3) return ymd;
+  return `${parts[2]}-${parts[1]}-${parts[0]}`; // dd-mm-yyyy
+}
+
 // ── mirrors normalizeUploadRecord from UploadFile.js ──────────────────────
 function normalizeUploadRecord(f = {}) {
   return {
@@ -335,9 +346,9 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                 </div>
                 {currentSprint ? (
                   <div style={{ fontSize:13, color: darkMode ? "#6ee7b7" : "#16a34a", marginTop:2 }}>
-                    {new Date(currentSprint.start_date).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"})}
+                    {fmtSprintDate(currentSprint.start_date)}
                     {" → "}
-                    {new Date(currentSprint.end_date).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"})}
+                    {fmtSprintDate(currentSprint.end_date)}
                   </div>
                 ) : (
                   <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>Check Setup Team to configure sprint dates</div>
@@ -364,6 +375,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                     <div style={{ height:6, borderRadius:999, background: darkMode?"#1f2937":"#d1fae5", width:110 }}>
                       <div style={{ height:"100%", borderRadius:999, background:"#16a34a", width:`${Math.min(pct,100)}%` }}/>
                     </div>
+                    <div style={{ fontSize:10, color:theme.subtext, marginTop:3 }}>{pct}% through</div>
                   </div>
                 );
               })()}
@@ -374,7 +386,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                   .sort((a,b) => new Date(a.start_date) - new Date(b.start_date))[0];
                 return upcoming ? (
                   <div style={{ fontSize:12, color:theme.subtext }}>
-                    Next: <strong style={{ color:theme.text }}>Sprint {upcoming.sprint_number}</strong> starts {new Date(upcoming.start_date).toLocaleDateString("en-AU",{day:"numeric",month:"short"})}
+                    Next: <strong style={{ color:theme.text }}>Sprint {upcoming.sprint_number}</strong> starts {fmtSprintDate(upcoming.start_date)}
                   </div>
                 ) : null;
               })()}
@@ -538,11 +550,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
               <div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                   <div style={{ fontWeight:700, color:theme.text }}>{s.name}</div>
-                  {s.role && (
-                    <span style={{ fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600, background:s.role==="leader"?"#dbeafe":s.role==="scrum_master"?"#fef3c7":"#e5e7eb", color:s.role==="leader"?"#1d4ed8":s.role==="scrum_master"?"#92400e":"#374151" }}>
-                      {s.role.replace("_"," ")}
-                    </span>
-                  )}
+                  {s.role && String(s.role).split(",").map(r => r.trim()).filter(Boolean).map(r => {
+                    const cfg = r==="leader" ? { bg:"#dbeafe", color:"#1d4ed8", label:"leader" } : r==="scrum_master" ? { bg:"#fef3c7", color:"#92400e", label:"scrum master" } : { bg:"#e5e7eb", color:"#374151", label:r.replace(/_/g," ") };
+                    return (<span key={r} style={{ fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600, background:cfg.bg, color:cfg.color }}>{cfg.label}</span>);
+                  })}
                   <Badge level={badgeFromScore(s.score)}/>
                 </div>
                 <div style={{ color:theme.subtext, fontSize:13, marginTop:2 }}>{s.email}</div>
