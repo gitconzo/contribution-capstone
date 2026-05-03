@@ -115,16 +115,6 @@ router.post("/student", async (req, res) => {
 
     const id = storedName || path.basename(s3Key);
 
-    // Check team's auto_approve_uploads setting (defaults to true if column doesn't exist)
-    let autoApprove = true;
-    try {
-      const teamRes = await db.query("SELECT auto_approve_uploads FROM teams WHERE id = $1", [teamId]);
-      if (teamRes.rows.length) autoApprove = teamRes.rows[0].auto_approve_uploads !== false;
-    } catch (_) { /* column may not exist yet — default to true */ }
-
-    const approvalStatus = autoApprove ? "approved" : "pending";
-    const fileStatus     = autoApprove ? "confirmed" : "pending";
-
     await db.query(
       `INSERT INTO file_registry
         (id, team_id, original_name, stored_name, s3_key, mimetype, size,
@@ -133,19 +123,14 @@ router.post("/student", async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
       [id, teamId, originalName, id, s3Key, mimetype||null, size||null,
        detectedType, detectedType, uploadedByName||null, uploadedByEmail, uploadScope,
-       approvalStatus, fileStatus]
+       "approved", "confirmed"]
     );
 
     const result = await db.query("SELECT * FROM file_registry WHERE id = $1", [id]);
     const entry  = result.rows[0];
 
-    if (autoApprove) {
-      // Fire-and-forget: parse in background
-      parseEntry(entry).catch(e => console.error(`Auto-parse failed for ${entry.id}:`, e));
-      res.json({ ...entry, _autoApproved: true, _message: "Upload received and parsing started automatically." });
-    } else {
-      res.json({ ...entry, _autoApproved: false, _message: "Upload submitted and awaiting lecturer approval." });
-    }
+    parseEntry(entry).catch(e => console.error(`Auto-parse failed for ${entry.id}:`, e));
+    res.json({ ...entry, _message: "Upload received and parsing started." });
   } catch (err) {
     console.error("POST /api/uploads/student error:", err);
     res.status(500).json({ error: err.message });

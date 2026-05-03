@@ -24,12 +24,9 @@ export default function LecturerSettings({ darkMode, teams = [] }) {
   const [loadingReset,   setLoadingReset]   = useState(false);
 
   // ── Global toggles ──
-  const [roleEnabled,   setRoleEnabled]   = useState(true);
-  const [uploadEnabled, setUploadEnabled] = useState(true);
-  const [roleSaving,    setRoleSaving]    = useState(false);
-  const [uploadSaving,  setUploadSaving]  = useState(false);
-  const [roleMsg,       setRoleMsg]       = useState("");
-  const [uploadMsg,     setUploadMsg]     = useState("");
+  const [roleEnabled, setRoleEnabled] = useState(true);
+  const [roleSaving,  setRoleSaving]  = useState(false);
+  const [roleMsg,     setRoleMsg]     = useState("");
 
   useEffect(() => {
     if (teams.length && !selectedTeamId) setSelectedTeamId(teams[0].id);
@@ -39,7 +36,6 @@ export default function LecturerSettings({ darkMode, teams = [] }) {
         .then(r => r.json())
         .then(data => {
           setRoleEnabled(data.allow_student_role_self_assign !== false);
-          setUploadEnabled(data.auto_approve_uploads !== false);
         })
         .catch(() => {});
     }
@@ -60,23 +56,6 @@ export default function LecturerSettings({ darkMode, teams = [] }) {
       setRoleEnabled(!newVal);
       setRoleMsg("Failed to save — please try again.");
     } finally { setRoleSaving(false); }
-  }
-
-  async function handleUploadToggle(newVal) {
-    setUploadMsg(""); setUploadSaving(true);
-    setUploadEnabled(newVal);
-    try {
-      await Promise.all(teams.map(t =>
-        apiFetch(`/api/teams/${t.id}`, {
-          method: "PUT", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ auto_approve_uploads: newVal }),
-        })
-      ));
-      setUploadMsg(newVal ? "Uploads are now auto-approved across all teams." : "Uploads now require manual approval across all teams.");
-    } catch {
-      setUploadEnabled(!newVal);
-      setUploadMsg("Failed to save — please try again.");
-    } finally { setUploadSaving(false); }
   }
 
   const selectedTeam = teams.find(t => t.id === selectedTeamId);
@@ -197,22 +176,6 @@ export default function LecturerSettings({ darkMode, teams = [] }) {
               <Toggle value={roleEnabled} onToggle={handleRoleToggle} disabled={roleSaving || teams.length === 0} />
             </div>
             {roleMsg && <div style={{ marginTop:10, ...(roleMsg.includes("Failed") ? errorStyle : successStyle) }}>{roleMsg}</div>}
-          </div>
-
-          {/* ── Smart Upload Approval ── */}
-          <div style={cardStyle(theme)}>
-            <h3 style={titleStyle(theme)}>Smart Upload Approval</h3>
-            <p style={subtitleStyle(theme)}>When ON, student uploads are parsed automatically. When OFF, uploads wait for your manual approval. Applies to all teams.</p>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background:darkMode?"#0f172a":"#f8fafc", border:`1px solid ${theme.border}`, borderRadius:12, padding:"14px 16px" }}>
-              <div>
-                <div style={{ fontWeight:600, fontSize:14, color:theme.text }}>Auto-approve uploads</div>
-                <div style={{ fontSize:12, color:theme.subtext, marginTop:3 }}>
-                  {uploadEnabled ? "Uploads are parsed immediately on submission" : "Uploads require manual approval before processing"}
-                </div>
-              </div>
-              <Toggle value={uploadEnabled} onToggle={handleUploadToggle} disabled={uploadSaving || teams.length === 0} />
-            </div>
-            {uploadMsg && <div style={{ marginTop:10, ...(uploadMsg.includes("Failed") ? errorStyle : successStyle) }}>{uploadMsg}</div>}
           </div>
 
         </div>

@@ -227,7 +227,7 @@ const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
         return;
       }
 
-      setUploadMessage("Document uploaded successfully and is now pending lecturer approval.");
+      setUploadMessage("Document uploaded successfully. Parsing started.");
       setSelectedFile(null);
       await onRefreshUploads?.();
       setSelectedDocType("worklog");
@@ -854,28 +854,6 @@ const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
                   {file.original_name || file.originalName || "Unnamed file"}
                 </div>
 
-                <span
-  style={{
-    padding: "4px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 700,
-    background:
-      file.approval_status === "approved"
-        ? "#dcfce7"
-        : file.approval_status === "rejected"
-        ? "#fee2e2"
-        : "#fef3c7",
-    color:
-      file.approval_status === "approved"
-        ? "#166534"
-        : file.approval_status === "rejected"
-        ? "#991b1b"
-        : "#92400e",
-  }}
->
-  {file.approval_status || "pending"}
-</span>
               </div>
 
               <div style={{ fontSize: 14, color: theme.subtext, display: "grid", gap: 4 }}>

@@ -271,8 +271,6 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
   const handleDownload = async (fileId) => { try { const res = await apiFetch(`/api/uploads/${fileId}/download`); const { url } = await res.json(); window.open(url, "_blank"); } catch {} };
   const handleView    = async (fileId) => { try { const res = await apiFetch(`/api/uploads/${fileId}/download`); const { url } = await res.json(); window.open(url, "_blank"); } catch {} };
   const handleReparse = async (fileId) => { try { const res = await apiFetch(`/api/uploads/${fileId}/reparse`, { method: "POST", headers: { "Content-Type": "application/json" } }); if (!res.ok) throw new Error(); const updated = normalizeUploadRecord(await res.json()); setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: updated.status, parseMessage: updated.parseMessage } : f)); } catch {} };
-  const handleApprove = async (fileId) => { try { const res = await apiFetch(`/api/uploads/${fileId}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approvedBy: "Lecturer" }) }); if (!res.ok) throw new Error(); setFiles(prev => prev.map(f => f.id === fileId ? { ...f, approvalStatus: "approved", status: "confirmed" } : f)); } catch {} };
-  const handleReject  = async (fileId) => { try { const res = await apiFetch(`/api/uploads/${fileId}/reject`,  { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ approvedBy: "Lecturer", declineReason: "Rejected by lecturer" }) }); if (!res.ok) throw new Error(); setFiles(prev => prev.map(f => f.id === fileId ? { ...f, approvalStatus: "rejected", status: "rejected" } : f)); } catch {} };
 
   const cardStyle     = { background: theme.card, padding: "20px", borderRadius: "10px", boxShadow: theme.shadow, marginBottom: "20px", border: `1px solid ${theme.border}` };
   const labelStyle    = { fontWeight: "bold", marginTop: "10px", color: theme.text, display: "block" };
@@ -522,10 +520,6 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
                               {[
                                 { label: "View", onClick: () => handleView(f.id), color: theme.text },
                                 { label: "Download", onClick: () => handleDownload(f.id), color: theme.text },
-                                ...(f.approvalStatus === "pending" ? [
-                                  { label: "Approve", onClick: () => handleApprove(f.id), color: "#166534" },
-                                  { label: "Reject",  onClick: () => handleReject(f.id),  color: "#991b1b" },
-                                ] : []),
                                 ...(f.status === "parse_failed" ? [
                                   { label: "Re-parse", onClick: () => handleReparse(f.id), color: "#1d4ed8" },
                                 ] : []),

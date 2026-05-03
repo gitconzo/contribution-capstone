@@ -1,9 +1,9 @@
 // frontend/src/components/dashboard.jsx
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
 import {
   Users, Link as LinkIcon, BarChart3, UserRound,
-  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search, AlertTriangle,
+  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search,
 } from "lucide-react";
 
 // Format a date from API using UTC to avoid timezone shift (AEST = UTC+10 would shift midnight UTC back 1 day)
@@ -15,50 +15,6 @@ function fmtSprintDate(d) {
   const parts = ymd.split("-");
   if (parts.length !== 3) return ymd;
   return `${parts[2]}-${parts[1]}-${parts[0]}`; // dd-mm-yyyy
-}
-
-// ── mirrors normalizeUploadRecord from UploadFile.js ──────────────────────
-function normalizeUploadRecord(f = {}) {
-  return {
-    id:               f.id,
-    teamId:           f.team_id      || f.teamId           || "unknown",
-    originalName:     f.original_name|| f.originalName     || "unknown",
-    size:             Number(f.size  || 0),
-    uploadDate:       f.upload_date  || f.uploadDate       || null,
-    detectedType:     f.detected_type|| f.detectedType     || "unknown",
-    userType:         f.user_type    || f.userType         || "unknown",
-    status:           f.status       || "unknown",
-    approvalStatus:   f.approval_status || f.approvalStatus|| null,
-    parseMessage:     f.parse_message|| f.parseMessage     || "",
-    uploadedByName:   f.uploaded_by_name  || f.uploadedByName  || null,
-    uploadedByEmail:  f.uploaded_by_email || f.uploadedByEmail || null,
-    s3Key:            f.s3_key       || f.s3Key            || "",
-  };
-}
-
-function getStatusBadgeStyle(status = "") {
-  const v = String(status).toLowerCase();
-  if (v.includes("parsed") || v.includes("complete") || v.includes("confirmed"))
-    return { background: "#dcfce7", color: "#166534", border: "1px solid #86efac" };
-  if (v.includes("pending") || v.includes("uploaded") || v.includes("processing"))
-    return { background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d" };
-  if (v.includes("fail") || v.includes("error") || v.includes("rejected"))
-    return { background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" };
-  return { background: "#e5e7eb", color: "#374151", border: "1px solid #d1d5db" };
-}
-
-function formatFileSize(bytes) {
-  const v = Number(bytes || 0);
-  if (!v) return "-";
-  if (v < 1024) return `${v} B`;
-  if (v < 1024 * 1024) return `${(v / 1024).toFixed(1)} KB`;
-  return `${(v / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDisplayDate(d) {
-  if (!d) return "Unknown";
-  const date = new Date(d);
-  return isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,11 +39,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [resetting, setResetting]       = useState(false);
 
-  // ── Pending uploads ──
-  const [pendingUploads, setPendingUploads] = useState([]);
-  const [uploadsOpen, setUploadsOpen]       = useState(false);
-  const [uploadsLoading, setUploadsLoading] = useState(false);
-  
   // ── Current sprint ──
   const [currentSprint, setCurrentSprint] = useState(null);
   const [allSprints, setAllSprints]       = useState([]);
@@ -95,9 +46,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
   const [sprintScores, setSprintScores] = useState(null);
   const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
   
-
-  // ── Auto-approve setting ──
-  const [autoApproveUploads, setAutoApproveUploads] = useState(true);
 
   // ── Tasks ──
   const [tasksBySprintId, setTasksBySprintId] = useState({});
@@ -120,17 +68,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
         tableRow: "#f9f9f9",
       };
 
-  // ── Load pending uploads for this team ──
-  const loadPendingUploads = useCallback(async (tid) => {
-    if (!tid) { setPendingUploads([]); return; }
-    try {
-      setUploadsLoading(true);
-      const res  = await apiFetch(`/api/uploads/pending?teamId=${encodeURIComponent(tid)}`);
-      const data = await res.json();
-      setPendingUploads(Array.isArray(data) ? data.map(normalizeUploadRecord) : []);
-    } catch { setPendingUploads([]); }
-    finally  { setUploadsLoading(false); }
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -164,8 +101,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
       .then(data => { const s = data.students || []; setTeamStudents(s); sessionStorage.setItem("dashboardStudentsCache", JSON.stringify(s)); })
       .catch(() => setTeamStudents([]));
 
-    loadPendingUploads(teamId);
-    
     // Load sprints and find current one based on today's date
     apiFetch(`/api/teams/${encodeURIComponent(teamId)}/sprints`).then(r => r.json())
       .then(data => {
@@ -180,18 +115,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
         setCurrentSprint(active);
       })
       .catch(() => { setAllSprints([]); setCurrentSprint(null); });
-
-    // Load team's auto_approve_uploads setting
-    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
-      .then(r => r.json())
-      .then(data => setAutoApproveUploads(data.auto_approve_uploads !== false))
-      .catch(() => setAutoApproveUploads(true));
-
-    // Load team's auto_approve_uploads setting
-    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
-      .then(r => r.json())
-      .then(data => setAutoApproveUploads(data.auto_approve_uploads !== false))
-      .catch(() => setAutoApproveUploads(true));
 
     // Load tasks for this team
     setTasksLoading(true);
@@ -208,8 +131,7 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
       .catch(() => setTasksBySprintId({}))
       .finally(() => setTasksLoading(false));
 
-    setUploadsOpen(false);
-  }, [teamId, peerReview, loadPendingUploads]);
+  }, [teamId, peerReview]);
 
   useEffect(() => {
   if (!teamId || selectedSprintId === "overall") {
@@ -221,12 +143,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
     .then(data => setSprintScores(data))
     .catch(() => setSprintScores(null));
 }, [selectedSprintId, teamId]);
-
-  useEffect(() => {
-    const handler = () => loadPendingUploads(teamId);
-    window.addEventListener("uploadsUpdated", handler);
-    return () => window.removeEventListener("uploadsUpdated", handler);
-  }, [teamId, loadPendingUploads]);
 
   const activeScores = selectedSprintId === "overall" ? scores : sprintScores;
   const students = useMemo(() => {
@@ -275,52 +191,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
     finally { setResetting(false); }
   };
 
-  // ── Upload actions (mirror UploadFile.js exactly) ──
-  const handleView = async (fileId) => {
-    try { const res = await apiFetch(`/api/uploads/${fileId}/download`); const {url} = await res.json(); window.open(url,"_blank"); } catch { alert("Failed to open file"); }
-  };
-  const handleDownload = async (fileId, fileName) => {
-    try { const res = await apiFetch(`/api/uploads/${fileId}/download`); const {url} = await res.json(); const a=document.createElement("a"); a.href=url; a.download=fileName||"file"; a.click(); } catch { alert("Failed to download"); }
-  };
-  const handleApprove = async (fileId) => {
-    try {
-      const res = await apiFetch(`/api/uploads/${fileId}/approve`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({approvedBy:"Lecturer"}) });
-      if (!res.ok) throw new Error("Approve failed");
-      setPendingUploads(prev => prev.map(f => f.id===fileId ? {...f, approvalStatus:"approved", status:"confirmed"} : f));
-      window.dispatchEvent(new Event("uploadsUpdated"));
-    } catch(e) { alert(e.message); }
-  };
-  const handleReject = async (fileId) => {
-    try {
-      const res = await apiFetch(`/api/uploads/${fileId}/reject`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({approvedBy:"Lecturer", declineReason:"Rejected by lecturer"}) });
-      if (!res.ok) throw new Error("Reject failed");
-      setPendingUploads(prev => prev.map(f => f.id===fileId ? {...f, approvalStatus:"rejected", status:"rejected"} : f));
-      window.dispatchEvent(new Event("uploadsUpdated"));
-    } catch(e) { alert(e.message); }
-  };
-  const handleReparse = async (fileId) => {
-    try {
-      const res = await apiFetch(`/api/uploads/${fileId}/reparse`, { method:"POST", headers:{"Content-Type":"application/json"} });
-      if (!res.ok) throw new Error("Re-parse failed");
-      const updated = normalizeUploadRecord(await res.json());
-      setPendingUploads(prev => prev.map(f => f.id===fileId ? {...f, status:updated.status, parseMessage:updated.parseMessage} : f));
-    } catch(e) { alert(e.message); }
-  };
-  const handleDelete = async (fileId) => {
-    if (!window.confirm("Delete this file?")) return;
-    try {
-      const res = await apiFetch(`/api/uploads/${fileId}`, { method:"DELETE" });
-      if (!res.ok) { const d=await res.json().catch(()=>{}); throw new Error(d?.error||"Delete failed"); }
-      setPendingUploads(prev => prev.filter(f => f.id!==fileId));
-      window.dispatchEvent(new Event("uploadsUpdated"));
-    } catch(e) { alert(e.message); }
-  };
-
-  // ── Table styles (mirrors UploadFile.js) ──
-  const tableCellStyle = { padding:"12px", textAlign:"left", color:theme.text, borderTop:`1px solid ${theme.border}`, borderBottom:`1px solid ${theme.border}`, verticalAlign:"top", overflowWrap:"anywhere", wordBreak:"break-word" };
-  const tableStyle     = { width:"100%", borderCollapse:"separate", borderSpacing:"0 8px", color:theme.text, tableLayout:"auto", minWidth:"700px" };
-  const thStyle        = { textAlign:"left", color:theme.subtext, fontSize:"12px", padding:"0 12px 6px 12px", fontWeight:600 };
-  const tableRowStyle  = { background:theme.tableRow, boxShadow: darkMode ? "none" : "0 1px 3px rgba(0,0,0,0.08)" };
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -502,109 +372,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
           </div>
         </div>
       )}
-      {/* ══════════════════════════════════════════════════════
-          ⚠ PENDING UPLOADS ALERT BANNER
-      ══════════════════════════════════════════════════════ */}
-      {!autoApproveUploads && (uploadsLoading || pendingUploads.length > 0) && (
-        <div style={{ marginTop:14, borderRadius:12, border:"1px solid #fde68a", background:darkMode?"#1c1708":"#fffbeb", overflow:"hidden" }}>
-
-          {/* Banner row */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", gap:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <AlertTriangle size={18} color="#d97706"/>
-              <div>
-                <div style={{ fontWeight:700, color:darkMode?"#fbbf24":"#92400e", fontSize:14 }}>Pending Upload Reviews</div>
-                <div style={{ fontSize:13, color:darkMode?"#fcd34d":"#b45309", marginTop:1 }}>
-                  {uploadsLoading
-                    ? "Checking for pending uploads…"
-                    : `${pendingUploads.length} upload${pendingUploads.length!==1?"s":""} waiting for lecturer review`}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setUploadsOpen(v=>!v)}
-              style={{ padding:"7px 16px", borderRadius:8, border:"1px solid #f59e0b", background:darkMode?"#292007":"#fff", color:darkMode?"#fbbf24":"#92400e", fontWeight:700, fontSize:13, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}
-            >
-              {uploadsOpen ? "Hide Uploads ▲" : "View Uploads ▼"}
-            </button>
-          </div>
-
-          {/* ── Inline uploads review — mirrors UploadFile table exactly ── */}
-          {uploadsOpen && (
-            <div style={{ borderTop:"1px solid #fde68a", padding:"14px 16px" }}>
-
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                <div>
-                  <div style={{ fontWeight:700, fontSize:15, color:theme.text }}>Uploads Review</div>
-                  <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>Review and action each upload — same controls as Upload Data page</div>
-                </div>
-                <span style={{ fontSize:12, color:theme.subtext }}>{pendingUploads.length} pending</span>
-              </div>
-
-              {pendingUploads.length === 0 ? (
-                <div style={{ color:theme.subtext, fontSize:13 }}>No pending uploads.</div>
-              ) : (
-                <div style={{ width:"100%", overflowX:"auto" }}>
-                  <table style={tableStyle}>
-                    <thead>
-                      <tr>
-                        <th style={thStyle}>File Name</th>
-                        <th style={thStyle}>File Type</th>
-                        <th style={thStyle}>Uploaded By</th>
-                        <th style={thStyle}>Size</th>
-                        <th style={thStyle}>Upload Date</th>
-                        <th style={thStyle}>Status</th>
-                        <th style={thStyle}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pendingUploads.map(f => {
-                        const badgeStyle    = getStatusBadgeStyle(f.status);
-                        const isParseFailed = String(f.status).toLowerCase() === "parse_failed";
-                        const isPending     = f.approvalStatus === "pending" || !f.approvalStatus;
-                        return (
-                          <tr key={f.id} style={tableRowStyle}>
-                            <td style={{ ...tableCellStyle, borderLeft:`1px solid ${theme.border}`, borderTopLeftRadius:10, borderBottomLeftRadius:10 }}>
-                              <div style={{ fontWeight:600 }}>{f.originalName}</div>
-                              {f.parseMessage && (
-                                <div style={{ fontSize:11, color:"#b91c1c", marginTop:3 }}>{f.parseMessage}</div>
-                              )}
-                            </td>
-                            <td style={tableCellStyle}>{f.userType !== "unknown" ? f.userType : f.detectedType}</td>
-                            <td style={tableCellStyle}>{f.uploadedByName || f.uploadedByEmail || "Unknown"}</td>
-                            <td style={tableCellStyle}>{formatFileSize(f.size)}</td>
-                            <td style={tableCellStyle}>{formatDisplayDate(f.uploadDate)}</td>
-                            <td style={tableCellStyle}>
-                              <span style={{ ...badgeStyle, borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:700, letterSpacing:"0.05em", display:"inline-block", whiteSpace:"nowrap" }}>
-                                {(f.status||"unknown").toUpperCase()}
-                              </span>
-                            </td>
-                            {/* ── Inline action buttons ── */}
-                            <td style={{ ...tableCellStyle, borderRight:`1px solid ${theme.border}`, borderTopRightRadius:10, borderBottomRightRadius:10, verticalAlign:"middle" }}>
-                              <div style={{ display:"flex", gap:5, flexWrap:"wrap", alignItems:"center" }}>
-                                <InlineBtn label="View"     color="#1d4ed8" bg="#eff6ff"  border="#93c5fd" onClick={() => handleView(f.id)} />
-                                <InlineBtn label="Download" color={theme.text} bg={theme.buttonBg} border={theme.border} onClick={() => handleDownload(f.id, f.originalName)} />
-                                {isPending && <>
-                                  <InlineBtn label="Approve"  color="#166534" bg="#dcfce7" border="#86efac" onClick={() => handleApprove(f.id)} />
-                                  <InlineBtn label="Reject"   color="#991b1b" bg="#fee2e2" border="#fca5a5" onClick={() => handleReject(f.id)} />
-                                </>}
-                                {isParseFailed &&
-                                  <InlineBtn label="Re-parse" color="#1d4ed8" bg="#eff6ff" border="#93c5fd" onClick={() => handleReparse(f.id)} />
-                                }
-                                <InlineBtn label="Delete"   color="#991b1b" bg="#fee2e2" border="#fca5a5" onClick={() => handleDelete(f.id)} />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
 
       {/* ── Sprint Tasks Overview button ── */}
@@ -715,14 +482,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
 
 /* ── Lecturer sprint task group ──────────────────────────────────────────── */
 
-/* ── Small components ─────────────────────────────────────────────────────── */
-function InlineBtn({ label, color, bg, border, onClick }) {
-  return (
-    <button onClick={onClick} style={{ padding:"4px 10px", borderRadius:6, border:`1px solid ${border}`, background:bg, color, fontSize:11, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap" }}>
-      {label}
-    </button>
-  );
-}
 function KpiCard({ title, icon, children, theme }) {
   return (
     <div style={card(theme)}>

@@ -10,11 +10,6 @@ const TYPE_LABELS = {
   project_plan: "Project Plan",
 };
 
-const APPROVAL_STYLES = {
-  approved:  { background: "#dcfce7", color: "#166534" },
-  pending:   { background: "#fef3c7", color: "#92400e" },
-  rejected:  { background: "#fee2e2", color: "#991b1b" },
-};
 
 function prettyType(v = "") {
   return TYPE_LABELS[v] || v || "Unknown";
@@ -302,7 +297,6 @@ function SidebarItem({ label, sublabel, count, active, onClick, t }) {
 
 function FileCard({ file, t, opening, onOpen }) {
   const typeLabel = prettyType(file.user_type || file.detected_type);
-  const approvalStyle = APPROVAL_STYLES[file.approval_status] || APPROVAL_STYLES.pending;
   const sizeStr = prettySize(file.size);
   const dateStr = prettyDate(file.upload_date);
 
@@ -327,10 +321,6 @@ function FileCard({ file, t, opening, onOpen }) {
 
           <Badge label={typeLabel} style={{ background: "#f1f5f9", color: "#475569" }} />
 
-          <Badge
-            label={(file.approval_status || "pending").toUpperCase()}
-            style={approvalStyle}
-          />
         </div>
 
         {/* Meta row */}
