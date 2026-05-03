@@ -455,7 +455,7 @@ function scoreStudents(students, rules = null) {
   return { ranking: ranked, weights: w, dims, studentsCount: students.length };
 }
 
-async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, sprintStats = null }) {
+async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, sprintStats = null, sprintId = null }) {
   const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [teamId]);
   if (!teamRes.rows.length) throw new Error("Team not found");
   const team = teamRes.rows[0];
@@ -471,15 +471,15 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     ? { rules: rulesRes.rows.map(r => ({ name: r.name, value: r.weight, desc: r.description })) }
     : null;
 
-  // Load parsed sprint/project plan files from DB and combine in memory so
-  // doc metrics reflect the current DB state, not the legacy fileRegistry.json
   const artifactsRes = await db.query(
     `SELECT json_path, COALESCE(user_type, detected_type) AS user_type FROM file_registry
      WHERE team_id = $1 AND status = 'parsed'
        AND COALESCE(user_type, detected_type) IN ('sprint_report', 'project_plan', 'attendance')
-       AND json_path IS NOT NULL`,
-    [teamId]
+       AND json_path IS NOT NULL
+       ${sprintId ? `AND (sprint_id = $2 OR sprint_id IS NULL)` : ''}`,
+    sprintId ? [teamId, sprintId] : [teamId]
   );
+
   const sprintData = [], projectData = [], attendanceData = [];
   for (const row of artifactsRes.rows) {
     const data = safeReadJSON(path.join(rootDir, row.json_path), null);
@@ -488,6 +488,7 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     else if (row.user_type === "project_plan") projectData.push(data);
     else if (row.user_type === "attendance") attendanceData.push(data);
   }
+ 
   const combinedDocsOverride = (sprintData.length || projectData.length)
     ? combineDocsInMemory(sprintData, projectData)
     : null;

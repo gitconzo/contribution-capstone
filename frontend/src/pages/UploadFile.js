@@ -35,6 +35,7 @@ function normalizeUploadRecord(fileItem = {}) {
     parseMessage: fileItem.parse_message || fileItem.parseMessage || "",
     uploadedByName: fileItem.uploaded_by_name || fileItem.uploadedByName || null,
     uploadedByEmail: fileItem.uploaded_by_email || fileItem.uploadedByEmail || null,
+    sprintId: fileItem.sprint_id || fileItem.sprintId || null,
   };
 }
 
@@ -84,6 +85,9 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
   const [uploadTeamId, setUploadTeamId] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
 
+  const [sprints, setSprints] = useState([]);
+  const [uploadSprintId, setUploadSprintId] = useState("");
+
   const theme = darkMode
     ? { pageBg:"#0b1120", card:"#111827", cardAlt:"#0f172a", text:"#f8fafc", subtext:"#94a3b8", border:"#1f2937", softBorder:"#334155", inputBg:"#0f172a", shadow:"0 8px 20px rgba(0,0,0,.28)", tableRow:"#0f172a", groupBadgeBg:"#1e293b", groupBadgeText:"#e2e8f0" }
     : { pageBg:"#f8fafc", card:"#ffffff", cardAlt:"#f9fafb", text:"#111827", subtext:"#6b7280", border:"#e5e7eb", softBorder:"#d1d5db", inputBg:"#ffffff", shadow:"0 2px 10px rgba(0,0,0,0.1)", tableRow:"#f9f9f9", groupBadgeBg:"#eef2ff", groupBadgeText:"#3730a3" };
@@ -115,6 +119,15 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
   useEffect(() => {
     if (activeTeamId) setUploadTeamId(activeTeamId);
   }, [activeTeamId]);
+
+  useEffect(() => {
+    if (!uploadTeamId) { setSprints([]); setUploadSprintId(""); return; }
+    apiFetch(`/api/teams/${uploadTeamId}/sprints`)
+      .then(r => r.json())
+      .then(data => setSprints(Array.isArray(data) ? data : []))
+      .catch(() => setSprints([]));
+    setUploadSprintId("");
+  }, [uploadTeamId]);
 
   const teamNameMap = useMemo(() => {
     const map = {};
@@ -193,8 +206,20 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
       if (!s3Res.ok) { setUploadResult({ error: `S3 upload failed (${s3Res.status}).` }); return; }
 
       const res = await apiFetch("/api/uploads", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ s3Key, storedName, originalName: file.name, size: file.size, mimetype: file.type, teamId: teamIdForUpload, userType: overrideType, uploadedByName: currentUser?.name || null, uploadedByEmail: currentUser?.email || null }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          s3Key,
+          storedName,
+          originalName: file.name,
+          size: file.size,
+          mimetype: file.type,
+          teamId: teamIdForUpload,
+          userType: overrideType,
+          sprintId: uploadSprintId || null,
+          uploadedByName: currentUser?.name || null,
+          uploadedByEmail: currentUser?.email || null,
+        }),
       });
       const json = await res.json();
       setUploadResult(normalizeUploadRecord(json));
@@ -289,6 +314,27 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
             Current target: <strong style={{ color: theme.text }}>{teamNameMap[uploadTeamId] || "No group selected"}</strong>
           </div>
         </div>
+
+        {sprints.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <label style={labelStyle}>Tag to Sprint</label>
+            <select
+              value={uploadSprintId}
+              onChange={e => setUploadSprintId(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">No sprint (overall)</option>
+              {sprints.map(s => (
+                <option key={s.id} value={s.id}>
+                  Sprint {s.sprint_number} ({s.start_date} → {s.end_date})
+                </option>
+              ))}
+            </select>
+            <div style={{ fontSize: 12, color: theme.subtext, marginTop: 4 }}>
+              Tag this document to a sprint for sprint-specific scoring.
+            </div>
+          </div>
+        )}
 
         <label style={labelStyle}>Select Document Type</label>
         <select value={overrideType} onChange={e => setOverrideType(e.target.value)} style={selectStyle}>
@@ -388,45 +434,129 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
                   </tr>
                 </thead>
                 <tbody>
-                  {group.files.map(f => (
-                    <tr key={f.id} style={tableRowStyle}>
-                      <td style={{ ...tableCellStyle, borderLeft: `1px solid ${theme.border}`, borderTopLeftRadius: "10px", borderBottomLeftRadius: "10px" }}>
-                        <div style={{ fontWeight: 600 }}>{f.originalName}</div>
-                      </td>
-                      <td style={tableCellStyle}>{f.userType !== "unknown" ? f.userType : f.detectedType}</td>
-                      <td style={tableCellStyle}>{uploaderLabel(f)}</td>
-                      <td style={tableCellStyle}>{formatFileSize(f.size)}</td>
-                      <td style={tableCellStyle}>{formatDisplayDate(f.uploadDate)}</td>
-                      <td style={tableCellStyle}>
-                        <span style={{ ...getStatusBadgeStyle(f.status), borderRadius: "6px", padding: "3px 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", display: "inline-block", whiteSpace: "nowrap" }}>
-                          {(f.status || "unknown").toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={{ ...tableCellStyle, borderRight: `1px solid ${theme.border}`, borderTopRightRadius: "10px", borderBottomRightRadius: "10px", position: "relative" }}>
-                        <button onClick={() => setOpenMenuId(openMenuId === f.id ? null : f.id)} style={{ background: "none", border: `1px solid ${theme.border}`, borderRadius: 6, cursor: "pointer", fontSize: 16, color: theme.subtext, padding: "2px 8px", lineHeight: 1 }}>⋮</button>
-                        {openMenuId === f.id && (
-                          <div style={{ position: "absolute", right: 8, top: "100%", zIndex: 100, background: theme.card, border: `1px solid ${theme.border}`, borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.15)", minWidth: 130, overflow: "hidden" }}>
-                            {[
-                              { label: "View",     onClick: () => handleView(f.id),     color: theme.text },
-                              { label: "Download", onClick: () => handleDownload(f.id), color: theme.text },
-                              ...(f.approvalStatus === "pending" ? [
-                                { label: "Approve", onClick: () => handleApprove(f.id), color: "#166534" },
-                                { label: "Reject",  onClick: () => handleReject(f.id),  color: "#991b1b" },
-                              ] : []),
-                              ...(f.status === "parse_failed" ? [
-                                { label: "Re-parse", onClick: () => handleReparse(f.id), color: "#1d4ed8" },
-                              ] : []),
-                              { label: "Delete", onClick: () => handleDelete(f.id), color: "#b83232" },
-                            ].map(({ label, onClick, color }) => (
-                              <button key={label} onClick={() => { onClick(); setOpenMenuId(null); }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "9px 14px", fontSize: 13, fontWeight: 500, color, cursor: "pointer", whiteSpace: "nowrap" }}>
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {group.files.map((f) => {
+                    const badgeStyle = getStatusBadgeStyle(f.status);
+                    return (
+                      <tr key={f.id} style={tableRowStyle}>
+                        <td
+                          style={{
+                            ...tableCellStyle,
+                            borderLeft: `1px solid ${theme.border}`,
+                            borderTopLeftRadius: "10px",
+                            borderBottomLeftRadius: "10px",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600 }}>{f.originalName}</div>
+                        </td>
+                        <td style={tableCellStyle}>
+                          <div>{f.userType !== "unknown" ? f.userType : f.detectedType}</div>
+                          {f.sprintId && (
+                            <div style={{ fontSize: 11, marginTop: 3, color: "#0369a1", background: "#e0f2fe", padding: "1px 6px", borderRadius: 999, display: "inline-block" }}>
+                              {sprints.find(s => String(s.id) === String(f.sprintId))?.sprint_number
+                                ? `Sprint ${sprints.find(s => String(s.id) === String(f.sprintId)).sprint_number}`
+                                : "Sprint"}
+                            </div>
+                          )}
+                        </td>
+                        <td style={tableCellStyle}>
+                        <div>{uploaderLabel(f)}</div>
+                        </td>
+                        <td style={tableCellStyle}>{formatFileSize(f.size)}</td>
+                        <td style={tableCellStyle}>{formatDisplayDate(f.uploadDate)}</td>
+                        <td style={tableCellStyle}>
+                          <span
+                            style={{
+                              ...badgeStyle,
+                              borderRadius: "6px",
+                              padding: "3px 8px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              letterSpacing: "0.05em",
+                              display: "inline-block",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {(f.status || "unknown").toUpperCase()}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            ...tableCellStyle,
+                            borderRight: `1px solid ${theme.border}`,
+                            borderTopRightRadius: "10px",
+                            borderBottomRightRadius: "10px",
+                            position: "relative",
+                          }}
+                        >
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === f.id ? null : f.id)}
+                            style={{
+                              background: "none",
+                              border: `1px solid ${theme.border}`,
+                              borderRadius: 6,
+                              cursor: "pointer",
+                              fontSize: 16,
+                              color: theme.subtext,
+                              padding: "2px 8px",
+                              lineHeight: 1,
+                            }}
+                          >
+                            ⋮
+                          </button>
+
+                          {openMenuId === f.id && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                right: 8,
+                                top: "100%",
+                                zIndex: 100,
+                                background: theme.card,
+                                border: `1px solid ${theme.border}`,
+                                borderRadius: 8,
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                                minWidth: 130,
+                                overflow: "hidden",
+                              }}
+                            >
+                              {[
+                                { label: "View", onClick: () => handleView(f.id), color: theme.text },
+                                { label: "Download", onClick: () => handleDownload(f.id), color: theme.text },
+                                ...(f.approvalStatus === "pending" ? [
+                                  { label: "Approve", onClick: () => handleApprove(f.id), color: "#166534" },
+                                  { label: "Reject",  onClick: () => handleReject(f.id),  color: "#991b1b" },
+                                ] : []),
+                                ...(f.status === "parse_failed" ? [
+                                  { label: "Re-parse", onClick: () => handleReparse(f.id), color: "#1d4ed8" },
+                                ] : []),
+                                { label: "Delete", onClick: () => handleDelete(f.id), color: "#b83232" },
+                              ].map(({ label, onClick, color }) => (
+                                <button
+                                  key={label}
+                                  onClick={() => { onClick(); setOpenMenuId(null); }}
+                                  style={{
+                                    display: "block",
+                                    width: "100%",
+                                    textAlign: "left",
+                                    background: "none",
+                                    border: "none",
+                                    padding: "9px 14px",
+                                    fontSize: 13,
+                                    fontWeight: 500,
+                                    color,
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

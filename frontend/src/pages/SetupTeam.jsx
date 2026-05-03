@@ -719,7 +719,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                                       });
                                     }
                                   }}
-                                  style={btn({ background: editingSprintDates === num ? "#6b7280" : "#2d5db8", fontSize:11, padding:"5px 10px" })}
+                                  style={btn({ background: editingSprintDates === num ? "#6b7280" : "#b17926", fontSize:11, padding:"5px 10px" })}
                                 >
                                   {editingSprintDates === num ? "Cancel" : "Edit Dates"}
                                 </button>
@@ -742,7 +742,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                                       setSprintTeamEditing(selected);
                                     }
                                   }}
-                                  style={btn({ background: managingSprintTeams === num ? "#6b7280" : "#7c3aed", fontSize:11, padding:"5px 10px" })}
+                                  style={btn({ background: managingSprintTeams === num ? "#6b7280" : "#2d5db8", fontSize:11, padding:"5px 10px" })}
                                 >
                                   {managingSprintTeams === num ? "Cancel" : "Edit Teams"}
                                 </button>
@@ -1254,13 +1254,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                                       >
                                         {analyzingSprint[sprint.id] ? "Analysing..." : "Analyse This Team"}
                                       </button>
-                                      <button
-                                        onClick={() => onAnalyzeSprintAllTeams(sprint)}
-                                        disabled={!!analyzingSprint[`all_${sprint.id}`]}
-                                        style={btn({ background: analyzingSprint[`all_${sprint.id}`] ? "#6b7280" : "#0369a1", fontSize:11, padding:"4px 8px", cursor: analyzingSprint[`all_${sprint.id}`] ? "not-allowed" : "pointer" })}
-                                      >
-                                        {analyzingSprint[`all_${sprint.id}`] ? "Analysing..." : "Analyse All Teams"}
-                                      </button>
+                                      
                                       <button onClick={()=>onEditSprint(t.id,sprint)} style={btn({background:"#2d5db8",fontSize:11,padding:"4px 8px"})}>Edit</button>
                                       <button onClick={()=>onDeleteSprint(t.id,sprint.id)} style={btn({background:"#b83232",fontSize:11,padding:"4px 8px"})}>Delete</button>
                                     </div>
