@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { apiFetch } from "../utils/api";
 
-const EMPTY_STUDENT = { name: "", email: "", github: "", aliases: "" };
+const EMPTY_STUDENT = { name: "", email: "", github: "", aliases: "", roles: [] };
 const EMPTY_SPRINT   = { sprint_number: "", start_date: "", end_date: "", scrum_master_email: "" };
 const EMPTY_BREAK    = { label: "", start_date: "", end_date: "" };
 
@@ -234,11 +234,12 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
     try {
       const body = {
         name: name.trim(), code: code.trim(), repo: normalizeRepo(repoUrl.trim()),
-        students: validStudents.map(s => ({
-          name: s.name.trim(), email: s.email.trim(),
-          github: s.github.trim() || null,
-          aliases: s.aliases.trim() ? s.aliases.split(",").map(a => a.trim()).filter(Boolean) : [],
-        })),
+      students: validStudents.map(s => ({
+        name: s.name.trim(), email: s.email.trim(),
+        github: s.github.trim() || null,
+        aliases: s.aliases.trim() ? s.aliases.split(",").map(a => a.trim()).filter(Boolean) : [],
+        role: (s.roles||[]).length > 0 ? s.roles.join(",") : "member",
+      })),  
       };
       const res  = await apiFetch("/api/teams", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
       const json = await res.json();
@@ -1014,50 +1015,84 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
           CREATE NEW TEAM
       ══════════════════════════════════════════════════════ */}
       <div style={cardStyle(theme)}>
-        <div style={{ fontWeight:700, marginBottom:10, color:theme.text }}>Create New Team</div>
-        <div style={{ display:"grid", gap:10, gridTemplateColumns:"1fr 1fr" }}>
-          <Field label="Team Name" theme={theme}><input value={name} onChange={e => setName(e.target.value)} style={inp(theme)} /></Field>
-          <Field label="Project Code" theme={theme}><input value={code} onChange={e => setCode(e.target.value)} style={inp(theme)} /></Field>
+  <div style={{ fontWeight:700, marginBottom:10, color:theme.text }}>Create New Team</div>
+  <div style={{ display:"grid", gap:10, gridTemplateColumns:"1fr 1fr" }}>
+    <Field label="Team Name" theme={theme}><input value={name} onChange={e => setName(e.target.value)} style={inp(theme)} /></Field>
+    <Field label="Project Code" theme={theme}><input value={code} onChange={e => setCode(e.target.value)} style={inp(theme)} /></Field>
+  </div>
+  <div style={{ marginTop:10 }}>
+    <Field label="Repository URL" theme={theme}>
+      <input value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="e.g. https://github.com/org/repo" style={inp(theme, { width:"100%" })} />
+    </Field>
+  </div>
+  <div style={{ marginTop:10 }}>
+    <div style={{ fontSize:12, color:theme.subtext, marginBottom:6 }}>Students</div>
+    {newStudents.map((s, i) => (
+      <div key={`student-${i}`}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr auto", gap:6, alignItems:"end", marginBottom:6 }}>
+          <Field label="Name" theme={theme}><input value={s.name} onChange={e => updateNewStudent(i,"name",e.target.value)} style={inp(theme)} placeholder="John Doe" /></Field>
+          <Field label="Email" theme={theme}><input value={s.email} onChange={e => updateNewStudent(i,"email",e.target.value)} style={inp(theme)} placeholder="john@example.com" /></Field>
+          <Field label="GitHub" theme={theme}><input value={s.github} onChange={e => updateNewStudent(i,"github",e.target.value)} style={inp(theme)} placeholder="johndoe" /></Field>
+          <Field label="Aliases (comma separated)" theme={theme}><input value={s.aliases} onChange={e => updateNewStudent(i,"aliases",e.target.value)} style={inp(theme)} placeholder="john, j.doe" /></Field>
+          <button onClick={() => removeNewStudentRow(i)} disabled={newStudents.length===1} style={{ ...btn(), padding:"8px 10px", marginBottom:1 }}>✕</button>
         </div>
-        <div style={{ marginTop:10 }}>
-          <Field label="Repository URL" theme={theme}>
-            <input value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="e.g. https://github.com/org/repo" style={inp(theme, { width:"100%" })} />
-          </Field>
-        </div>
-        <div style={{ marginTop:10 }}>
-          <div style={{ fontSize:12, color:theme.subtext, marginBottom:6 }}>Students</div>
-          {newStudents.map((s, i) => (
-            <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr auto", gap:6, alignItems:"end", marginBottom:8 }}>
-              <Field label="Name" theme={theme}><input value={s.name} onChange={e => updateNewStudent(i,"name",e.target.value)} style={inp(theme)} placeholder="John Doe" /></Field>
-              <Field label="Email" theme={theme}><input value={s.email} onChange={e => updateNewStudent(i,"email",e.target.value)} style={inp(theme)} placeholder="john@example.com" /></Field>
-              <Field label="GitHub" theme={theme}><input value={s.github} onChange={e => updateNewStudent(i,"github",e.target.value)} style={inp(theme)} placeholder="johndoe" /></Field>
-              <Field label="Aliases (comma separated)" theme={theme}><input value={s.aliases} onChange={e => updateNewStudent(i,"aliases",e.target.value)} style={inp(theme)} placeholder="john, j.doe" /></Field>
-              <button onClick={() => removeNewStudentRow(i)} disabled={newStudents.length===1} style={{ ...btn(), padding:"8px 10px", marginBottom:1 }}>✕</button>
-            </div>
-          ))}
-          <button onClick={addNewStudentRow} style={dashedBtn(theme)}>+ Add Student</button>
-        </div>
-        <div style={{ marginTop:16, borderTop:`1px solid ${theme.border}`, paddingTop:14 }}>
-          <div style={{ fontSize:13, fontWeight:600, color:theme.text, marginBottom:4 }}>Sprints</div>
-          <div style={{ fontSize:12, color:theme.subtext, marginBottom:10 }}>Optionally define a sprint schedule now — you can also add or edit sprints after creation.</div>
-          {createSprints.length > 0 && (
-            <div style={{ display:"grid", gap:6, marginBottom:8 }}>
-              {createSprints.map((sp, i) => (
-                <div key={i} style={{ display:"grid", gridTemplateColumns:"80px 1fr 1fr auto", gap:6, alignItems:"end", background:theme.sprintRowBg, borderRadius:8, padding:"10px 12px", border:`1px solid ${theme.border}` }}>
-                  <Field label="Sprint #" theme={theme}><input type="number" min="1" value={sp.sprint_number} onChange={e => updateCreateSprint(i,"sprint_number",e.target.value)} style={inp(theme)} /></Field>
-                  <Field label="Start Date" theme={theme}><input type="date" value={sp.start_date} onChange={e => updateCreateSprint(i,"start_date",e.target.value)} style={inp(theme)} /></Field>
-                  <Field label="End Date" theme={theme}><input type="date" value={sp.end_date} onChange={e => updateCreateSprint(i,"end_date",e.target.value)} style={inp(theme)} /></Field>
-                  <button onClick={() => removeCreateSprint(i)} style={{ ...btn({ background:"#b83232", padding:"8px 10px" }), marginBottom:1 }}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <button onClick={addCreateSprint} style={dashedBtn(theme)}>+ Add Sprint</button>
-        </div>
-        <div style={{ marginTop:14 }}>
-          <button onClick={onCreate} disabled={creating} style={btn()}>{creating ? "Creating…" : "Create Team"}</button>
+        <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:10, paddingLeft:2 }}>
+          <span style={{ fontSize:12, color:theme.subtext }}>Role:</span>
+          {[
+            { value:"leader",       label:"Leader"       },
+            { value:"scrum_master", label:"Scrum Master" },
+          ].map(({ value, label }) => {
+            const checked = (s.roles || []).includes(value);
+            return (
+              <label key={value} style={{ display:"flex", alignItems:"center", gap:5, fontSize:12, color:theme.text, cursor:"pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    const current = s.roles || [];
+                    const next = checked ? current.filter(r => r !== value) : [...current, value];
+                    updateNewStudent(i, "roles", next);
+                  }}
+                  style={{ accentColor:"#2d5db8" }}
+                />
+                {label}
+              </label>
+            );
+          })}
+          <span style={{ fontSize:11, color:theme.subtext }}>
+            ({(s.roles||[]).length === 0
+              ? "member"
+              : (s.roles||[]).includes("leader") && (s.roles||[]).includes("scrum_master")
+                ? "leader + scrum master"
+                : (s.roles||[]).join(" + ").replace("_"," ")
+            })
+          </span>
         </div>
       </div>
+    ))}
+    <button onClick={addNewStudentRow} style={dashedBtn(theme)}>+ Add Student</button>
+  </div>
+  <div style={{ marginTop:16, borderTop:`1px solid ${theme.border}`, paddingTop:14 }}>
+    <div style={{ fontSize:13, fontWeight:600, color:theme.text, marginBottom:4 }}>Sprints</div>
+    <div style={{ fontSize:12, color:theme.subtext, marginBottom:10 }}>Optionally define a sprint schedule now — you can also add or edit sprints after creation.</div>
+    {createSprints.length > 0 && (
+      <div style={{ display:"grid", gap:6, marginBottom:8 }}>
+        {createSprints.map((sp, i) => (
+          <div key={i} style={{ display:"grid", gridTemplateColumns:"80px 1fr 1fr auto", gap:6, alignItems:"end", background:theme.sprintRowBg, borderRadius:8, padding:"10px 12px", border:`1px solid ${theme.border}` }}>
+            <Field label="Sprint #" theme={theme}><input type="number" min="1" value={sp.sprint_number} onChange={e => updateCreateSprint(i,"sprint_number",e.target.value)} style={inp(theme)} /></Field>
+            <Field label="Start Date" theme={theme}><input type="date" value={sp.start_date} onChange={e => updateCreateSprint(i,"start_date",e.target.value)} style={inp(theme)} /></Field>
+            <Field label="End Date" theme={theme}><input type="date" value={sp.end_date} onChange={e => updateCreateSprint(i,"end_date",e.target.value)} style={inp(theme)} /></Field>
+            <button onClick={() => removeCreateSprint(i)} style={{ ...btn({ background:"#b83232", padding:"8px 10px" }), marginBottom:1 }}>✕</button>
+          </div>
+        ))}
+      </div>
+    )}
+    <button onClick={addCreateSprint} style={dashedBtn(theme)}>+ Add Sprint</button>
+  </div>
+  <div style={{ marginTop:14 }}>
+    <button onClick={onCreate} disabled={creating} style={btn()}>{creating ? "Creating…" : "Create Team"}</button>
+  </div>
+</div>
 
       {/* ══════════════════════════════════════════════════════
           EXISTING TEAMS

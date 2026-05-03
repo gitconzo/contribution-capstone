@@ -177,8 +177,8 @@ router.post("/", async (req, res) => {
     for (const s of studentList) {
       const safeEmail = normalizeEmail(s.email);
       await db.query(
-        `INSERT INTO students (team_id, name, email, github, aliases) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING`,
-        [id, s.name, safeEmail || null, s.github || null, s.aliases ? JSON.stringify(s.aliases) : null]
+        `INSERT INTO students (team_id, name, email, github, aliases, role) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
+        [id, s.name, safeEmail || null, s.github || null, s.aliases ? JSON.stringify(s.aliases) : null, s.role || "member"]
       );
       if (safeEmail) {
         try {
