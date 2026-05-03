@@ -121,6 +121,8 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   const [editingSprint, setEditingSprint]       = useState(null);
   const [editSprint, setEditSprint]             = useState({ ...EMPTY_SPRINT });
   const [sprintError, setSprintError]           = useState("");
+  const [analyzingSprint, setAnalyzingSprint] = useState({}); 
+  const [analyzeMsg, setAnalyzeMsg] = useState({});
 
   // ── Sprint Template ──
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -128,6 +130,11 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   const [tplTargets, setTplTargets]     = useState([]);
   const [tplApplying, setTplApplying]   = useState(false);
   const [tplResult, setTplResult]       = useState("");
+  const [managedOpenSprint, setManagedOpenSprint] = useState(null);
+  const [managingSprintTeams, setManagingSprintTeams] = useState(null); 
+  const [sprintTeamEditing, setSprintTeamEditing] = useState({});
+  const [editingSprintDates, setEditingSprintDates] = useState(null);
+  const [editSprintDatesForm, setEditSprintDatesForm] = useState({ start_date: "", end_date: "" });
   // Auto mode
   const [tplStart, setTplStart]   = useState("");
   const [tplCount, setTplCount]   = useState(4);
@@ -338,6 +345,100 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
     } catch (e) { setSprintError(e.message); }
   };
 
+  const onAnalyzeSprint = async (teamId, sprint) => {
+  const key = sprint.id;
+  setAnalyzingSprint(p => ({ ...p, [key]: true }));
+  setAnalyzeMsg(p => ({ ...p, [key]: "Starting..." }));
+  try {
+    await apiFetch(`/api/teams/${teamId}/sprints/${sprint.id}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    const poll = setInterval(async () => {
+      try {
+        const st = await apiFetch(`/api/teams/${teamId}/sprints/${sprint.id}/status`).then(r => r.json());
+        setAnalyzeMsg(p => ({ ...p, [key]: `Running... (${st.status})` }));
+        if (st.status === "complete" || st.status === "error") {
+          clearInterval(poll);
+          setAnalyzingSprint(p => ({ ...p, [key]: false }));
+          setAnalyzeMsg(p => ({ ...p, [key]: st.status === "complete" ? "✓ Analysis complete" : `✗ ${st.error || "Failed"}` }));
+        }
+      } catch {
+        clearInterval(poll);
+        setAnalyzingSprint(p => ({ ...p, [key]: false }));
+        setAnalyzeMsg(p => ({ ...p, [key]: "✗ Status check failed" }));
+      }
+    }, 4000);
+  } catch (e) {
+    setAnalyzingSprint(p => ({ ...p, [key]: false }));
+    setAnalyzeMsg(p => ({ ...p, [key]: `✗ ${e.message}` }));
+  }
+};
+
+const onAnalyzeSprintAllTeams = async (sprint) => {
+  const key = `all_${sprint.id}`;
+  setAnalyzingSprint(p => ({ ...p, [key]: true }));
+  setAnalyzeMsg(p => ({ ...p, [key]: "Starting for all teams..." }));
+
+  try {
+    // Analyse each team that has this sprint number
+    const teamsToAnalyze = teams.filter(t => {
+      const teamSprints = sprintsByTeam[t.id] || [];
+      return teamSprints.some(s => s.sprint_number === sprint.sprint_number);
+    });
+
+    if (!teamsToAnalyze.length) {
+      setAnalyzingSprint(p => ({ ...p, [key]: false }));
+      setAnalyzeMsg(p => ({ ...p, [key]: "✗ No teams have this sprint number" }));
+      return;
+    }
+
+    setAnalyzeMsg(p => ({ ...p, [key]: `Analysing ${teamsToAnalyze.length} team(s)...` }));
+
+    // Kick off analysis for each team
+    const sprintIds = {};
+    for (const team of teamsToAnalyze) {
+      const teamSprint = (sprintsByTeam[team.id] || []).find(s => s.sprint_number === sprint.sprint_number);
+      if (!teamSprint) continue;
+      sprintIds[team.id] = teamSprint.id;
+      await apiFetch(`/api/teams/${team.id}/sprints/${teamSprint.id}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+    }
+
+    // Poll all teams until all complete
+    let completed = 0;
+    const total = Object.keys(sprintIds).length;
+
+    const poll = setInterval(async () => {
+      try {
+        let done = 0;
+        for (const [teamId, sprintId] of Object.entries(sprintIds)) {
+          const st = await apiFetch(`/api/teams/${teamId}/sprints/${sprintId}/status`).then(r => r.json());
+          if (st.status === "complete" || st.status === "error") done++;
+        }
+        setAnalyzeMsg(p => ({ ...p, [key]: `Analysing... (${done}/${total} complete)` }));
+        if (done >= total) {
+          clearInterval(poll);
+          setAnalyzingSprint(p => ({ ...p, [key]: false }));
+          setAnalyzeMsg(p => ({ ...p, [key]: `✓ Analysis complete for ${total} team(s)` }));
+        }
+      } catch {
+        clearInterval(poll);
+        setAnalyzingSprint(p => ({ ...p, [key]: false }));
+        setAnalyzeMsg(p => ({ ...p, [key]: "✗ Status check failed" }));
+      }
+    }, 4000);
+  } catch (e) {
+    setAnalyzingSprint(p => ({ ...p, [key]: false }));
+    setAnalyzeMsg(p => ({ ...p, [key]: `✗ ${e.message}` }));
+  }
+};
+
   // ── Template ──
   const validBreaks    = tplBreaks.filter(b => b.start_date && b.end_date);
   const tplAutoPreview = tplStart && tplCount > 0 && tplLength > 0
@@ -433,10 +534,18 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
            SPRINT TEMPLATE
       ══════════════════════════════════════════════════════ */}
       <div style={{ ...cardStyle(theme), marginBottom:16, border:`1px solid ${theme.tplBorder}`, background:theme.tplBg }}>
-        <div onClick={() => { setTemplateOpen(p => !p); setTplResult(""); }} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }}>
+        <div onClick={() => {
+          const opening = !templateOpen;
+          setTemplateOpen(opening);
+          setTplResult("");
+          setManagedOpenSprint(null);
+          if (opening) {
+            teams.forEach(t => loadSprints(t.id));
+          }
+        }} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }}>
           <div>
             <div style={{ fontWeight:700, color:theme.text, display:"flex", alignItems:"center", gap:8 }}>
-              Sprint Template
+              Sprint Manager
             </div>
             <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>
               Generate and apply identical sprint schedules to multiple teams at once
@@ -453,6 +562,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
               {[
                 { key:"auto",   label:"Auto Generate" },
                 { key:"manual", label:"Manual" },
+                { key:"manage", label:"Sprint Management" },
               ].map(tab => (
                 <button key={tab.key} onClick={() => { setTplMode(tab.key); setTplResult(""); }} style={{ padding:"8px 18px", borderRadius:"8px 8px 0 0", border:`1px solid ${theme.border}`, borderBottom: tplMode===tab.key ? "2px solid #2d5db8" : `1px solid ${theme.border}`, background: tplMode===tab.key ? theme.tabActiveBg : theme.tabInactiveBg, color: tplMode===tab.key ? theme.tabActiveText : theme.tabInactiveText, fontWeight: tplMode===tab.key ? 700 : 400, cursor:"pointer", fontSize:13, marginBottom: tplMode===tab.key ? -1 : 0 }}>
                   {tab.label}
@@ -539,6 +649,308 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
               </div>
             )}
 
+            {/* MANAGE mode */}
+            {tplMode === "manage" && (
+              <div>
+                <div style={{ fontSize:13, color:theme.subtext, marginBottom:14 }}>
+                  View and analyse sprints across all teams. Click a sprint to see which teams have it.
+                </div>
+
+                {(() => {
+                  // Build a map of sprint_number -> { teams with that sprint }
+                  const sprintMap = {};
+                  teams.forEach(t => {
+                    (sprintsByTeam[t.id] || []).forEach(sp => {
+                      const num = sp.sprint_number;
+                      if (!sprintMap[num]) sprintMap[num] = [];
+                      sprintMap[num].push({ team: t, sprint: sp });
+                    });
+                  });
+                  const sprintNumbers = Object.keys(sprintMap).map(Number).sort((a,b) => a - b);
+
+                  if (!sprintNumbers.length) {
+                    return <div style={{ color:theme.subtext, fontSize:13, fontStyle:"italic" }}>No sprints found across any team. Use Auto Generate or Manual tabs to create sprints.</div>;
+                  }
+
+                  return (
+                    <div style={{ display:"grid", gap:10 }}>
+                      {sprintNumbers.map(num => {
+                        const entries     = sprintMap[num];
+                        const firstSprint = entries[0].sprint;
+                        const analyzeKey  = `manage_sprint_${num}`;
+                        const isOpen      = tplMode === "manage" && managedOpenSprint === num;
+
+                        return (
+                          <div key={num} style={{ border:`1px solid ${theme.border}`, borderRadius:10, overflow:"hidden" }}>
+
+                            {/* Sprint header — clickable */}
+                            <div
+                              onClick={() => setManagedOpenSprint(isOpen ? null : num)}
+                              style={{ padding:"12px 16px", background: darkMode ? "#1e293b" : "#f1f5f9", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}
+                              onMouseEnter={e => e.currentTarget.style.background = darkMode ? "#273549" : "#e2e8f0"}
+                              onMouseLeave={e => e.currentTarget.style.background = darkMode ? "#1e293b" : "#f1f5f9"}
+                            >
+                              <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                                <div style={{ textAlign:"center", minWidth:44 }}>
+                                  <div style={{ fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:1, color:theme.subtext }}>Sprint</div>
+                                  <div style={{ fontSize:24, fontWeight:800, color:"#2d5db8", lineHeight:1 }}>{num}</div>
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight:600, fontSize:14, color:theme.text }}>
+                                    {fmtDate(firstSprint.start_date)} → {fmtDate(firstSprint.end_date)}
+                                  </div>
+                                  <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>
+                                    {entries.length} team{entries.length !== 1 ? "s" : ""}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ display:"flex", gap:6, alignItems:"center" }} onClick={e => e.stopPropagation()}>
+                                <button
+                                  onClick={() => {
+                                    if (editingSprintDates === num) {
+                                      setEditingSprintDates(null);
+                                    } else {
+                                      setEditingSprintDates(num);
+                                      setEditSprintDatesForm({
+                                        start_date: firstSprint.start_date,
+                                        end_date: firstSprint.end_date,
+                                      });
+                                    }
+                                  }}
+                                  style={btn({ background: editingSprintDates === num ? "#6b7280" : "#2d5db8", fontSize:11, padding:"5px 10px" })}
+                                >
+                                  {editingSprintDates === num ? "Cancel" : "Edit Dates"}
+                                </button>
+                                <button
+                                  onClick={() => onAnalyzeSprintAllTeams(firstSprint)}
+                                  disabled={!!analyzingSprint[analyzeKey] || !!analyzingSprint[`all_${firstSprint.id}`]}
+                                  style={btn({ background: (analyzingSprint[analyzeKey] || analyzingSprint[`all_${firstSprint.id}`]) ? "#6b7280" : "#0369a1", fontSize:11, padding:"5px 10px", cursor: (analyzingSprint[analyzeKey] || analyzingSprint[`all_${firstSprint.id}`]) ? "not-allowed" : "pointer" })}
+                                >
+                                  {(analyzingSprint[analyzeKey] || analyzingSprint[`all_${firstSprint.id}`]) ? "Analysing..." : "Analyse All Teams"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (managingSprintTeams === num) {
+                                      setManagingSprintTeams(null);
+                                    } else {
+                                      setManagingSprintTeams(num);
+                                      // Pre-select teams that already have this sprint
+                                      const selected = {};
+                                      entries.forEach(e => { selected[e.team.id] = true; });
+                                      setSprintTeamEditing(selected);
+                                    }
+                                  }}
+                                  style={btn({ background: managingSprintTeams === num ? "#6b7280" : "#7c3aed", fontSize:11, padding:"5px 10px" })}
+                                >
+                                  {managingSprintTeams === num ? "Cancel" : "Edit Teams"}
+                                </button>
+                                <span style={{ color:theme.subtext, fontSize:14 }}>{isOpen ? "▲" : "▼"}</span>
+                              </div>
+                            </div>
+
+                            {/* Edit sprint dates panel */}
+                            {editingSprintDates === num && (
+                              <div style={{ borderTop:`1px solid ${theme.border}`, padding:"12px 16px", background: darkMode ? "#0f172a" : "#f8fafc" }}>
+                                <div style={{ fontSize:13, fontWeight:600, color:theme.text, marginBottom:8 }}>
+                                  Edit Sprint {num} Dates
+                                </div>
+                                <div style={{ fontSize:12, color:theme.subtext, marginBottom:10 }}>
+                                  Updates dates for all teams that have Sprint {num}.
+                                </div>
+                                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto", gap:10, alignItems:"end" }}>
+                                  <Field label="Start Date" theme={theme}>
+                                    <input
+                                      type="date"
+                                      value={editSprintDatesForm.start_date}
+                                      onChange={e => setEditSprintDatesForm(p => ({ ...p, start_date: e.target.value }))}
+                                      style={inp(theme)}
+                                    />
+                                  </Field>
+                                  <Field label="End Date" theme={theme}>
+                                    <input
+                                      type="date"
+                                      value={editSprintDatesForm.end_date}
+                                      onChange={e => setEditSprintDatesForm(p => ({ ...p, end_date: e.target.value }))}
+                                      style={inp(theme)}
+                                    />
+                                  </Field>
+                                  <button
+                                    onClick={async () => {
+                                      const { start_date, end_date } = editSprintDatesForm;
+                                      if (!start_date || !end_date) { setSprintError("Both dates required."); return; }
+                                      if (end_date <= start_date) { setSprintError("End date must be after start date."); return; }
+
+                                      // Update sprint for all teams that have this sprint number
+                                      for (const { team: t, sprint } of entries) {
+                                        await apiFetch(`/api/teams/${t.id}/sprints/${sprint.id}`, {
+                                          method: "PUT",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ start_date, end_date }),
+                                        });
+                                        await loadSprints(t.id);
+                                      }
+                                      setEditingSprintDates(null);
+                                    }}
+                                    style={btn({ background:"#16a34a", fontSize:12, padding:"7px 14px" })}
+                                  >
+                                    Save Dates
+                                  </button>
+                                </div>
+                                {sprintError && (
+                                  <div style={{ marginTop:8, fontSize:12, color:"#dc2626" }}>{sprintError}</div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Edit teams panel */}
+                            {managingSprintTeams === num && (
+                              <div style={{ borderTop:`1px solid ${theme.border}`, padding:"12px 16px", background: darkMode ? "#0f172a" : "#f8fafc" }}>
+                                <div style={{ fontSize:13, fontWeight:600, color:theme.text, marginBottom:8 }}>
+                                  Select which teams have Sprint {num}
+                                </div>
+                                <div style={{ fontSize:12, color:theme.subtext, marginBottom:10 }}>
+                                  Adding a team will create Sprint {num} with the same dates. Removing will delete it.
+                                </div>
+                                <div style={{ display:"grid", gap:6, marginBottom:12 }}>
+                                  {teams.map(t => {
+                                    const selected = !!sprintTeamEditing[t.id];
+                                    return (
+                                      <label key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:8, border:`1px solid ${selected ? "#2d5db8" : theme.border}`, background: selected ? (darkMode ? "#1e3a5f" : "#eff6ff") : theme.sprintRowBg, cursor:"pointer", fontSize:13, color:theme.text }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={selected}
+                                          onChange={() => setSprintTeamEditing(p => ({ ...p, [t.id]: !p[t.id] }))}
+                                          style={{ margin:0 }}
+                                        />
+                                        <span style={{ fontWeight:600 }}>{t.name}</span>
+                                        <span style={{ color:theme.subtext, fontSize:12 }}>({t.code})</span>
+                                        {(sprintsByTeam[t.id]||[]).some(s => s.sprint_number === num) && (
+                                          <span style={{ fontSize:11, background:"#dcfce7", color:"#166534", padding:"1px 6px", borderRadius:999, marginLeft:"auto" }}>Has sprint</span>
+                                        )}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                                <div style={{ display:"flex", gap:8 }}>
+                                  <button
+                                    onClick={async () => {
+                                      // For each team, add or remove sprint based on selection
+                                      for (const t of teams) {
+                                        const hasIt = (sprintsByTeam[t.id]||[]).find(s => s.sprint_number === num);
+                                        const wants = !!sprintTeamEditing[t.id];
+                                        if (wants && !hasIt) {
+                                          // Add sprint to this team with same dates as firstSprint
+                                          await apiFetch(`/api/teams/${t.id}/sprints`, {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({
+                                              sprint_number: num,
+                                              start_date: firstSprint.start_date,
+                                              end_date: firstSprint.end_date,
+                                              scrum_master_email: null,
+                                            }),
+                                          });
+                                          await loadSprints(t.id);
+                                        } else if (!wants && hasIt) {
+                                          // Remove sprint from this team
+                                          await apiFetch(`/api/teams/${t.id}/sprints/${hasIt.id}`, { method: "DELETE" });
+                                          await loadSprints(t.id);
+                                        }
+                                      }
+                                      setManagingSprintTeams(null);
+                                    }}
+                                    style={btn({ background:"#16a34a", fontSize:12, padding:"7px 14px" })}
+                                  >
+                                    Save Team Changes
+                                  </button>
+                                  <button
+                                    onClick={() => setManagingSprintTeams(null)}
+                                    style={btn({ background:"#6b7280", fontSize:12, padding:"7px 14px" })}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                          
+                            {/* Status message */}
+                            {(analyzeMsg[`all_${firstSprint.id}`] || analyzeMsg[analyzeKey]) && (
+                              <div style={{ padding:"6px 16px", background: darkMode ? "#0f172a" : "#f8fafc", fontSize:11, color: (analyzeMsg[`all_${firstSprint.id}`] || analyzeMsg[analyzeKey])?.startsWith("✓") ? "#16a34a" : (analyzeMsg[`all_${firstSprint.id}`] || analyzeMsg[analyzeKey])?.startsWith("✗") ? "#dc2626" : theme.subtext, borderTop:`1px solid ${theme.border}` }}>
+                                {analyzeMsg[`all_${firstSprint.id}`] || analyzeMsg[analyzeKey]}
+                              </div>
+                            )}
+
+                            {/* Expanded team list */}
+                            {isOpen && (
+                              <div style={{ borderTop:`1px solid ${theme.border}`, padding:"10px 14px", display:"grid", gap:8 }}>
+                                {entries.map(({ team: t, sprint }) => {
+                                  const isEditing = editingSprint?.teamId === t.id && editingSprint?.sprintId === sprint.id;
+                                  return (
+                                    <div key={t.id}>
+                                      {isEditing ? (
+                                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr auto", gap:6, alignItems:"end", background:theme.expandEditBg, borderRadius:8, padding:10, border:`1px solid ${theme.border}` }}>
+                                          <Field label="Start Date" theme={theme}>
+                                            <input type="date" value={editSprint.start_date} onChange={e=>setEditSprint(p=>({...p,start_date:e.target.value}))} style={inp(theme)} />
+                                          </Field>
+                                          <Field label="End Date" theme={theme}>
+                                            <input type="date" value={editSprint.end_date} onChange={e=>setEditSprint(p=>({...p,end_date:e.target.value}))} style={inp(theme)} />
+                                          </Field>
+                                          <Field label="Scrum Master" theme={theme}>
+                                            <select value={editSprint.scrum_master_email} onChange={e=>setEditSprint(p=>({...p,scrum_master_email:e.target.value}))} style={inp(theme)}>
+                                              <option value="">— None —</option>
+                                              {(t.students||[]).map(s=><option key={s.email} value={s.email}>{s.name}</option>)}
+                                            </select>
+                                          </Field>
+                                          <div style={{ display:"flex", gap:4 }}>
+                                            <button onClick={onSaveSprint} style={btn({fontSize:12,padding:"6px 10px"})}>Save</button>
+                                            <button onClick={()=>setEditingSprint(null)} style={btn({background:"#6b7280",fontSize:12,padding:"6px 10px"})}>Cancel</button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr auto", alignItems:"center", gap:10, background:theme.sprintRowBg, borderRadius:8, padding:"10px 14px", border:`1px solid ${theme.border}` }}>
+                                          <div>
+                                            <div style={{ fontWeight:600, fontSize:13, color:theme.text }}>{t.name}</div>
+                                            <div style={{ fontSize:12, color:theme.subtext }}>{t.code}</div>
+                                          </div>
+                                          <div>
+                                            {sprint.scrum_master_name
+                                              ? <span style={{ fontSize:12, fontWeight:600, color:"#92400e", background:"#fef3c7", padding:"2px 10px", borderRadius:999, border:"1px solid #fde68a" }}>{sprint.scrum_master_name}</span>
+                                              : <span style={{ fontSize:12, color:theme.subtext, fontStyle:"italic" }}>No scrum master</span>}
+                                          </div>
+                                          <div style={{ display:"flex", gap:4, justifyContent:"flex-end" }}>
+                                            <button
+                                              onClick={() => onAnalyzeSprint(t.id, sprint)}
+                                              disabled={!!analyzingSprint[sprint.id]}
+                                              style={btn({ background: analyzingSprint[sprint.id] ? "#6b7280" : "#16a34a", fontSize:11, padding:"4px 8px", cursor: analyzingSprint[sprint.id] ? "not-allowed" : "pointer" })}
+                                            >
+                                              {analyzingSprint[sprint.id] ? "Analysing..." : "Analyse"}
+                                            </button>
+                                            <button onClick={() => onEditSprint(t.id, sprint)} style={btn({background:"#2d5db8",fontSize:11,padding:"4px 8px"})}>Edit</button>
+                                            <button onClick={() => onDeleteSprint(t.id, sprint.id)} style={btn({background:"#b83232",fontSize:11,padding:"4px 8px"})}>Delete</button>
+                                          </div>
+                                        </div>
+                                      )}
+                                      {analyzeMsg[sprint.id] && (
+                                        <div style={{ fontSize:11, marginTop:3, textAlign:"right", color: analyzeMsg[sprint.id]?.startsWith("✓") ? "#16a34a" : analyzeMsg[sprint.id]?.startsWith("✗") ? "#dc2626" : theme.subtext }}>
+                                          {analyzeMsg[sprint.id]}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* MANUAL mode */}
             {tplMode === "manual" && (
               <div style={{ marginBottom:12 }}>
@@ -567,7 +979,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
             )}
 
             {/* Team selection */}
-            {teams.length > 0 && (
+            {teams.length > 0 && tplMode !== "manage" && (
               <div style={{ marginBottom:12 }}>
                 <div style={{ fontSize:12, fontWeight:600, color:theme.subtext, marginBottom:6, display:"flex", alignItems:"center", gap:6 }}>
                   Apply to teams
@@ -588,12 +1000,12 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
             )}
 
             {/* Apply button */}
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {tplMode !== "manage" && <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <button onClick={applyTemplate} disabled={tplApplying} style={btn({ background:"#16a34a", opacity:tplApplying?0.6:1 })}>
                 {tplApplying ? "Applying…" : `Apply to ${tplTargets.length} team${tplTargets.length!==1?"s":""}`}
               </button>
               {tplResult && <span style={{ fontSize:13, color: tplResult.startsWith("✓") ? "#16a34a" : "#991b1b" }}>{tplResult}</span>}
-            </div>
+            </div>}
           </div>
         )}
       </div>
@@ -799,10 +1211,34 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
                                         ?<span style={{fontSize:12,fontWeight:600,color:"#92400e",background:"#fef3c7",padding:"2px 10px",borderRadius:999,border:"1px solid #fde68a"}}>{sprint.scrum_master_name}</span>
                                         :<span style={{fontSize:12,color:theme.subtext,fontStyle:"italic"}}>Unassigned</span>}
                                     </div>
-                                    <div style={{display:"flex",gap:4,justifyContent:"flex-end"}}>
+                                    <div style={{display:"flex",gap:4,justifyContent:"flex-end",flexWrap:"wrap",alignItems:"center"}}>
+                                      <button
+                                        onClick={() => onAnalyzeSprint(t.id, sprint)}
+                                        disabled={!!analyzingSprint[sprint.id]}
+                                        style={btn({ background: analyzingSprint[sprint.id] ? "#6b7280" : "#16a34a", fontSize:11, padding:"4px 8px", cursor: analyzingSprint[sprint.id] ? "not-allowed" : "pointer" })}
+                                      >
+                                        {analyzingSprint[sprint.id] ? "Analysing..." : "Analyse This Team"}
+                                      </button>
+                                      <button
+                                        onClick={() => onAnalyzeSprintAllTeams(sprint)}
+                                        disabled={!!analyzingSprint[`all_${sprint.id}`]}
+                                        style={btn({ background: analyzingSprint[`all_${sprint.id}`] ? "#6b7280" : "#0369a1", fontSize:11, padding:"4px 8px", cursor: analyzingSprint[`all_${sprint.id}`] ? "not-allowed" : "pointer" })}
+                                      >
+                                        {analyzingSprint[`all_${sprint.id}`] ? "Analysing..." : "Analyse All Teams"}
+                                      </button>
                                       <button onClick={()=>onEditSprint(t.id,sprint)} style={btn({background:"#2d5db8",fontSize:11,padding:"4px 8px"})}>Edit</button>
                                       <button onClick={()=>onDeleteSprint(t.id,sprint.id)} style={btn({background:"#b83232",fontSize:11,padding:"4px 8px"})}>Delete</button>
                                     </div>
+                                    {analyzeMsg[sprint.id] && (
+                                      <div style={{ fontSize:11, marginTop:4, textAlign:"right", color: analyzeMsg[sprint.id]?.startsWith("✓") ? "#16a34a" : analyzeMsg[sprint.id]?.startsWith("✗") ? "#dc2626" : theme.subtext }}>
+                                        {analyzeMsg[sprint.id]}
+                                      </div>
+                                    )}
+                                    {analyzeMsg[`all_${sprint.id}`] && (
+                                      <div style={{ fontSize:11, marginTop:4, textAlign:"right", color: analyzeMsg[`all_${sprint.id}`]?.startsWith("✓") ? "#16a34a" : analyzeMsg[`all_${sprint.id}`]?.startsWith("✗") ? "#dc2626" : theme.subtext }}>
+                                        {analyzeMsg[`all_${sprint.id}`]}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>

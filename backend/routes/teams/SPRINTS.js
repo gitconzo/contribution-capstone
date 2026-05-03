@@ -180,4 +180,94 @@ router.delete("/:id/sprints/:sprintId", async (req, res) => {
   }
 });
 
+
+// POST /api/teams/:id/sprints/:sprintId/analyze
+router.post("/:id/sprints/:sprintId/analyze", async (req, res) => {
+  const { id: teamId, sprintId } = req.params;
+  try {
+    await ensureSprintsTable();
+    const sprintRes = await db.query(
+      "SELECT * FROM sprints WHERE id = $1 AND team_id = $2",
+      [sprintId, teamId]
+    );
+    if (!sprintRes.rows.length) return res.status(404).json({ error: "Sprint not found" });
+    const sprint = sprintRes.rows[0];
+
+    const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [teamId]);
+    if (!teamRes.rows.length) return res.status(404).json({ error: "Team not found" });
+    const team = teamRes.rows[0];
+
+    if (!team.repo_url) return res.status(400).json({ error: "Team has no repo URL configured" });
+
+    const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
+    const { pyBin, runFile } = require("../../utils/processUtils");
+    const { writeJson } = require("../../utils/fileUtils");
+    const path = require("path");
+
+    const startDate = fmtDate(sprint.start_date);
+    const endDate   = fmtDate(sprint.end_date);
+    const outputPath = path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_stats.json`);
+    const statusPath = path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_status.json`);
+
+    writeJson(statusPath, { status: "running", startedAt: new Date().toISOString() });
+    res.json({ success: true, status: "running", message: "Sprint analysis started." });
+
+    // Run in background
+    (async () => {
+      try {
+        await runFile(pyBin(), [
+          path.join(ROOT_DIR, "main.py"),
+          "--repo-url", team.repo_url,
+          "--start-date", startDate,
+          "--end-date", endDate,
+          "--output", outputPath,
+        ], { cwd: ROOT_DIR });
+        writeJson(statusPath, { status: "complete", completedAt: new Date().toISOString() });
+      } catch (e) {
+        console.error("Sprint analysis error:", e.message);
+        writeJson(statusPath, { status: "error", error: e.message });
+      }
+    })();
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/teams/:id/sprints/:sprintId/status
+router.get("/:id/sprints/:sprintId/status", (req, res) => {
+  const { id: teamId, sprintId } = req.params;
+  const { DATA_DIR } = require("../../utils/config");
+  const { safeReadJson } = require("../../utils/fileUtils");
+  const path = require("path");
+  const status = safeReadJson(
+    path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_status.json`),
+    { status: "idle" }
+  );
+  res.json(status);
+});
+
+// GET /api/teams/:id/sprints/:sprintId/scores
+router.get("/:id/sprints/:sprintId/scores", async (req, res) => {
+  const { id: teamId, sprintId } = req.params;
+  try {
+    const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
+    const { safeReadJson } = require("../../utils/fileUtils");
+    const { aggregateTeamScores } = require("../../services/aggregator");
+    const path = require("path");
+    const fs   = require("fs");
+
+    const statsPath = path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_stats.json`);
+    if (!fs.existsSync(statsPath)) {
+      return res.status(404).json({ error: "Sprint not yet analysed for this team" });
+    }
+
+    const sprintStats = safeReadJson(statsPath, {});
+    const scored = await aggregateTeamScores({ teamId, rootDir: ROOT_DIR, sprintStats });
+    res.json(scored);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 module.exports = router;

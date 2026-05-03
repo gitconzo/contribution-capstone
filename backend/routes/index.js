@@ -1,3 +1,4 @@
+cat > backend/routes/index.js << 'EOF'
 // backend/routes/index.js
 // Mounts every API route group. server.js does: app.use("/api", require("./routes"))
 const router = require("express").Router();
@@ -29,3 +30,4 @@ router.use("/scores",  require("./scores/GET"));
 router.use("/reset",   require("./reset/POST"));
 
 module.exports = router;
+EOF
