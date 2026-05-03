@@ -33,6 +33,9 @@ def parse_repo_url(repoURL):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--repo-url", required=True, dest="repo_url")
+    p.add_argument("--start-date", dest="start_date", default=None)
+    p.add_argument("--end-date", dest="end_date", default=None)
+    p.add_argument("--output", dest="output", default=None)
     args = p.parse_args()
     repoURL = args.repo_url
  
@@ -48,9 +51,9 @@ def main():
             Repo.clone_from(cleanURL, tempFolder)
         print(f"Repository cloned to: {tempFolder}")
  
-        results = analyse_functions(tempFolder)
-        locPercentage = calculate_LOC(tempFolder)
-        commitStats = get_commit_stats(tempFolder)
+        results = analyse_functions(tempFolder, start_date=args.start_date, end_date=args.end_date)
+        locPercentage = calculate_LOC(tempFolder, start_date=args.start_date, end_date=args.end_date)
+        commitStats = get_commit_stats(tempFolder, start_date=args.start_date, end_date=args.end_date)
  
     except Exception as e:
         print(f"Error during analysis: {e}")
@@ -90,10 +93,13 @@ def main():
         print(f"{author}: {count} commits")
  
     # Combine everything into finalStats.json
+    finalStatsJson = args.output if args.output else os.path.join(dataDir, "finalStats.json")
+    if args.output:
+        os.makedirs(os.path.dirname(finalStatsJson), exist_ok=True)
     combine_json(
         outputJson=outputJson,
         commitsJson=commitsJson,
-        finalStatsJson=os.path.join(dataDir, "finalStats.json"),
+        finalStatsJson=finalStatsJson,
     )
  
  

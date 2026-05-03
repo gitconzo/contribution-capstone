@@ -3,8 +3,19 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiFetch } from "../utils/api";
 import {
   Users, Link as LinkIcon, BarChart3, UserRound,
-  GitCommitHorizontal, Eye, ChevronDown, Search, AlertTriangle,
+  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search, AlertTriangle,
 } from "lucide-react";
+
+// Format a date from API using UTC to avoid timezone shift (AEST = UTC+10 would shift midnight UTC back 1 day)
+function fmtSprintDate(d) {
+  if (!d) return "—";
+  // Extract yyyy-mm-dd directly — avoids ALL timezone issues
+  const str = typeof d === "string" ? d : String(d);
+  const ymd = str.split("T")[0];
+  const parts = ymd.split("-");
+  if (parts.length !== 3) return ymd;
+  return `${parts[2]}-${parts[1]}-${parts[0]}`; // dd-mm-yyyy
+}
 
 // ── mirrors normalizeUploadRecord from UploadFile.js ──────────────────────
 function normalizeUploadRecord(f = {}) {
@@ -51,8 +62,13 @@ function formatDisplayDate(d) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Dashboard({ onViewStudent, darkMode }) {
+export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, darkMode }) {
   const [teamId, setTeamId] = useState(() => localStorage.getItem("dashboardTeamId") || "");
+
+  // Notify parent of initial teamId so FileExplorer/UploadFile start with the right team
+  useEffect(() => {
+    if (teamId) onTeamSelect?.(teamId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [teams, setTeams] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem("dashboardTeamsCache") || "[]"); } catch { return []; }
   });
@@ -75,6 +91,17 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   // ── Current sprint ──
   const [currentSprint, setCurrentSprint] = useState(null);
   const [allSprints, setAllSprints]       = useState([]);
+  const [selectedSprintId, setSelectedSprintId] = useState("overall");
+  const [sprintScores, setSprintScores] = useState(null);
+  const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
+  
+
+  // ── Auto-approve setting ──
+  const [autoApproveUploads, setAutoApproveUploads] = useState(true);
+
+  // ── Tasks ──
+  const [tasksBySprintId, setTasksBySprintId] = useState({});
+  const [tasksLoading,    setTasksLoading]    = useState(false);
 
 
   const theme = darkMode
@@ -118,6 +145,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       if (resolvedId && resolvedId !== teamId) {
         setTeamId(resolvedId);
         localStorage.setItem("dashboardTeamId", resolvedId);
+        onTeamSelect?.(resolvedId);
         setScores(null); setTeamStudents([]);
         sessionStorage.removeItem("dashboardScoresCache");
         sessionStorage.removeItem("dashboardStudentsCache");
@@ -152,8 +180,47 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         setCurrentSprint(active);
       })
       .catch(() => { setAllSprints([]); setCurrentSprint(null); });
+
+    // Load team's auto_approve_uploads setting
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
+      .then(r => r.json())
+      .then(data => setAutoApproveUploads(data.auto_approve_uploads !== false))
+      .catch(() => setAutoApproveUploads(true));
+
+    // Load team's auto_approve_uploads setting
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
+      .then(r => r.json())
+      .then(data => setAutoApproveUploads(data.auto_approve_uploads !== false))
+      .catch(() => setAutoApproveUploads(true));
+
+    // Load tasks for this team
+    setTasksLoading(true);
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}/tasks`)
+      .then(r => r.json())
+      .then(data => {
+        const grouped = {};
+        (Array.isArray(data) ? data : []).forEach(t => {
+          if (!grouped[t.sprint_id]) grouped[t.sprint_id] = [];
+          grouped[t.sprint_id].push(t);
+        });
+        setTasksBySprintId(grouped);
+      })
+      .catch(() => setTasksBySprintId({}))
+      .finally(() => setTasksLoading(false));
+
     setUploadsOpen(false);
   }, [teamId, peerReview, loadPendingUploads]);
+
+  useEffect(() => {
+  if (!teamId || selectedSprintId === "overall") {
+    setSprintScores(null);
+    return;
+  }
+  apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/scores`)
+    .then(r => r.json())
+    .then(data => setSprintScores(data))
+    .catch(() => setSprintScores(null));
+}, [selectedSprintId, teamId]);
 
   useEffect(() => {
     const handler = () => loadPendingUploads(teamId);
@@ -161,11 +228,11 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     return () => window.removeEventListener("uploadsUpdated", handler);
   }, [teamId, loadPendingUploads]);
 
-
+  const activeScores = selectedSprintId === "overall" ? scores : sprintScores;
   const students = useMemo(() => {
     const studentMap = new Map(teamStudents.map(s => [s.email, s]));
-    const list = scores?.ranking?.length
-      ? scores.ranking.map(r => ({ ...r, role: studentMap.get(r.email)?.role || "member" }))
+    const list = activeScores?.ranking?.length
+      ? activeScores.ranking.map(r => ({ ...r, role: studentMap.get(r.email)?.role || "member" }))
       : teamStudents.map(s => ({ name: s.name, email: s.email, role: s.role || "member", score: 0, breakdown: {}, raw: {} }));
     const q = query.trim().toLowerCase();
     return list.filter(s => {
@@ -173,12 +240,12 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       const ml = selectedLevel === "all" || badgeFromScore(s.score||0) === selectedLevel;
       return mq && ml;
     });
-  }, [scores, teamStudents, query, selectedLevel]);
+  }, [activeScores, teamStudents, query, selectedLevel]);
 
   const codeScoreByKey = useMemo(() => {
-    const ranking = scores?.ranking || [];
+    const ranking = activeScores?.ranking || [];
     if (!ranking.length) return new Map();
-    const w = scores?.weights || {};
+    const w = activeScores?.weights || {};
     const dw = { loc:12, editedCode:10, commits:7, functions:12, hotspots:10, codeComplexity:9 };
     const ww = { loc:w.loc??dw.loc, editedCode:w.editedCode??dw.editedCode, commits:w.commits??dw.commits, functions:w.functions??dw.functions, hotspots:w.hotspots??dw.hotspots, codeComplexity:w.codeComplexity??dw.codeComplexity };
     const dims = ["loc","editedCode","commits","functions","hotspots","codeComplexity"];
@@ -187,14 +254,14 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     const map = new Map();
     ranking.forEach((r,i) => map.set(r.email||r.name, Math.round((sums[i]/maxSum)*100)));
     return map;
-  }, [scores]);
+  }, [activeScores]);
 
   const kpis = useMemo(() => {
-    const list = scores?.ranking || [];
+    const list = activeScores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
     const avg = Math.round((list.reduce((s,r) => s+(r.score||0),0)/list.length)*10)/10;
     return { avg, high:`${list.filter(r=>r.score>=80).length}/${list.length}`, commits:0 };
-  }, [scores]);
+  }, [activeScores]);
 
   const handleReset = async () => {
     if (!window.confirm("This will clear all scores and analysis for this team. Uploaded files will be kept. Are you sure?")) return;
@@ -272,11 +339,14 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           <button onClick={() => setPeerReview(v=>!v)} style={{ padding:"8px 14px", borderRadius:10, border:`1px solid ${peerReview?"#16a34a":theme.border}`, background:peerReview?"#f0fdf4":theme.buttonBg, cursor:"pointer", fontSize:13, color:peerReview?"#16a34a":theme.text, fontWeight:peerReview?600:400 }}>
             {peerReview ? "✓ Peer Review On" : "Peer Review Off"}
           </button>
+          
           <select
             value={teamId}
             onChange={async e => {
               const newId = e.target.value;
               setTeamId(newId); localStorage.setItem("dashboardTeamId", newId);
+              onTeamSelect?.(newId);
+              setSelectedSprintId("overall"); setSprintScores(null);
               setScores(null); setTeamStudents([]);
               sessionStorage.removeItem("dashboardScoresCache"); sessionStorage.removeItem("dashboardStudentsCache");
               await apiFetch("/api/teams/active", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:newId}) });
@@ -298,6 +368,52 @@ export default function Dashboard({ onViewStudent, darkMode }) {
             icon={<LinkIcon size={15} color={theme.mutedIcon}/>}
             text={scores?.team?.repo?.url || scores?.team?.repo_url || teams.find(t=>t.id===teamId)?.repo?.url || "Repository not connected"}
           />
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <select
+                value={selectedSprintId}
+                onChange={e => { setSelectedSprintId(e.target.value); setSprintScores(null); }}
+                style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${theme.border}`, background:theme.inputBg, color:theme.text, fontSize:13, outline:"none", minWidth:160 }}
+              >
+                <option value="overall">Overall Score</option>
+                {allSprints.map(s => (
+                  <option key={s.id} value={s.id}>Sprint {s.sprint_number}</option>
+                ))}
+              </select>
+              {selectedSprintId !== "overall" && (
+                <button
+                  disabled={sprintAnalyzing}
+                  onClick={async () => {
+                    setSprintAnalyzing(true);
+                    try {
+                      await apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/analyze`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({}),
+                      });
+                      const poll = setInterval(async () => {
+                        const st = await apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/status`).then(r => r.json());
+                        if (st.status === "complete" || st.status === "error") {
+                          clearInterval(poll);
+                          setSprintAnalyzing(false);
+                          if (st.status === "complete") {
+                            apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/scores`)
+                              .then(r => r.json())
+                              .then(data => setSprintScores(data))
+                              .catch(() => {});
+                          }
+                        }
+                      }, 4000);
+                    } catch { setSprintAnalyzing(false); }
+                  }}
+                  style={{ padding:"6px 12px", borderRadius:8, border:"none", background:sprintAnalyzing?"#6b7280":"#111827", color:"#fff", fontSize:12, fontWeight:600, cursor:sprintAnalyzing?"not-allowed":"pointer" }}
+                >
+                  {sprintAnalyzing ? "Analysing..." : "Analyse Sprint"}
+                </button>
+              )}
+              {selectedSprintId !== "overall" && sprintScores && (
+                <span style={{ fontSize:12, color:"#16a34a", fontWeight:600 }}>Sprint scores loaded</span>
+              )}
+            </div>
         </div>
       </div>
 
@@ -335,15 +451,18 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                 </div>
                 {currentSprint ? (
                   <div style={{ fontSize:13, color: darkMode ? "#6ee7b7" : "#16a34a", marginTop:2 }}>
-                    {new Date(currentSprint.start_date).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"})}
+                    {fmtSprintDate(currentSprint.start_date)}
                     {" → "}
-                    {new Date(currentSprint.end_date).toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"})}
+                    {fmtSprintDate(currentSprint.end_date)}
                   </div>
                 ) : (
                   <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>Check Setup Team to configure sprint dates</div>
                 )}
               </div>
             </div>
+
+            
+
             <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
               {currentSprint?.scrum_master_name && (
                 <div style={{ textAlign:"center" }}>
@@ -364,6 +483,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                     <div style={{ height:6, borderRadius:999, background: darkMode?"#1f2937":"#d1fae5", width:110 }}>
                       <div style={{ height:"100%", borderRadius:999, background:"#16a34a", width:`${Math.min(pct,100)}%` }}/>
                     </div>
+                    <div style={{ fontSize:10, color:theme.subtext, marginTop:3 }}>{pct}% through</div>
                   </div>
                 );
               })()}
@@ -374,7 +494,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                   .sort((a,b) => new Date(a.start_date) - new Date(b.start_date))[0];
                 return upcoming ? (
                   <div style={{ fontSize:12, color:theme.subtext }}>
-                    Next: <strong style={{ color:theme.text }}>Sprint {upcoming.sprint_number}</strong> starts {new Date(upcoming.start_date).toLocaleDateString("en-AU",{day:"numeric",month:"short"})}
+                    Next: <strong style={{ color:theme.text }}>Sprint {upcoming.sprint_number}</strong> starts {fmtSprintDate(upcoming.start_date)}
                   </div>
                 ) : null;
               })()}
@@ -385,7 +505,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       {/* ══════════════════════════════════════════════════════
           ⚠ PENDING UPLOADS ALERT BANNER
       ══════════════════════════════════════════════════════ */}
-      {(uploadsLoading || pendingUploads.length > 0) && (
+      {!autoApproveUploads && (uploadsLoading || pendingUploads.length > 0) && (
         <div style={{ marginTop:14, borderRadius:12, border:"1px solid #fde68a", background:darkMode?"#1c1708":"#fffbeb", overflow:"hidden" }}>
 
           {/* Banner row */}
@@ -486,6 +606,28 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </div>
       )}
 
+
+      {/* ── Sprint Tasks Overview button ── */}
+      {allSprints.length > 0 && (
+        <div style={{ marginTop:14 }}>
+          <button
+            onClick={() => onViewTasks?.(teamId, scores?.team?.name || teams.find(t=>t.id===teamId)?.name || "Team")}
+            style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 18px", background:theme.card, border:`1px solid ${theme.border}`, borderRadius:14, cursor:"pointer", boxShadow:theme.shadow }}
+          >
+            <div style={{ textAlign:"left" }}>
+              <div style={{ fontWeight:700, color:theme.text, fontSize:15 }}>Sprint Tasks Overview</div>
+              <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>View all assigned tasks across students and sprints</div>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <span style={{ fontSize:13, fontWeight:600, color:"#1d4ed8", background:"#dbeafe", padding:"4px 12px", borderRadius:999 }}>
+                {tasksLoading ? "..." : `${Object.values(tasksBySprintId).flat().length} tasks`}
+              </span>
+              <ChevronRight size={18} color={theme.subtext}/>
+            </div>
+          </button>
+        </div>
+      )}
+
       {/* ── Team Members header ── */}
       <div style={card(theme, { marginTop:14, paddingBottom:10 })}>
         <div style={rowBetween()}>
@@ -523,7 +665,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         {students.map(s => {
           const breakdown = s.breakdown||{};
           const raw       = s.raw||{};
-          const weights   = scores?.weights||{};
+          const weights   = activeScores?.weights||{};
           const docWeights = { avgSentenceLength:weights.avgSentenceLength??5, sentenceComplexity:weights.sentenceComplexity??5, wordCount:weights.wordCount??7, readability:weights.readability??11 };
           const docMetrics = { avgSentenceLength:breakdown.avgSentenceLength||0, sentenceComplexity:breakdown.sentenceComplexity||0, wordCount:breakdown.wordCount||0, readability:breakdown.readability||0 };
           const totalDocWeight   = Object.values(docWeights).reduce((s,w)=>s+w,0);
@@ -538,11 +680,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
               <div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                   <div style={{ fontWeight:700, color:theme.text }}>{s.name}</div>
-                  {s.role && (
-                    <span style={{ fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600, background:s.role==="leader"?"#dbeafe":s.role==="scrum_master"?"#fef3c7":"#e5e7eb", color:s.role==="leader"?"#1d4ed8":s.role==="scrum_master"?"#92400e":"#374151" }}>
-                      {s.role.replace("_"," ")}
-                    </span>
-                  )}
+                  {s.role && String(s.role).split(",").map(r => r.trim()).filter(Boolean).map(r => {
+                    const cfg = r==="leader" ? { bg:"#dbeafe", color:"#1d4ed8", label:"leader" } : r==="scrum_master" ? { bg:"#fef3c7", color:"#92400e", label:"scrum master" } : { bg:"#e5e7eb", color:"#374151", label:r.replace(/_/g," ") };
+                    return (<span key={r} style={{ fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600, background:cfg.bg, color:cfg.color }}>{cfg.label}</span>);
+                  })}
                   <Badge level={badgeFromScore(s.score)}/>
                 </div>
                 <div style={{ color:theme.subtext, fontSize:13, marginTop:2 }}>{s.email}</div>
@@ -556,7 +697,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
               <div style={{ display:"grid", alignContent:"center", justifyItems:"end", gap:6 }}>
                 <div style={{ color:theme.subtext, fontSize:12 }}>Overall Score</div>
                 <div style={{ fontWeight:700, color:scoreColor(s.score), fontSize:32 }}>{Math.round(s.score)||"—"}</div>
-                {scores?.peerReviewApplied && s.peerMultiplier && (
+                {activeScores?.peerReviewApplied && s.peerMultiplier && (
                   <div style={{ fontSize:11, color:theme.subtext, marginTop:2 }}>Base: {Math.round(s.baseScore)}% × {s.peerMultiplier}</div>
                 )}
                 <div style={{ color:scoreColor(s.score), fontSize:12, marginTop:-8 }}>%</div>
@@ -571,6 +712,8 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     </div>
   );
 }
+
+/* ── Lecturer sprint task group ──────────────────────────────────────────── */
 
 /* ── Small components ─────────────────────────────────────────────────────── */
 function InlineBtn({ label, color, bg, border, onClick }) {

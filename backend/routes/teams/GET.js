@@ -64,7 +64,7 @@ router.get("/active", async (_req, res) => {
 });
 
 // GET /api/teams/:id
-router.get("/:id", async (req, res) => {
+router.get("/:id([^/]+)", async (req, res) => {
   try {
     const team = await fetchTeamById(req.params.id);
     if (!team) return res.status(404).json({ error: "Team not found" });

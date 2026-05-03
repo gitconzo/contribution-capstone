@@ -4,6 +4,8 @@ import lizard
 from git import Repo
 from collections import defaultdict
 from ignoreFiles import should_ignore, IGNORE_DIRS
+from datetime import datetime, timezone
+from commitStats import parse_date
 
 
 def calculate_hotspots(complexity, callFrequency, maxComplexity, maxFrequency):
@@ -41,7 +43,7 @@ def calculate_call_frequency(tempFolder, analyseRepo):
 
 
 # Analysing each function in the repo
-def analyse_functions(tempFolder):
+def analyse_functions(tempFolder, start_date=None, end_date=None):
     print("Analysing repository... please wait ...")
     exclude_pattern = [f"*/{d}/*" for d in IGNORE_DIRS]
     analyseRepo = list(lizard.analyze([tempFolder], exclude_pattern=exclude_pattern))
@@ -55,6 +57,41 @@ def analyse_functions(tempFolder):
     analyseRepo = [
         f for f in analyseRepo if not should_ignore(f.filename)
     ]
+
+    # For sprint mode, only analyse files changed in date range
+    if start_date or end_date:
+        start_dt = parse_date(start_date)
+        end_dt = parse_date(end_date)
+        if end_dt:
+            end_dt = end_dt.replace(hour=23, minute=59, second=59)
+
+        changed_files = set()
+        seen_hashes = set()
+        for ref in repo.references:
+            try:
+                for commit in repo.iter_commits(ref):
+                    if commit.hexsha in seen_hashes:
+                        continue
+                    seen_hashes.add(commit.hexsha)
+                    if len(commit.parents) > 1:
+                        continue
+                    commit_dt = datetime.fromtimestamp(commit.committed_date, tz=timezone.utc)
+                    if start_dt and commit_dt < start_dt:
+                        continue
+                    if end_dt and commit_dt > end_dt:
+                        continue
+                    for f in commit.stats.files:
+                        changed_files.add(f.replace("\\", "/"))
+            except Exception:
+                continue
+
+        analyseRepo = [
+            f for f in analyseRepo
+            if os.path.relpath(f.filename, tempFolder).replace("\\", "/") in changed_files
+        ]
+        print(f"Sprint: {len(changed_files)} files changed, {len(analyseRepo)} analysable")
+
+    totalCCN = [f.cyclomatic_complexity for file in analyseRepo for f in file.function_list]
 
     totalCCN = [f.cyclomatic_complexity for file in analyseRepo for f in file.function_list]
     if not totalCCN:

@@ -187,7 +187,7 @@ function loadParsedArtifacts(rootDir) {
   return results;
 }
 
-function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendanceOverride = null) {
+function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendanceOverride = null, sprintStats = null) {
   const dataDir = path.join(rootDir, "data");
   const aliasMap = buildAliasMap(team);
   const students = team.students.map(s => ({
@@ -202,8 +202,25 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
     peer: { score: 0 },
   }));
 
-  // ---------- GitHub
-  const gh = loadGitHubMetrics(dataDir);
+  // ---------- GitHub — use sprint stats if provided, otherwise load from finalStats.json
+  const gh = sprintStats ? (() => {
+    const authors = {};
+    Object.entries(sprintStats).forEach(([author, s]) => {
+      authors[author] = {
+        avgComplexity: pickNumber(s.average_complexity),
+        pctFunctions:  pickNumber(s.percentage_of_functions_written),
+        pctHotspots:   pickNumber(s.percentage_of_hotspots),
+        pctLOC:        pickNumber(s.percentage_of_LOC),
+        commits:       pickNumber(s.commits),
+        additions:     pickNumber(s.additions),
+        deletions:     pickNumber(s.deletions),
+        commitPct:     pickNumber(s.commit_percentage),
+        editPct:       pickNumber(s.edit_percentage),
+      };
+    });
+    return authors;
+  })() : loadGitHubMetrics(dataDir);
+
   Object.entries(gh).forEach(([author, m]) => {
     let idx = matchStudentIndex(aliasMap, author);
     if (idx === -1) idx = matchStudentIndex(aliasMap, author.replace(/\s*\[bot\]\s*$/i, ""));
@@ -438,7 +455,7 @@ function scoreStudents(students, rules = null) {
   return { ranking: ranked, weights: w, dims, studentsCount: students.length };
 }
 
-async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
+async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, sprintStats = null, sprintId = null }) {
   const teamRes = await db.query("SELECT * FROM teams WHERE id = $1", [teamId]);
   if (!teamRes.rows.length) throw new Error("Team not found");
   const team = teamRes.rows[0];
@@ -454,15 +471,15 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
     ? { rules: rulesRes.rows.map(r => ({ name: r.name, value: r.weight, desc: r.description })) }
     : null;
 
-  // Load parsed sprint/project plan files from DB and combine in memory so
-  // doc metrics reflect the current DB state, not the legacy fileRegistry.json
   const artifactsRes = await db.query(
     `SELECT json_path, COALESCE(user_type, detected_type) AS user_type FROM file_registry
      WHERE team_id = $1 AND status = 'parsed'
        AND COALESCE(user_type, detected_type) IN ('sprint_report', 'project_plan', 'attendance')
-       AND json_path IS NOT NULL`,
-    [teamId]
+       AND json_path IS NOT NULL
+       ${sprintId ? `AND (sprint_id = $2 OR sprint_id IS NULL)` : ''}`,
+    sprintId ? [teamId, sprintId] : [teamId]
   );
+
   const sprintData = [], projectData = [], attendanceData = [];
   for (const row of artifactsRes.rows) {
     const data = safeReadJSON(path.join(rootDir, row.json_path), null);
@@ -478,7 +495,7 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
     ? combineDocsInMemory(sprintData, projectData)
     : { students: {} };
 
-  const students = aggregateForTeam(team, rootDir, combinedDocsOverride, attendanceData);
+  const students = aggregateForTeam(team, rootDir, combinedDocsOverride, attendanceData, sprintStats);
 
   // Worklog hours
   // Submitted info is in the DB.
