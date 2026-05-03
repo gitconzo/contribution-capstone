@@ -94,7 +94,6 @@ const [imageToCrop, setImageToCrop] = useState(null);
 const [crop, setCrop] = useState({ x: 0, y: 0 });
 const [zoom, setZoom] = useState(1);
 const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-const [croppedFile, setCroppedFile] = useState(null);
 
   const selectedTeamId = selectedTeamIdProp;
   const [selectedDocType, setSelectedDocType] = useState("worklog");
@@ -297,83 +296,6 @@ const [croppedFile, setCroppedFile] = useState(null);
     }
   }
 
-  async function handlePhotoChange(e) {
-    setPhotoMessage("");
-    setPhotoError("");
-  
-    const file = e.target.files?.[0];
-    if (!file) return;
-  
-    if (!file.type.startsWith("image/")) {
-      setPhotoError("Please select a valid image file.");
-      return;
-    }
-  
-    if (!selectedTeamId) {
-      setPhotoError("Please select a group first.");
-      return;
-    }
-  
-    try {
-      const safeEmail = savedUser?.email || "student";
-      const photoFileName = `profile-${Date.now()}-${file.name}`;
-      const folder = `profile-photos/${safeEmail}`;
-  
-      const presignRes = await apiFetch(
-        `/api/uploads/presign?filename=${encodeURIComponent(photoFileName)}&teamId=${encodeURIComponent(selectedTeamId)}&contentType=${encodeURIComponent(file.type || "application/octet-stream")}&folder=${encodeURIComponent(folder)}`
-      );
-  
-      const presignData = await presignRes.json();
-  
-      if (!presignRes.ok) {
-        setPhotoError(presignData.error || "Failed to get upload URL.");
-        return;
-      }
-  
-      const { url, s3Key } = presignData;
-  
-      const uploadRes = await fetch(url, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
-      });
-  
-      if (!uploadRes.ok) {
-        setPhotoError("Failed to upload profile photo.");
-        return;
-      }
-  
-      const saveRes = await apiFetch(`/api/teams/profile-photo`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: savedUser?.email,
-          teamId: selectedTeamId,
-          photoUrl: s3Key,
-        }),
-      });
-  
-      const saveData = await saveRes.json().catch(() => ({}));
-  
-      if (!saveRes.ok) {
-        setPhotoError(saveData.error || "Failed to save profile photo.");
-        return;
-      }
-  
-      setProfileImage(URL.createObjectURL(file));
-      setPhotoMessage("Profile photo updated successfully.");
-  
-      await onRefreshTeams?.();
-    } catch (error) {
-      console.error("Profile photo upload failed:", error);
-      setPhotoError("Failed to upload profile photo.");
-    }
-  }
-
   async function removePhoto() {
     setPhotoMessage("");
     setPhotoError("");
@@ -462,7 +384,6 @@ const [croppedFile, setCroppedFile] = useState(null);
       if (!imageToCrop || !croppedAreaPixels) return;
   
       const cropped = await getCroppedImg(imageToCrop, croppedAreaPixels);
-      setCroppedFile(cropped);
       setCropModalOpen(false);
       setPhotoMessage("");
       setPhotoError("");

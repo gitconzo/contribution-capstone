@@ -471,9 +471,12 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false }) {
     else if (row.user_type === "project_plan") projectData.push(data);
     else if (row.user_type === "attendance") attendanceData.push(data);
   }
+  // Always pass an override so aggregateForTeam never falls back to the global
+  // combined_documentation_metrics.json, which is not team-scoped and would
+  // bleed doc metrics from other teams into this one.
   const combinedDocsOverride = (sprintData.length || projectData.length)
     ? combineDocsInMemory(sprintData, projectData)
-    : null;
+    : { students: {} };
 
   const students = aggregateForTeam(team, rootDir, combinedDocsOverride, attendanceData);
 

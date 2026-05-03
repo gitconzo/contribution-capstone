@@ -1,33 +1,44 @@
 const router = require("express").Router();
 const path = require("path");
 const fs = require("fs");
-const { ROOT_DIR, DATA_DIR, PARSED_DIR, REGISTRY_PATH } = require("../../utils/config");
-const { readJson, writeJson } = require("../../utils/fileUtils");
+const { ROOT_DIR, PARSED_DIR } = require("../../utils/config");
+const db = require("../../utils/db");
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { teamId } = req.body || {};
     if (!teamId) return res.status(400).json({ error: "teamId is required" });
 
-    // Clear parsed JSON files for this team only, keep upload entries
-    const registry = readJson(REGISTRY_PATH) || [];
-    registry.forEach(entry => {
-      if (entry.teamId !== teamId) return;
-      if (entry.parseInfo?.jsonPath) {
-        const abs = path.join(ROOT_DIR, entry.parseInfo.jsonPath);
-        if (fs.existsSync(abs)) fs.unlinkSync(abs);
-      }
-      entry.status = "uploaded";
-      entry.parseInfo = null;
-    });
-    writeJson(REGISTRY_PATH, registry);
+    // Find all parsed files for this team so we can delete their local JSON outputs
+    const parsed = await db.query(
+      `SELECT json_path FROM file_registry
+       WHERE team_id = $1 AND json_path IS NOT NULL`,
+      [teamId]
+    );
 
-    // Clear team-specific analysis files from PARSED_DIR
-    if (fs.existsSync(PARSED_DIR)) {
-      fs.readdirSync(PARSED_DIR)
-        .filter(f => f.startsWith(teamId))
-        .forEach(f => fs.unlinkSync(path.join(PARSED_DIR, f)));
+    // Delete local parsed JSON files
+    for (const row of parsed.rows) {
+      const abs = path.join(ROOT_DIR, row.json_path);
+      if (fs.existsSync(abs)) fs.unlinkSync(abs);
     }
+
+    // Reset all file_registry rows for this team back to pre-parse state
+    // Files remain approved so the lecturer does not need to re-approve them —
+    // only the parse output is cleared. The aggregator will exclude them until reparsed.
+    await db.query(
+      `UPDATE file_registry
+       SET status          = 'confirmed',
+           json_path       = NULL,
+           s3_parsed_key   = NULL,
+           parse_message   = NULL
+       WHERE team_id = $1`,
+      [teamId]
+    );
+
+    // Delete the combined documentation metrics file — it is derived from
+    // parsed sprint/project plan files and must be regenerated after a reset
+    const combinedPath = path.join(PARSED_DIR, "combined_documentation_metrics.json");
+    if (fs.existsSync(combinedPath)) fs.unlinkSync(combinedPath);
 
     res.json({ success: true, message: "Team scores reset successfully" });
   } catch (e) {
