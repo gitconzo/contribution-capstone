@@ -31,6 +31,8 @@ function Shell() {
 
   const [teams,  setTeams]  = useState([]);
   const [teamId, setTeamId] = useState("");
+  // Tracks whichever team the lecturer has selected in the dashboard dropdown
+  const [dashboardTeamId, setDashboardTeamId] = useState("");
   const [showDefaultPasswordNotice, setShowDefaultPasswordNotice] = useState(false);
 
   const [dark, setDark] = useState(() => localStorage.getItem("p17_dark") === "1");
@@ -168,6 +170,7 @@ function Shell() {
                   darkMode={dark}
                   onViewStudent={s => { setSelectedStudent(s); nav("/student"); }}
                   onViewTasks={(tid, tname) => { setSelectedTasksTeam({ id: tid, name: tname }); nav("/sprint-tasks"); }}
+                  onTeamSelect={id => setDashboardTeamId(id)}
                 />
               ) : <Navigate to="/student-dashboard" replace />
             }/>
@@ -218,14 +221,14 @@ function Shell() {
             }/>
 
             <Route path="/uploads-review" element={
-              isTeacher ? <UploadsReview darkMode={dark} activeTeamId={teamId} teams={teams} onBack={() => nav("/")} /> : <Navigate to="/student-dashboard" replace />
+              isTeacher ? <UploadsReview darkMode={dark} activeTeamId={dashboardTeamId || teamId} teams={teams} onBack={() => nav("/")} /> : <Navigate to="/student-dashboard" replace />
             }/>
 
-            <Route path="/upload"     element={isTeacher ? <UploadFile darkMode={dark} />    : <Navigate to="/student-dashboard" replace />} />
+            <Route path="/upload"     element={isTeacher ? <UploadFile key={dashboardTeamId || teamId} darkMode={dark} activeTeamId={dashboardTeamId || teamId} />    : <Navigate to="/student-dashboard" replace />} />
             <Route path="/rules"      element={isTeacher ? <RuleSettings darkMode={dark} />   : <Navigate to="/student-dashboard" replace />} />
             <Route path="/setup-team" element={isTeacher ? <SetupTeam darkMode={dark} teams={teams} onTeamsChange={setTeams} /> : <Navigate to="/student-dashboard" replace />} />
             <Route path="/export"     element={isTeacher ? <ExportReport darkMode={dark} />   : <Navigate to="/student-dashboard" replace />} />
-            <Route path="/files"      element={isTeacher ? <FileExplorer darkMode={dark} teams={teams} activeTeamId={teamId} /> : <Navigate to="/student-dashboard" replace />} />
+            <Route path="/files"      element={isTeacher ? <FileExplorer darkMode={dark} teams={teams} activeTeamId={dashboardTeamId || teamId} /> : <Navigate to="/student-dashboard" replace />} />
 
             <Route path="/login"           element={<Navigate to={isStudent?"/student-dashboard":"/"} replace />} />
             <Route path="/forgot-username" element={<Navigate to={isStudent?"/student-dashboard":"/"} replace />} />

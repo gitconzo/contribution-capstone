@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiFetch } from "../utils/api";
 import {
   Users, Link as LinkIcon, BarChart3, UserRound,
-  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search, AlertTriangle, Check,
+  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search, AlertTriangle,
 } from "lucide-react";
 
 // Format a date from API using UTC to avoid timezone shift (AEST = UTC+10 would shift midnight UTC back 1 day)
@@ -62,8 +62,13 @@ function formatDisplayDate(d) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
+export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, darkMode }) {
   const [teamId, setTeamId] = useState(() => localStorage.getItem("dashboardTeamId") || "");
+
+  // Notify parent of initial teamId so FileExplorer/UploadFile start with the right team
+  useEffect(() => {
+    if (teamId) onTeamSelect?.(teamId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [teams, setTeams] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem("dashboardTeamsCache") || "[]"); } catch { return []; }
   });
@@ -86,9 +91,9 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
   // ── Current sprint ──
   const [currentSprint, setCurrentSprint] = useState(null);
   const [allSprints, setAllSprints]       = useState([]);
-  const [selectedSprintId, setSelectedSprintId] = useState("overall");
-const [sprintScores, setSprintScores] = useState(null);
-const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
+
+  // ── Auto-approve setting ──
+  const [autoApproveUploads, setAutoApproveUploads] = useState(true);
 
   // ── Tasks ──
   const [tasksBySprintId, setTasksBySprintId] = useState({});
@@ -136,6 +141,7 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
       if (resolvedId && resolvedId !== teamId) {
         setTeamId(resolvedId);
         localStorage.setItem("dashboardTeamId", resolvedId);
+        onTeamSelect?.(resolvedId);
         setScores(null); setTeamStudents([]);
         sessionStorage.removeItem("dashboardScoresCache");
         sessionStorage.removeItem("dashboardStudentsCache");
@@ -171,6 +177,18 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
       })
       .catch(() => { setAllSprints([]); setCurrentSprint(null); });
 
+    // Load team's auto_approve_uploads setting
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
+      .then(r => r.json())
+      .then(data => setAutoApproveUploads(data.auto_approve_uploads !== false))
+      .catch(() => setAutoApproveUploads(true));
+
+    // Load team's auto_approve_uploads setting
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}`)
+      .then(r => r.json())
+      .then(data => setAutoApproveUploads(data.auto_approve_uploads !== false))
+      .catch(() => setAutoApproveUploads(true));
+
     // Load tasks for this team
     setTasksLoading(true);
     apiFetch(`/api/teams/${encodeURIComponent(teamId)}/tasks`)
@@ -190,27 +208,16 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
   }, [teamId, peerReview, loadPendingUploads]);
 
   useEffect(() => {
-  if (!teamId || selectedSprintId === "overall") {
-    setSprintScores(null);
-    return;
-  }
-  apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/scores`)
-    .then(r => r.json())
-    .then(data => setSprintScores(data))
-    .catch(() => setSprintScores(null));
-}, [selectedSprintId, teamId]);
-
-  useEffect(() => {
     const handler = () => loadPendingUploads(teamId);
     window.addEventListener("uploadsUpdated", handler);
     return () => window.removeEventListener("uploadsUpdated", handler);
   }, [teamId, loadPendingUploads]);
 
-  const activeScores = selectedSprintId === "overall" ? scores : sprintScores;
+
   const students = useMemo(() => {
     const studentMap = new Map(teamStudents.map(s => [s.email, s]));
-    const list = activeScores?.ranking?.length
-      ? activeScores.ranking.map(r => ({ ...r, role: studentMap.get(r.email)?.role || "member" }))
+    const list = scores?.ranking?.length
+      ? scores.ranking.map(r => ({ ...r, role: studentMap.get(r.email)?.role || "member" }))
       : teamStudents.map(s => ({ name: s.name, email: s.email, role: s.role || "member", score: 0, breakdown: {}, raw: {} }));
     const q = query.trim().toLowerCase();
     return list.filter(s => {
@@ -218,12 +225,12 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
       const ml = selectedLevel === "all" || badgeFromScore(s.score||0) === selectedLevel;
       return mq && ml;
     });
-  }, [activeScores, teamStudents, query, selectedLevel]);
+  }, [scores, teamStudents, query, selectedLevel]);
 
   const codeScoreByKey = useMemo(() => {
-    const ranking = activeScores?.ranking || [];
+    const ranking = scores?.ranking || [];
     if (!ranking.length) return new Map();
-    const w = activeScores?.weights || {};
+    const w = scores?.weights || {};
     const dw = { loc:12, editedCode:10, commits:7, functions:12, hotspots:10, codeComplexity:9 };
     const ww = { loc:w.loc??dw.loc, editedCode:w.editedCode??dw.editedCode, commits:w.commits??dw.commits, functions:w.functions??dw.functions, hotspots:w.hotspots??dw.hotspots, codeComplexity:w.codeComplexity??dw.codeComplexity };
     const dims = ["loc","editedCode","commits","functions","hotspots","codeComplexity"];
@@ -232,14 +239,14 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
     const map = new Map();
     ranking.forEach((r,i) => map.set(r.email||r.name, Math.round((sums[i]/maxSum)*100)));
     return map;
-  }, [activeScores]);
+  }, [scores]);
 
   const kpis = useMemo(() => {
-    const list = activeScores?.ranking || [];
+    const list = scores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
     const avg = Math.round((list.reduce((s,r) => s+(r.score||0),0)/list.length)*10)/10;
     return { avg, high:`${list.filter(r=>r.score>=80).length}/${list.length}`, commits:0 };
-  }, [activeScores]);
+  }, [scores]);
 
   const handleReset = async () => {
     if (!window.confirm("This will clear all scores and analysis for this team. Uploaded files will be kept. Are you sure?")) return;
@@ -322,8 +329,8 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
             onChange={async e => {
               const newId = e.target.value;
               setTeamId(newId); localStorage.setItem("dashboardTeamId", newId);
+              onTeamSelect?.(newId);
               setScores(null); setTeamStudents([]);
-              setSelectedSprintId("overall"); setSprintScores(null);
               sessionStorage.removeItem("dashboardScoresCache"); sessionStorage.removeItem("dashboardStudentsCache");
               await apiFetch("/api/teams/active", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:newId}) });
             }}
@@ -390,54 +397,6 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
                 )}
               </div>
             </div>
-
-            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-              <select
-                value={selectedSprintId}
-                onChange={e => { setSelectedSprintId(e.target.value); setSprintScores(null); }}
-                style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${theme.border}`, background:theme.inputBg, color:theme.text, fontSize:13, outline:"none", minWidth:160 }}
-              >
-                <option value="overall">Overall Score</option>
-                {allSprints.map(s => (
-                  <option key={s.id} value={s.id}>Sprint {s.sprint_number}</option>
-                ))}
-              </select>
-              {selectedSprintId !== "overall" && (
-                <button
-                  disabled={sprintAnalyzing}
-                  onClick={async () => {
-                    setSprintAnalyzing(true);
-                    try {
-                      await apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/analyze`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({}),
-                      });
-                      const poll = setInterval(async () => {
-                        const st = await apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/status`).then(r => r.json());
-                        if (st.status === "complete" || st.status === "error") {
-                          clearInterval(poll);
-                          setSprintAnalyzing(false);
-                          if (st.status === "complete") {
-                            apiFetch(`/api/teams/${teamId}/sprints/${selectedSprintId}/scores`)
-                              .then(r => r.json())
-                              .then(data => setSprintScores(data))
-                              .catch(() => {});
-                          }
-                        }
-                      }, 4000);
-                    } catch { setSprintAnalyzing(false); }
-                  }}
-                  style={{ padding:"6px 12px", borderRadius:8, border:"none", background:sprintAnalyzing?"#6b7280":"#111827", color:"#fff", fontSize:12, fontWeight:600, cursor:sprintAnalyzing?"not-allowed":"pointer" }}
-                >
-                  {sprintAnalyzing ? "Analysing..." : "Analyse Sprint"}
-                </button>
-              )}
-              {selectedSprintId !== "overall" && sprintScores && (
-                <span style={{ fontSize:12, color:"#16a34a", fontWeight:600 }}>✓ Sprint scores loaded</span>
-              )}
-            </div>
-
             <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
               {currentSprint?.scrum_master_name && (
                 <div style={{ textAlign:"center" }}>
@@ -480,7 +439,7 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
       {/* ══════════════════════════════════════════════════════
           ⚠ PENDING UPLOADS ALERT BANNER
       ══════════════════════════════════════════════════════ */}
-      {(uploadsLoading || pendingUploads.length > 0) && (
+      {!autoApproveUploads && (uploadsLoading || pendingUploads.length > 0) && (
         <div style={{ marginTop:14, borderRadius:12, border:"1px solid #fde68a", background:darkMode?"#1c1708":"#fffbeb", overflow:"hidden" }}>
 
           {/* Banner row */}
@@ -640,7 +599,7 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
         {students.map(s => {
           const breakdown = s.breakdown||{};
           const raw       = s.raw||{};
-          const weights   = activeScores?.weights||{};
+          const weights   = scores?.weights||{};
           const docWeights = { avgSentenceLength:weights.avgSentenceLength??5, sentenceComplexity:weights.sentenceComplexity??5, wordCount:weights.wordCount??7, readability:weights.readability??11 };
           const docMetrics = { avgSentenceLength:breakdown.avgSentenceLength||0, sentenceComplexity:breakdown.sentenceComplexity||0, wordCount:breakdown.wordCount||0, readability:breakdown.readability||0 };
           const totalDocWeight   = Object.values(docWeights).reduce((s,w)=>s+w,0);
@@ -672,7 +631,7 @@ const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
               <div style={{ display:"grid", alignContent:"center", justifyItems:"end", gap:6 }}>
                 <div style={{ color:theme.subtext, fontSize:12 }}>Overall Score</div>
                 <div style={{ fontWeight:700, color:scoreColor(s.score), fontSize:32 }}>{Math.round(s.score)||"—"}</div>
-                {activeScores?.peerReviewApplied && s.peerMultiplier && (
+                {scores?.peerReviewApplied && s.peerMultiplier && (
                   <div style={{ fontSize:11, color:theme.subtext, marginTop:2 }}>Base: {Math.round(s.baseScore)}% × {s.peerMultiplier}</div>
                 )}
                 <div style={{ color:scoreColor(s.score), fontSize:12, marginTop:-8 }}>%</div>
