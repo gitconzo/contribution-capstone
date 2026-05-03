@@ -7,6 +7,7 @@ router.use("/teams",   require("./teams/POST"));
 router.use("/teams",   require("./teams/PUT"));
 router.use("/teams",   require("./teams/DELETE"));
 router.use("/teams",   require("./teams/SPRINTS"));
+router.use("/teams",   require("./teams/TASKS"));
 
 router.use("/rules",   require("./rules/GET"));
 router.use("/rules",   require("./rules/POST"));
@@ -21,15 +22,10 @@ router.use("/uploads", require("./uploads/STUDENT_POST"));
 router.use("/uploads", require("./uploads/APPROVAL"));
 router.use("/teams/profile-photo", require("./teams/PROFILE_PHOTO"));
 
-
-router.use("/export", require("./export/POST"));
-
-
-router.use("/export", require("./export/POST"));
-
+router.use("/export",  require("./export/POST"));
 
 router.use("/scores",  require("./scores/GET"));
 
-router.use("/reset", require("./reset/POST"));
+router.use("/reset",   require("./reset/POST"));
 
 module.exports = router;

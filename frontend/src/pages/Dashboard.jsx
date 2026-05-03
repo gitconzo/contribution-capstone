@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiFetch } from "../utils/api";
 import {
   Users, Link as LinkIcon, BarChart3, UserRound,
-  GitCommitHorizontal, Eye, ChevronDown, Search, AlertTriangle,
+  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search, AlertTriangle, Check,
 } from "lucide-react";
 
 // Format a date from API using UTC to avoid timezone shift (AEST = UTC+10 would shift midnight UTC back 1 day)
@@ -62,7 +62,7 @@ function formatDisplayDate(d) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Dashboard({ onViewStudent, darkMode }) {
+export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
   const [teamId, setTeamId] = useState(() => localStorage.getItem("dashboardTeamId") || "");
   const [teams, setTeams] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem("dashboardTeamsCache") || "[]"); } catch { return []; }
@@ -86,6 +86,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   // ── Current sprint ──
   const [currentSprint, setCurrentSprint] = useState(null);
   const [allSprints, setAllSprints]       = useState([]);
+
+  // ── Tasks ──
+  const [tasksBySprintId, setTasksBySprintId] = useState({});
+  const [tasksLoading,    setTasksLoading]    = useState(false);
 
 
   const theme = darkMode
@@ -163,6 +167,22 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         setCurrentSprint(active);
       })
       .catch(() => { setAllSprints([]); setCurrentSprint(null); });
+
+    // Load tasks for this team
+    setTasksLoading(true);
+    apiFetch(`/api/teams/${encodeURIComponent(teamId)}/tasks`)
+      .then(r => r.json())
+      .then(data => {
+        const grouped = {};
+        (Array.isArray(data) ? data : []).forEach(t => {
+          if (!grouped[t.sprint_id]) grouped[t.sprint_id] = [];
+          grouped[t.sprint_id].push(t);
+        });
+        setTasksBySprintId(grouped);
+      })
+      .catch(() => setTasksBySprintId({}))
+      .finally(() => setTasksLoading(false));
+
     setUploadsOpen(false);
   }, [teamId, peerReview, loadPendingUploads]);
 
@@ -498,6 +518,28 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </div>
       )}
 
+
+      {/* ── Sprint Tasks Overview button ── */}
+      {allSprints.length > 0 && (
+        <div style={{ marginTop:14 }}>
+          <button
+            onClick={() => onViewTasks?.(teamId, scores?.team?.name || teams.find(t=>t.id===teamId)?.name || "Team")}
+            style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 18px", background:theme.card, border:`1px solid ${theme.border}`, borderRadius:14, cursor:"pointer", boxShadow:theme.shadow }}
+          >
+            <div style={{ textAlign:"left" }}>
+              <div style={{ fontWeight:700, color:theme.text, fontSize:15 }}>Sprint Tasks Overview</div>
+              <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>View all assigned tasks across students and sprints</div>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <span style={{ fontSize:13, fontWeight:600, color:"#1d4ed8", background:"#dbeafe", padding:"4px 12px", borderRadius:999 }}>
+                {tasksLoading ? "..." : `${Object.values(tasksBySprintId).flat().length} tasks`}
+              </span>
+              <ChevronRight size={18} color={theme.subtext}/>
+            </div>
+          </button>
+        </div>
+      )}
+
       {/* ── Team Members header ── */}
       <div style={card(theme, { marginTop:14, paddingBottom:10 })}>
         <div style={rowBetween()}>
@@ -582,6 +624,8 @@ export default function Dashboard({ onViewStudent, darkMode }) {
     </div>
   );
 }
+
+/* ── Lecturer sprint task group ──────────────────────────────────────────── */
 
 /* ── Small components ─────────────────────────────────────────────────────── */
 function InlineBtn({ label, color, bg, border, onClick }) {
