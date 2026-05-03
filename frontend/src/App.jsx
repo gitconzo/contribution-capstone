@@ -4,6 +4,7 @@ import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-
 import { apiFetch } from "./utils/api";
 import { isAuthed, setAuthed, clearAuthed } from "./utils/auth";
 
+import { TeamProvider } from "./context/TeamContext";
 import Navigation from "./components/Navigation";
 import Dashboard from "./pages/Dashboard";
 import UploadFile from "./pages/UploadFile";
@@ -28,10 +29,7 @@ function Shell() {
   const [smTaskTeam,        setSmTaskTeam]        = useState(null); // { id, students }
   const [authed, setAuthedState] = useState(() => isAuthed());
 
-  const [teams,  setTeams]  = useState([]);
-  const [teamId, setTeamId] = useState("");
-  // Tracks whichever team the lecturer has selected in the dashboard dropdown
-  const [dashboardTeamId, setDashboardTeamId] = useState("");
+  const [teams, setTeams] = useState([]);
   const [showDefaultPasswordNotice, setShowDefaultPasswordNotice] = useState(false);
 
   const [dark, setDark] = useState(() => localStorage.getItem("p17_dark") === "1");
@@ -90,14 +88,7 @@ function Shell() {
   }, [refreshStudentUploads, user?.email]);
 
   useEffect(() => {
-    (async () => {
-      const [allTeams, activeTeam] = await Promise.all([
-        apiFetch("/api/teams").then(r => r.json()).catch(() => []),
-        apiFetch("/api/teams/active").then(r => r.json()).catch(() => null),
-      ]);
-      setTeams(allTeams || []);
-      setTeamId(activeTeam?.id || allTeams?.[0]?.id || "");
-    })();
+    apiFetch("/api/teams").then(r => r.json()).catch(() => []).then(data => setTeams(data || []));
   }, []);
 
   useEffect(() => {
@@ -142,6 +133,7 @@ function Shell() {
   const handleLogin = (userData) => { setAuthed(); setAuthedState(true); setUser(userData ?? null); nav("/"); };
   const handleLogout = () => {
     clearAuthed();
+    localStorage.removeItem(`dashboardTeamId_${user?.email}`);
     ["p17_authed","token","user"].forEach(k => localStorage.removeItem(k));
     sessionStorage.removeItem("studentTeamsCache");
     setAuthedState(false); setUser(null); nav("/login");
@@ -152,7 +144,7 @@ function Shell() {
 
   if (authed) {
     return (
-      <>
+      <TeamProvider userId={user?.email || ""}>
         <DefaultPasswordNotice
           visible={showDefaultPasswordNotice}
           onClose={() => setShowDefaultPasswordNotice(false)}
@@ -168,7 +160,6 @@ function Shell() {
                   darkMode={dark}
                   onViewStudent={s => { setSelectedStudent(s); nav("/student"); }}
                   onViewTasks={(tid, tname) => { setSelectedTasksTeam({ id: tid, name: tname }); nav("/sprint-tasks"); }}
-                  onTeamSelect={id => setDashboardTeamId(id)}
                 />
               ) : <Navigate to="/student-dashboard" replace />
             }/>
@@ -218,11 +209,11 @@ function Shell() {
               ) : <Navigate to="/" replace />
             }/>
 
-            <Route path="/upload"     element={isTeacher ? <UploadFile key={dashboardTeamId || teamId} darkMode={dark} activeTeamId={dashboardTeamId || teamId} />    : <Navigate to="/student-dashboard" replace />} />
+            <Route path="/upload"     element={isTeacher ? <UploadFile darkMode={dark} />    : <Navigate to="/student-dashboard" replace />} />
             <Route path="/rules"      element={isTeacher ? <RuleSettings darkMode={dark} />   : <Navigate to="/student-dashboard" replace />} />
             <Route path="/setup-team" element={isTeacher ? <SetupTeam darkMode={dark} teams={teams} onTeamsChange={setTeams} /> : <Navigate to="/student-dashboard" replace />} />
             <Route path="/export"     element={isTeacher ? <ExportReport darkMode={dark} />   : <Navigate to="/student-dashboard" replace />} />
-            <Route path="/files"      element={isTeacher ? <FileExplorer darkMode={dark} teams={teams} activeTeamId={dashboardTeamId || teamId} /> : <Navigate to="/student-dashboard" replace />} />
+            <Route path="/files"      element={isTeacher ? <FileExplorer darkMode={dark} teams={teams} /> : <Navigate to="/student-dashboard" replace />} />
 
             <Route path="/login"           element={<Navigate to={isStudent?"/student-dashboard":"/"} replace />} />
             <Route path="/forgot-username" element={<Navigate to={isStudent?"/student-dashboard":"/"} replace />} />
@@ -230,7 +221,7 @@ function Shell() {
             <Route path="*"               element={<Navigate to={isStudent?"/student-dashboard":"/"} replace />} />
           </Routes>
         </div>
-      </>
+      </TeamProvider>
     );
   }
 

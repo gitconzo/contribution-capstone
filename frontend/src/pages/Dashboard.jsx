@@ -1,5 +1,6 @@
 // frontend/src/components/dashboard.jsx
 import { useEffect, useMemo, useState } from "react";
+import { useActiveTeam } from "../context/TeamContext";
 import { apiFetch } from "../utils/api";
 import {
   Users, Link as LinkIcon, BarChart3, UserRound,
@@ -18,13 +19,10 @@ function fmtSprintDate(d) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, darkMode }) {
-  const [teamId, setTeamId] = useState(() => localStorage.getItem("dashboardTeamId") || "");
-
-  // Notify parent of initial teamId so FileExplorer/UploadFile start with the right team
-  useEffect(() => {
-    if (teamId) onTeamSelect?.(teamId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
+  const { activeTeamId, setActiveTeamId } = useActiveTeam();
+  const teamId = activeTeamId;
+  const setTeamId = setActiveTeamId;
   const [teams, setTeams] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem("dashboardTeamsCache") || "[]"); } catch { return []; }
   });
@@ -81,8 +79,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
       sessionStorage.setItem("dashboardTeamsCache", JSON.stringify(resolvedTeams));
       if (resolvedId && resolvedId !== teamId) {
         setTeamId(resolvedId);
-        localStorage.setItem("dashboardTeamId", resolvedId);
-        onTeamSelect?.(resolvedId);
         setScores(null); setTeamStudents([]);
         sessionStorage.removeItem("dashboardScoresCache");
         sessionStorage.removeItem("dashboardStudentsCache");
@@ -214,8 +210,7 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
             value={teamId}
             onChange={async e => {
               const newId = e.target.value;
-              setTeamId(newId); localStorage.setItem("dashboardTeamId", newId);
-              onTeamSelect?.(newId);
+              setTeamId(newId);
               setSelectedSprintId("overall"); setSprintScores(null);
               setScores(null); setTeamStudents([]);
               sessionStorage.removeItem("dashboardScoresCache"); sessionStorage.removeItem("dashboardStudentsCache");

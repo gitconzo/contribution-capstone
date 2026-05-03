@@ -1,6 +1,7 @@
 // frontend/src/pages/FileExplorer.jsx
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
+import { useActiveTeam } from "../context/TeamContext";
 
 const TYPE_LABELS = {
   worklog: "Worklog",
@@ -59,10 +60,14 @@ function FileIcon({ name = "" }) {
   );
 }
 
-export default function FileExplorer({ darkMode, teams = [], activeTeamId = "" }) {
-  const [teamId, setTeamId] = useState(
-    () => localStorage.getItem("dashboardTeamId") || activeTeamId || teams[0]?.id || ""
-  );
+export default function FileExplorer({ darkMode, teams = [] }) {
+  const { activeTeamId, setActiveTeamId } = useActiveTeam();
+  const teamId = activeTeamId;
+  const setTeamId = setActiveTeamId;
+
+  useEffect(() => {
+    if (!teamId && teams.length > 0) setTeamId(teams[0].id);
+  }, [teams]); // eslint-disable-line react-hooks/exhaustive-deps
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState(null); // null = all
@@ -137,6 +142,16 @@ export default function FileExplorer({ darkMode, teams = [], activeTeamId = "" }
         </p>
       </div>
 
+      {/* No teams state */}
+      {teams.length === 0 && (
+        <div style={{
+          background: t.card, border: `1px solid ${t.border}`,
+          borderRadius: 14, padding: 32, textAlign: "center", color: t.subtext, fontSize: 14,
+        }}>
+          No teams found. Set up a team first before browsing files.
+        </div>
+      )}
+
       {/* Team selector */}
       {teams.length > 1 && (
         <select
@@ -155,7 +170,7 @@ export default function FileExplorer({ darkMode, teams = [], activeTeamId = "" }
       )}
 
       {/* Body */}
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+      {teams.length > 0 && <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
 
         {/* Sidebar */}
         <div style={{
@@ -252,7 +267,7 @@ export default function FileExplorer({ darkMode, teams = [], activeTeamId = "" }
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

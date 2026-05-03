@@ -2,6 +2,7 @@
 const router = require("express").Router();
 const db = require("../../utils/db");
 const { createOrUpdateStudentUser } = require("../../utils/cognitoAdmin");
+const { protect } = require("../../middleware/authMiddleware");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -158,7 +159,7 @@ router.post("/:id/remove-scrum-master", async (req, res) => {
 });
 
 // POST /api/teams
-router.post("/", async (req, res) => {
+router.post("/", protect, async (req, res) => {
   const { name, code, repo, students } = req.body || {};
   if (!name || !code) return res.status(400).json({ error: "Missing required fields: name, code" });
   try {
@@ -169,8 +170,8 @@ router.post("/", async (req, res) => {
     const unitId = unitResult.rows[0].id;
     const id = `team_${Date.now()}`;
     await db.query(
-      `INSERT INTO teams (id, unit_id, name, repo_url, repo_owner, repo_name) VALUES ($1, $2, $3, $4, $5, $6)`,
-      [id, unitId, name, repo?.url || null, repo?.owner || null, repo?.repo || null]
+      `INSERT INTO teams (id, unit_id, name, repo_url, repo_owner, repo_name, owner_email) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, unitId, name, repo?.url || null, repo?.owner || null, repo?.repo || null, req.user.email]
     );
     const studentList = Array.isArray(students) ? students : [];
     const cognitoResults = [];

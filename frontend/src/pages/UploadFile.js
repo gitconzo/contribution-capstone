@@ -1,6 +1,7 @@
 // frontend/src/pages/UploadFile.js
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
+import { useActiveTeam } from "../context/TeamContext";
 
 const TYPE_OPTIONS = [
   { value: "attendance", label: "Attendance Sheet (.xlsx)" },
@@ -64,7 +65,8 @@ function formatDisplayDate(dateValue) {
   return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
 }
 
-export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp }) {
+export default function UploadFile({ darkMode }) {
+  const { activeTeamId } = useActiveTeam();
   const [file, setFile] = useState(null);
   const [uploadResult, setUploadResult] = useState(null);
   const [files, setFiles] = useState([]);
@@ -95,8 +97,6 @@ export default function UploadFile({ darkMode, activeTeamId: activeTeamIdProp })
   const detectedType = uploadResult?.detectedType || "unknown";
   const effectiveType = useMemo(() => overrideType !== "unknown" ? overrideType : detectedType, [overrideType, detectedType]);
 
-  // Use prop first, fall back to localStorage
-  const activeTeamId = activeTeamIdProp || localStorage.getItem("activeTeamId") || "";
 
   const fetchFiles = () => {
     apiFetch("/api/uploads").then(r => r.json())
