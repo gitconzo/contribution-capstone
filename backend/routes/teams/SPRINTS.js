@@ -262,7 +262,12 @@ router.get("/:id/sprints/:sprintId/scores", async (req, res) => {
     }
 
     const sprintStats = safeReadJson(statsPath, {});
-    const scored = await aggregateTeamScores({ teamId, rootDir: ROOT_DIR, sprintStats });
+    const scored = await aggregateTeamScores({ 
+      teamId, 
+      rootDir: ROOT_DIR, 
+      sprintStats,
+      sprintId: parseInt(sprintId),
+    });
     res.json(scored);
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -35,6 +35,7 @@ function normalizeUploadRecord(fileItem = {}) {
     parseMessage: fileItem.parse_message || fileItem.parseMessage || "",
     uploadedByName: fileItem.uploaded_by_name || fileItem.uploadedByName || null,
     uploadedByEmail: fileItem.uploaded_by_email || fileItem.uploadedByEmail || null,
+    sprintId: fileItem.sprint_id || fileItem.sprintId || null,
   };
 }
 
@@ -107,6 +108,9 @@ export default function UploadFile({ darkMode }) {
   const [uploadTeamId, setUploadTeamId] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
 
+  const [sprints, setSprints] = useState([]);
+  const [uploadSprintId, setUploadSprintId] = useState("");
+
   const theme = darkMode
     ? {
         pageBg: "#0b1120",
@@ -171,6 +175,15 @@ export default function UploadFile({ darkMode }) {
       setUploadTeamId(activeTeamId);
     }
   }, [activeTeamId, uploadTeamId]);
+
+  useEffect(() => {
+    if (!uploadTeamId) { setSprints([]); setUploadSprintId(""); return; }
+    apiFetch(`/api/teams/${uploadTeamId}/sprints`)
+      .then(r => r.json())
+      .then(data => setSprints(Array.isArray(data) ? data : []))
+      .catch(() => setSprints([]));
+    setUploadSprintId("");
+  }, [uploadTeamId]);
 
   const teamNameMap = useMemo(() => {
     const map = {};
@@ -308,6 +321,7 @@ export default function UploadFile({ darkMode }) {
           mimetype: file.type,
           teamId: teamIdForUpload,
           userType: overrideType,
+          sprintId: uploadSprintId || null,
           uploadedByName: currentUser?.name || null,
           uploadedByEmail: currentUser?.email || null,
         }),
@@ -698,6 +712,27 @@ export default function UploadFile({ darkMode }) {
           </div>
         </div>
 
+        {sprints.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <label style={labelStyle}>Tag to Sprint</label>
+            <select
+              value={uploadSprintId}
+              onChange={e => setUploadSprintId(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">No sprint (overall)</option>
+              {sprints.map(s => (
+                <option key={s.id} value={s.id}>
+                  Sprint {s.sprint_number} ({s.start_date} → {s.end_date})
+                </option>
+              ))}
+            </select>
+            <div style={{ fontSize: 12, color: theme.subtext, marginTop: 4 }}>
+              Tag this document to a sprint for sprint-specific scoring.
+            </div>
+          </div>
+        )}
+
         <label style={labelStyle}>Select Document Type</label>
         <select value={overrideType} onChange={(e) => setOverrideType(e.target.value)} style={selectStyle}>
           {TYPE_OPTIONS.map((opt) => (
@@ -926,7 +961,14 @@ export default function UploadFile({ darkMode }) {
                           <div style={{ fontWeight: 600 }}>{f.originalName}</div>
                         </td>
                         <td style={tableCellStyle}>
-                          {f.userType !== "unknown" ? f.userType : f.detectedType}
+                          <div>{f.userType !== "unknown" ? f.userType : f.detectedType}</div>
+                          {f.sprintId && (
+                            <div style={{ fontSize: 11, marginTop: 3, color: "#0369a1", background: "#e0f2fe", padding: "1px 6px", borderRadius: 999, display: "inline-block" }}>
+                              {sprints.find(s => String(s.id) === String(f.sprintId))?.sprint_number
+                                ? `Sprint ${sprints.find(s => String(s.id) === String(f.sprintId)).sprint_number}`
+                                : "Sprint"}
+                            </div>
+                          )}
                         </td>
                         <td style={tableCellStyle}>
                         <div>{uploaderLabel(f)}</div>
