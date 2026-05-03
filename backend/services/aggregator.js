@@ -476,8 +476,8 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
      WHERE team_id = $1 AND status = 'parsed'
        AND COALESCE(user_type, detected_type) IN ('sprint_report', 'project_plan', 'attendance')
        AND json_path IS NOT NULL
-       ${sprintId ? `AND (sprint_id = $2 OR sprint_id IS NULL)` : ''}`,
-    sprintId ? [teamId, sprintId] : [teamId]
+       ${sprintId ? `AND (sprint_id = $2::text OR sprint_id IS NULL)` : ''}`,
+    sprintId ? [teamId, String(sprintId)] : [teamId]
   );
 
   const sprintData = [], projectData = [], attendanceData = [];
