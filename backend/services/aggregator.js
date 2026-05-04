@@ -502,6 +502,9 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
   // Query parsed worklog files for this team, load each JSON, sum TotalHours,
   //  attribute them to whichever student uploaded the file.
   const aliasMap = buildAliasMap(team);
+  // Load all submitted worklogs for this team, then use the one that covers
+  // the most weeks per student. This handles the case where a student uploads
+  // week 4 after already having uploaded week 12 — we want week 12's hours.
   const worklogRes = await db.query(
     `SELECT uploaded_by_email, uploaded_by_name, json_path
      FROM file_registry
@@ -512,11 +515,23 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     [teamId]
   );
 
+  // For each student, keep track of their most complete worklog
+  const bestWorklog = {};
+
   worklogRes.rows.forEach(row => {
-    const absPath = path.join(rootDir, row.json_path);
-    const weekData = safeReadJSON(absPath, null);
+    const weekData = safeReadJSON(path.join(rootDir, row.json_path), null);
     if (!Array.isArray(weekData)) return;
 
+    const highestWeek = Math.max(...weekData.map(w => w.Week || 0));
+    const current = bestWorklog[row.uploaded_by_email];
+
+    if (!current || highestWeek > current.highestWeek) {
+      bestWorklog[row.uploaded_by_email] = { row, weekData, highestWeek };
+    }
+  });
+
+  // Apply hours from the winning worklog for each student
+  Object.values(bestWorklog).forEach(({ row, weekData }) => {
     const totalHours = weekData.reduce((sum, week) => sum + pickNumber(week.TotalHours), 0);
     if (totalHours <= 0) return;
 
@@ -524,7 +539,7 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     if (idx === -1) idx = matchStudentIndex(aliasMap, row.uploaded_by_name);
     if (idx === -1) return;
 
-    students[idx].attendance.hours += totalHours;
+    students[idx].attendance.hours = totalHours;
   });
 
   const scored = scoreStudents(students, rules);

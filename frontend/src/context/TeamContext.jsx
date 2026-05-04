@@ -1,17 +1,15 @@
 import { createContext, useContext, useState } from "react";
 
-const TeamContext = createContext({ activeTeamId: "", setActiveTeamId: () => {} });
+const TeamContext = createContext(null);
 
 export function TeamProvider({ children, userId }) {
   const storageKey = `dashboardTeamId_${userId}`;
-  const [activeTeamId, setActiveTeamIdState] = useState(
-    () => localStorage.getItem(storageKey) || ""
-  );
+  const [activeTeamId, setTeamId] = useState(localStorage.getItem(storageKey) || "");
 
   function setActiveTeamId(id) {
     if (!id) return;
     localStorage.setItem(storageKey, id);
-    setActiveTeamIdState(id);
+    setTeamId(id);
   }
 
   return (
