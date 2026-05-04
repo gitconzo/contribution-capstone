@@ -18,7 +18,6 @@ function fmtSprintDate(d) {
   return `${parts[2]}-${parts[1]}-${parts[0]}`; // dd-mm-yyyy
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
   const { activeTeamId, setActiveTeamId } = useActiveTeam();
   const teamId = activeTeamId;
