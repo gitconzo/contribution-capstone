@@ -414,7 +414,6 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
     }
 
     // Poll all teams until all complete
-    let completed = 0;
     const total = Object.keys(sprintIds).length;
 
     const poll = setInterval(async () => {
