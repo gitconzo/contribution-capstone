@@ -93,6 +93,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   const [newStudents, setNewStudents] = useState([{ ...EMPTY_STUDENT }]);
   const [createSprints, setCreateSprints] = useState([]);
   const [creating, setCreating]   = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
   const [error, setError]         = useState("");
 
   // ── Existing teams ──
@@ -252,7 +253,8 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
       }
       await loadTeams();
       setName(""); setCode(""); setRepoUrl(""); setNewStudents([{ ...EMPTY_STUDENT }]); setCreateSprints([]);
-      alert("Team created.");
+      setSuccessMsg("Team created successfully.");
+      setTimeout(() => setSuccessMsg(""), 4000);
     } catch (e) { setError(e.message || "Create team failed"); }
     finally { setCreating(false); }
   };
@@ -1090,7 +1092,30 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
     <button onClick={addCreateSprint} style={dashedBtn(theme)}>+ Add Sprint</button>
   </div>
   <div style={{ marginTop:14 }}>
-    <button onClick={onCreate} disabled={creating} style={btn()}>{creating ? "Creating…" : "Create Team"}</button>
+    <button onClick={onCreate} disabled={creating} style={{ ...btn(), display:"flex", alignItems:"center", gap:8, opacity: creating ? 0.8 : 1 }}>
+      {creating && (
+        <span style={{
+          width:14, height:14, borderRadius:"50%",
+          border:"2px solid rgba(255,255,255,0.35)",
+          borderTop:"2px solid #fff",
+          display:"inline-block",
+          animation:"spin 0.75s linear infinite",
+          flexShrink:0,
+        }} />
+      )}
+      {creating ? "Creating…" : "Create Team"}
+    </button>
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    {successMsg && (
+      <div style={{
+        marginTop:10, padding:"10px 14px", borderRadius:10,
+        background:"#dcfce7", border:"1px solid #86efac", color:"#166534",
+        fontSize:13, fontWeight:600, display:"flex", alignItems:"center", gap:8,
+      }}>
+        <span style={{ fontSize:16 }}>✓</span>
+        {successMsg}
+      </div>
+    )}
   </div>
 </div>
 
