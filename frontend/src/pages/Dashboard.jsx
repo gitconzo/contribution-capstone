@@ -162,9 +162,9 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
     const ww = { loc:w.loc??dw.loc, editedCode:w.editedCode??dw.editedCode, commits:w.commits??dw.commits, functions:w.functions??dw.functions, hotspots:w.hotspots??dw.hotspots, codeComplexity:w.codeComplexity??dw.codeComplexity };
     const dims = ["loc","editedCode","commits","functions","hotspots","codeComplexity"];
     const sums = ranking.map(r => dims.reduce((s,d) => s+((r.breakdown?.[d]||0)*(ww[d]||0)),0));
-    const maxSum = Math.max(...sums, 1);
+    const totalSum = sums.reduce((a,b) => a+b, 0) || 1;
     const map = new Map();
-    ranking.forEach((r,i) => map.set(r.email||r.name, Math.round((sums[i]/maxSum)*100)));
+    ranking.forEach((r,i) => map.set(r.email||r.name, Math.round((sums[i]/totalSum)*100)));
     return map;
   }, [activeScores]);
 
