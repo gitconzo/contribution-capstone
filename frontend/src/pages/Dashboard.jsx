@@ -274,7 +274,8 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
     const avg = Math.round((list.reduce((s,r) => s+(r.score||0),0)/list.length)*10)/10;
     const fs = list.length > 0 ? 100 / list.length : 25;
-    return { avg, high:`${list.filter(r=>r.score>=fs).length}/${list.length}`, commits:0 };
+    const commits = list.reduce((sum, r) => sum + (r.raw?.codeCommits || 0), 0);
+    return { avg, high:`${list.filter(r=>r.score>=fs).length}/${list.length}`, commits };
   }, [activeScores]);
 
   const handleReset = async () => {

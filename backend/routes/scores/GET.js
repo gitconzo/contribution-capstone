@@ -67,11 +67,14 @@ router.get("/", async (req, res) => {
       });
 
       // Average raw values too
+      const sumKeys = new Set(["codeCommits", "hours", "meetings", "documents", "wordCount"]);
       const allRawKeys = Object.keys(sprintRankings[0]?.raw || {});
       const avgRaw = {};
       allRawKeys.forEach(key => {
         const vals = sprintRankings.map(r => r.raw?.[key] || 0);
-        avgRaw[key] = +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+        avgRaw[key] = sumKeys.has(key)
+          ? +(vals.reduce((a, b) => a + b, 0)).toFixed(2)  // sum across sprints
+          : +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2); // average across sprints
       });
 
       return { ...student, score: avgScore, breakdown: avgBreakdown, raw: avgRaw };

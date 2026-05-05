@@ -21,7 +21,7 @@ def get_commit_stats(tempFolder, start_date=None, end_date=None):
     all_commits = []
     for ref in repo.references:
         try:
-            for commit in repo.iter_commits(ref):
+            for commit in repo.iter_commits(ref, max_count=None):
                 if commit.hexsha in seen:
                     continue
                 seen.add(commit.hexsha)

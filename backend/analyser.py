@@ -69,7 +69,7 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
         seen_hashes = set()
         for ref in repo.references:
             try:
-                for commit in repo.iter_commits(ref):
+                for commit in repo.iter_commits(ref, max_count=None):
                     if commit.hexsha in seen_hashes:
                         continue
                     seen_hashes.add(commit.hexsha)
