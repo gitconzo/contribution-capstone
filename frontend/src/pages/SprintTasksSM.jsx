@@ -1,6 +1,6 @@
 // frontend/src/pages/SprintTasksSM.jsx
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, Check } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { apiFetch } from "../utils/api";
 
 const PRIORITY_CONFIG = {
@@ -31,24 +31,29 @@ function StatusBadge({ status }) {
   return (
     <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: isDone ? "#166534" : "#1d4ed8", color: "#fff", display: "inline-flex", alignItems: "center", gap: 4 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: isDone ? "#86efac" : "#93c5fd", display: "inline-block" }} />
-      {isDone ? "Done" : "Ongoing"}
+      {isDone ? "Done" : "In Progress"}
     </span>
   );
 }
 
-function TaskCard({ task, onEdit, onDelete, onToggleStatus, theme }) {
+function TaskCard({ task, onEdit, onDelete, onComplete, savedUserEmail, theme }) {
   const isDone = task.status === "complete";
+  const isAssigned = (task.assigned_to_email || "").toLowerCase() === (savedUserEmail || "").toLowerCase();
+  const [confirming, setConfirming] = useState(false);
+  const [completing, setCompleting] = useState(false);
+
+  async function handleComplete() {
+    if (!confirming) { setConfirming(true); return; }
+    setConfirming(false);
+    setCompleting(true);
+    try { await onComplete(task); } finally { setCompleting(false); }
+  }
+
   return (
-    <div style={{ background: theme.card, border: `1px solid ${isDone ? "#86efac" : theme.border}`, borderRadius: 10, padding: "12px 14px", opacity: isDone ? 0.8 : 1 }}>
+    <div style={{ background: theme.card, border: `1px solid ${isDone ? "#86efac" : theme.border}`, borderRadius: 10, padding: "12px 14px", opacity: isDone ? 0.6 : 1 }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        {/* Status toggle */}
-        <button
-          onClick={() => onToggleStatus(task)}
-          title={isDone ? "Mark ongoing" : "Mark complete"}
-          style={{ marginTop: 2, flexShrink: 0, width: 20, height: 20, borderRadius: 5, border: `2px solid ${isDone ? "#16a34a" : "#d1d5db"}`, background: isDone ? "#16a34a" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          {isDone && <Check size={11} color="#fff" />}
-        </button>
+        <div style={{ marginTop: 4, flexShrink: 0, width: 10, height: 10, borderRadius: "50%", background: isDone ? "#16a34a" : "#fbbf24" }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 600, fontSize: 14, color: theme.text, textDecoration: isDone ? "line-through" : "none" }}>{task.title}</span>
@@ -58,10 +63,41 @@ function TaskCard({ task, onEdit, onDelete, onToggleStatus, theme }) {
           {task.description && (
             <div style={{ fontSize: 12, color: theme.subtext, marginTop: 4 }}>{task.description}</div>
           )}
+          {isDone && task.completed_at && (
+            <div style={{ fontSize: 11, color: "#16a34a", marginTop: 4 }}>
+              Completed {new Date(task.completed_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+            </div>
+          )}
         </div>
-        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-          <button onClick={() => onEdit(task)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: theme.subtext, borderRadius: 4 }}><Pencil size={13} /></button>
-          <button onClick={() => onDelete(task)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#ef4444", borderRadius: 4 }}><Trash2 size={13} /></button>
+
+        <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
+          {isDone ? (
+            <button disabled style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 600, cursor: "default", display: "flex", alignItems: "center", gap: 5 }}>
+              ✓ Completed
+            </button>
+          ) : (
+            <>
+              <button onClick={() => onEdit(task)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: theme.subtext, borderRadius: 4 }}><Pencil size={13} /></button>
+              <button onClick={() => onDelete(task)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#ef4444", borderRadius: 4 }}><Trash2 size={13} /></button>
+              {isAssigned && (
+                <div style={{ display: "flex", gap: 4, alignItems: "center", marginLeft: 2 }}>
+                  <button
+                    onClick={handleComplete}
+                    disabled={completing}
+                    style={{ border: "none", background: confirming ? "#92400e" : "#1d4ed8", color: "#fff", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 600, cursor: completing ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5, opacity: completing ? 0.8 : 1 }}
+                  >
+                    {completing && <span style={{ width: 11, height: 11, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", display: "inline-block", animation: "spin 0.75s linear infinite", flexShrink: 0 }} />}
+                    {completing ? "Completing…" : confirming ? "Are you sure?" : "Complete"}
+                  </button>
+                  {confirming && !completing && (
+                    <button onClick={() => setConfirming(false)} style={{ background: "none", border: `1px solid ${theme.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, color: theme.subtext, cursor: "pointer" }}>
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -159,13 +195,12 @@ export default function SprintTasksSM({ teamId, teamStudents = [], savedUserEmai
     } catch { alert("Failed to delete task"); }
   }
 
-  async function toggleStatus(task) {
-    const newStatus = task.status === "complete" ? "ongoing" : "complete";
+  async function completeTask(task) {
     try {
-      const res = await apiFetch(`/api/teams/${teamId}/tasks/${task.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus, updated_by_email: savedUserEmail }) });
-      if (!res.ok) { const d = await res.json(); alert(d.error || "Failed to update"); return; }
+      const res = await apiFetch(`/api/teams/${teamId}/tasks/${task.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "complete", updated_by_email: savedUserEmail }) });
+      if (!res.ok) { const d = await res.json(); alert(d.error || "Failed to complete task"); return; }
       await loadData();
-    } catch { alert("Failed to update task"); }
+    } catch { alert("Failed to complete task"); }
   }
 
   const selectedTasks = selectedSprint ? (tasksBySprintId[selectedSprint.id] || []) : [];
@@ -335,7 +370,7 @@ export default function SprintTasksSM({ teamId, teamStudents = [], savedUserEmai
                     {/* Tasks in this column */}
                     <div style={{ padding: "10px 10px", display: "grid", gap: 8 }}>
                       {tasks.map(t => (
-                        <TaskCard key={t.id} task={t} onEdit={openEditForm} onDelete={deleteTask} onToggleStatus={toggleStatus} theme={theme} />
+                        <TaskCard key={t.id} task={t} onEdit={openEditForm} onDelete={deleteTask} onComplete={completeTask} savedUserEmail={savedUserEmail} theme={theme} />
                       ))}
                     </div>
                     {/* Add task to this student shortcut */}

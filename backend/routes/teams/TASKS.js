@@ -13,20 +13,23 @@ async function ensureTasksTable() {
       description       TEXT,
       story_points      INT NOT NULL DEFAULT 1,
       priority          TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
-      status            TEXT NOT NULL DEFAULT 'ongoing' CHECK (status IN ('ongoing', 'complete')),
+      status            TEXT NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'complete')),
+      completed_at      TIMESTAMPTZ,
       created_by_email  TEXT,
       created_at        TIMESTAMPTZ DEFAULT NOW(),
       updated_at        TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  // Add priority column to existing tables that don't have it
   await db.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'medium'`);
-  // Migrate old easy/hard values to low/high
+  await db.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
   await db.query(`UPDATE tasks SET priority = 'low'  WHERE priority = 'easy'`).catch(() => {});
   await db.query(`UPDATE tasks SET priority = 'high' WHERE priority = 'hard'`).catch(() => {});
-  // Update CHECK constraint to allow low/medium/high
   await db.query(`ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_priority_check`).catch(() => {});
   await db.query(`ALTER TABLE tasks ADD CONSTRAINT tasks_priority_check CHECK (priority IN ('low', 'medium', 'high'))`).catch(() => {});
+  // Migrate 'ongoing' → 'in_progress' and update status constraint
+  await db.query(`ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check`).catch(() => {});
+  await db.query(`UPDATE tasks SET status = 'in_progress' WHERE status = 'ongoing'`).catch(() => {});
+  await db.query(`ALTER TABLE tasks ADD CONSTRAINT tasks_status_check CHECK (status IN ('in_progress', 'complete'))`).catch(() => {});
 }
 
 // Helper: verify the requesting user is the scrum master for this sprint
@@ -162,6 +165,11 @@ router.put("/:id/tasks/:taskId", async (req, res) => {
     if (!taskRes.rows.length) return res.status(404).json({ error: "Task not found" });
 
     const task = taskRes.rows[0];
+
+    if (task.status === "complete") {
+      return res.status(403).json({ error: "Completed tasks cannot be modified." });
+    }
+
     const isAssignedStudent = String(task.assigned_to_email).toLowerCase() === String(updated_by_email || "").toLowerCase();
     const scrumCheck = await isScrumMaster(req.params.id, task.sprint_id, updated_by_email);
 
@@ -186,6 +194,7 @@ router.put("/:id/tasks/:taskId", async (req, res) => {
          story_points        = COALESCE($3, story_points),
          priority            = COALESCE($4, priority),
          status              = COALESCE($5, status),
+         completed_at        = CASE WHEN $5 = 'complete' AND completed_at IS NULL THEN NOW() ELSE completed_at END,
          assigned_to_email   = COALESCE($6, assigned_to_email),
          updated_at          = NOW()
        WHERE id = $7`,

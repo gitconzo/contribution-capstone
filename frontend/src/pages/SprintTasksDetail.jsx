@@ -106,10 +106,15 @@ function CollapsibleSprintCard({ sprint, tasks, currentSprintId, darkMode, theme
                               {/* Status — pill with dot prefix */}
                               <span style={{ fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:999, background: isDone?"#166534":"#1d4ed8", color:"#fff", flexShrink:0, display:"flex", alignItems:"center", gap:4 }}>
                                 <span style={{ width:6, height:6, borderRadius:"50%", background: isDone?"#86efac":"#93c5fd", flexShrink:0, display:"inline-block" }}/>
-                                {isDone ? "Done" : "Ongoing"}
+                                {isDone ? "Done" : "In Progress"}
                               </span>
                             </div>
                             {t.description && <div style={{ fontSize:12, color:theme.subtext, marginTop:5, paddingLeft:18 }}>{t.description}</div>}
+                            {isDone && t.completed_at && (
+                              <div style={{ fontSize:11, color:"#16a34a", marginTop:4, paddingLeft:18 }}>
+                                Completed {new Date(t.completed_at).toLocaleDateString(undefined, { day:"numeric", month:"short", year:"numeric" })}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -207,7 +212,7 @@ export default function SprintTasksDetail({ teamId, teamName, darkMode, onBack }
             <div style={{ display:"flex", gap:10 }}>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                 <span style={{ fontSize:11, fontWeight:700, padding:"3px 10px", borderRadius:999, background:"#1d4ed8", color:"#fff", display:"flex", alignItems:"center", gap:4 }}>
-                  <span style={{ width:6, height:6, borderRadius:"50%", background:"#93c5fd", display:"inline-block" }}/>Ongoing
+                  <span style={{ width:6, height:6, borderRadius:"50%", background:"#93c5fd", display:"inline-block" }}/>In Progress
                 </span>
                 <span style={{ fontSize:11, color:theme.subtext }}>In progress</span>
               </div>
