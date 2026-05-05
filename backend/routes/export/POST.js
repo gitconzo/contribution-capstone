@@ -1,7 +1,6 @@
 // backend/routes/export/POST.js
 const router = require("express").Router();
 const { ROOT_DIR } = require("../../utils/config");
-const { readActiveId } = require("../../utils/activeTeamUtils");
 const { aggregateTeamScores } = require("../../services/aggregator");
 const os = require("os");
 const fs = require("fs");
@@ -11,8 +10,8 @@ const { execFileSync } = require("child_process");
 // GET /api/export?teamId=...
 router.post("/", async (req, res) => {
   try {
-    const teamId = req.body?.teamId || readActiveId();
-    if (!teamId) return res.status(400).json({ error: "Missing teamId" });
+    const teamId = req.body?.teamId;
+    if (!teamId) return res.status(400).json({ error: "teamId is required." });
 
     const payload = await aggregateTeamScores({ teamId, rootDir: ROOT_DIR });
     if (!payload?.ranking?.length) {

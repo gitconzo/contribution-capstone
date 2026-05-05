@@ -1,25 +1,25 @@
 {
-  "repo": "https://github.com/gitconzo/contribution-capstone/tree/dev",
+  "repo": "https://github.com/gitconzo/contribution-capstone",
   "authors": {
-    "Kavinduwer11": {
-      "average_complexity": 1.318,
-      "percentage_of_functions_written": 17.4,
-      "percentage_of_hotspots": 18.92
-    },
     "gitconzo": {
-      "average_complexity": 1.035,
-      "percentage_of_functions_written": 65.75,
-      "percentage_of_hotspots": 62.16
+      "average_complexity": 0.694,
+      "percentage_of_functions_written": 72.66,
+      "percentage_of_hotspots": 47.5
+    },
+    "urjenz": {
+      "average_complexity": 1.195,
+      "percentage_of_functions_written": 17.24,
+      "percentage_of_hotspots": 20.0
     },
     "jasonv47": {
-      "average_complexity": 1.119,
-      "percentage_of_functions_written": 16.85,
-      "percentage_of_hotspots": 18.92
+      "average_complexity": 0.942,
+      "percentage_of_functions_written": 10.1,
+      "percentage_of_hotspots": 32.5
     }
   },
   "%LOC": {
-    "gitconzo": 65.93,
-    "jasonv47": 11.98,
-    "Kavinduwer11": 22.09
+    "gitconzo": 48.75,
+    "urjenz": 45.04,
+    "jasonv47": 6.2
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { apiFetch } from "../utils/api";
+import { useActiveTeam } from "../context/TeamContext";
 
 const EMPTY_STUDENT = { name: "", email: "", github: "", aliases: "", roles: [] };
 const EMPTY_SPRINT   = { sprint_number: "", start_date: "", end_date: "", scrum_master_email: "" };
@@ -86,6 +87,7 @@ function toInputDate(d) {
 }
 
 export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
+  const { setActiveTeamId } = useActiveTeam();
   // ── Create-team form ──
   const [name, setName]           = useState("");
   const [code, setCode]           = useState("");
@@ -1050,9 +1052,17 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                   type="checkbox"
                   checked={checked}
                   onChange={() => {
-                    const current = s.roles || [];
-                    const next = checked ? current.filter(r => r !== value) : [...current, value];
-                    updateNewStudent(i, "roles", next);
+                    if (checked) {
+                      updateNewStudent(i, "roles", (s.roles || []).filter(r => r !== value));
+                    } else {
+                      // Remove this role from every other student first, then assign to this one
+                      setNewStudents(prev => prev.map((student, idx) => ({
+                        ...student,
+                        roles: idx === i
+                          ? [...(student.roles || []).filter(r => r !== value), value]
+                          : (student.roles || []).filter(r => r !== value),
+                      })));
+                    }
                   }}
                   style={{ accentColor:"#2d5db8" }}
                 />
@@ -1141,7 +1151,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                       <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>{t.repo?.url||"No repo set"}</div>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                      <button onClick={async e => { e.stopPropagation(); await apiFetch("/api/teams/active",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:t.id})}); localStorage.setItem("activeTeamId",t.id); alert("Active team updated."); }} style={btn({fontSize:11,padding:"5px 9px"})}>Make Active</button>
+                      <button onClick={e => { e.stopPropagation(); setActiveTeamId(t.id); }} style={btn({fontSize:11,padding:"5px 9px"})}>Make Active</button>
                       <button onClick={e => { e.stopPropagation(); onDeleteTeam(t.id); }} style={btn({background:"#b83232",fontSize:11,padding:"5px 9px"})}>Delete</button>
                       <span style={{ color:theme.subtext, fontSize:16, userSelect:"none" }}>{isExpanded?"▲":"▼"}</span>
                     </div>

@@ -68,16 +68,13 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
 
   useEffect(() => {
     (async () => {
-      const [allTeams, activeTeam] = await Promise.all([
-        apiFetch("/api/teams").then(r => r.json()),
-        apiFetch("/api/teams/active").then(r => r.json()),
-      ]);
+      const allTeams = await apiFetch("/api/teams").then(r => r.json()).catch(() => []);
       const resolvedTeams = Array.isArray(allTeams) ? allTeams : [];
-      const resolvedId    = activeTeam?.id || resolvedTeams[0]?.id || "";
       setTeams(resolvedTeams);
       sessionStorage.setItem("dashboardTeamsCache", JSON.stringify(resolvedTeams));
-      if (resolvedId && resolvedId !== teamId) {
-        setTeamId(resolvedId);
+      // If context has no team, or the stored team no longer belongs to this tutor, fall back to first
+      if (resolvedTeams.length && !resolvedTeams.find(t => t.id === teamId)) {
+        setTeamId(resolvedTeams[0].id);
         setScores(null); setTeamStudents([]);
         sessionStorage.removeItem("dashboardScoresCache");
         sessionStorage.removeItem("dashboardStudentsCache");
@@ -213,7 +210,6 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
               setSelectedSprintId("overall"); setSprintScores(null);
               setScores(null); setTeamStudents([]);
               sessionStorage.removeItem("dashboardScoresCache"); sessionStorage.removeItem("dashboardStudentsCache");
-              await apiFetch("/api/teams/active", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:newId}) });
             }}
             style={selectBox(theme)} title="Select project or team"
           >

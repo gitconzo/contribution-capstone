@@ -1,14 +1,13 @@
 // backend/routes/rules/GET.js
 const router = require("express").Router();
 const db = require("../../utils/db");
-const { readActiveId } = require("../../utils/activeTeamUtils");
 const { DEFAULT_RULES, weightsFromRules } = require("./_defaults");
 
-// GET /api/rules?teamId=TEAM_ID  (falls back to active team)
+// GET /api/rules?teamId=TEAM_ID
 router.get("/", async (req, res) => {
   try {
-    const teamId = req.query.teamId || readActiveId();
-    if (!teamId) return res.status(400).json({ error: "No active team and no teamId supplied." });
+    const teamId = req.query.teamId;
+    if (!teamId) return res.status(400).json({ error: "teamId is required." });
 
     const teamCheck = await db.query("SELECT id FROM teams WHERE id = $1", [teamId]);
     if (!teamCheck.rows.length) return res.status(404).json({ error: "Team not found" });

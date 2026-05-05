@@ -13,11 +13,6 @@ const UPLOAD_DIR = path.join(ROOT_DIR, process.env.UPLOADS_DIR || "uploads");
 const PARSED_DIR = path.join(DATA_DIR, process.env.PARSED_DIR || "parsed");
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
 
-// Derived paths
-const REGISTRY_PATH = path.join(ROOT_DIR, "fileRegistry.json");
-const TEAMS_PATH = path.join(DATA_DIR, "teams.json");
-const ACTIVE_TEAM_PATH = path.join(DATA_DIR, "activeTeam.json");
-
 module.exports = {
   PORT,
   ROOT_DIR,
@@ -25,7 +20,4 @@ module.exports = {
   UPLOAD_DIR,
   PARSED_DIR,
   GITHUB_TOKEN,
-  REGISTRY_PATH,
-  TEAMS_PATH,
-  ACTIVE_TEAM_PATH,
 };

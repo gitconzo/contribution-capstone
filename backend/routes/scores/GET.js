@@ -4,15 +4,14 @@ const path = require("path");
 const fs = require("fs");
 const db = require("../../utils/db");
 const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
-const { readActiveId } = require("../../utils/activeTeamUtils");
 const { aggregateTeamScores } = require("../../services/aggregator");
 const { safeReadJson } = require("../../utils/fileUtils");
 
 // GET /api/scores?teamId=...
 router.get("/", async (req, res) => {
   try {
-    const teamId = req.query.teamId || readActiveId();
-    if (!teamId) return res.status(400).json({ error: "No active team." });
+    const teamId = req.query.teamId;
+    if (!teamId) return res.status(400).json({ error: "teamId is required." });
 
     const usePeerReview = req.query.usePeerReview === "true";
 

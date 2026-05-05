@@ -1,7 +1,6 @@
 // backend/routes/teams/GET.js
 const router = require("express").Router();
 const db = require("../../utils/db");
-const { readActiveId } = require("../../utils/activeTeamUtils");
 const { getUserStatus } = require("../../utils/cognitoAdmin");
 const { protect } = require("../../middleware/authMiddleware");
 
@@ -48,39 +47,6 @@ router.get("/", protect, async (req, res) => {
     }
 
     res.json(teamsResult.rows.map(t => normalizeTeam(t, studentsByTeam[t.id])));
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// GET /api/teams/active — must be before /:id
-router.get("/active", protect, async (req, res) => {
-  try {
-    const email = req.user.email;
-    const savedId = readActiveId();
-
-    if (savedId) {
-      const result = await db.query(
-        `SELECT t.*, u.code FROM teams t
-         LEFT JOIN units u ON t.unit_id = u.id
-         WHERE t.id = $1 AND (t.owner_email = $2 OR t.owner_email IS NULL)`,
-        [savedId, email]
-      );
-      if (result.rows.length) {
-        const studentsRes = await db.query("SELECT * FROM students WHERE team_id = $1", [savedId]);
-        return res.json(normalizeTeam(result.rows[0], studentsRes.rows));
-      }
-    }
-
-    // Fallback: most recently created team belonging to this tutor
-    const result = await db.query(
-      `SELECT t.*, u.code FROM teams t
-       LEFT JOIN units u ON t.unit_id = u.id
-       WHERE t.owner_email = $1 OR t.owner_email IS NULL
-       ORDER BY t.created_at DESC LIMIT 1`,
-      [email]
-    );
-    res.json(result.rows[0] ? normalizeTeam(result.rows[0], []) : { id: null });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

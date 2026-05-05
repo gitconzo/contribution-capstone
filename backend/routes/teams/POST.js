@@ -19,17 +19,6 @@ function buildRoleString(rolesArr = []) {
   return valid.length ? valid.join(",") : "member";
 }
 
-// POST /api/teams/active
-router.post("/active", async (req, res) => {
-  const { id } = req.body || {};
-  if (!id) return res.status(400).json({ error: "Missing id" });
-  const result = await db.query("SELECT id FROM teams WHERE id = $1", [id]);
-  if (!result.rows.length) return res.status(404).json({ error: "Team not found" });
-  const { writeActiveId } = require("../../utils/activeTeamUtils");
-  writeActiveId(id);
-  res.json({ success: true, id });
-});
-
 // POST /api/teams/:id/claim-leader
 router.post("/:id/claim-leader", async (req, res) => {
   const { email } = req.body || {};
