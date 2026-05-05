@@ -134,7 +134,7 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
 
             complexity = (
                 0.5 * (func.cyclomatic_complexity or 1) +
-                0.2 * (func.max_nesting_level or 0) +
+                0.2 * (func.max_nesting_depth or 0) +
                 0.2 * ((func.nloc or 0) / 10) +
                 0.1 * (func.parameter_count or 0)
             )

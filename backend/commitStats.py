@@ -19,6 +19,9 @@ def get_commit_stats(tempFolder, start_date=None, end_date=None):
     commits_list = []  # store individual commits instead of aggregating
 
     all_commits = []
+    print(f"Repo references count: {len(list(repo.references))}")
+    print(f"Repo heads: {[h.name for h in repo.heads]}")
+    print(f"Repo remotes: {[r.name for r in repo.remotes]}")
     for ref in repo.references:
         try:
             for commit in repo.iter_commits(ref, max_count=None):

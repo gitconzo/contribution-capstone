@@ -1,5 +1,25 @@
 {
-  "repo": "https://github.com/gitconzo/contribution-capstone/tree/dev",
-  "authors": {},
-  "%LOC": {}
+  "repo": "https://github.com/gitconzo/contribution-capstone/tree/dynamic-file-registry",
+  "authors": {
+    "Kavinduwer11": {
+      "average_complexity": 1.889,
+      "percentage_of_functions_written": 51.19,
+      "percentage_of_hotspots": 37.16
+    },
+    "gitconzo": {
+      "average_complexity": 2.302,
+      "percentage_of_functions_written": 34.69,
+      "percentage_of_hotspots": 48.76
+    },
+    "jasonv47": {
+      "average_complexity": 2.086,
+      "percentage_of_functions_written": 14.12,
+      "percentage_of_hotspots": 14.09
+    }
+  },
+  "%LOC": {
+    "gitconzo": 48.21,
+    "jasonv47": 10.1,
+    "Kavinduwer11": 41.69
+  }
 }

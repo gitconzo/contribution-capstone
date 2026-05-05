@@ -80,6 +80,24 @@ def main():
         else:
             Repo.clone_from(cleanURL, tempFolder)
         print(f"Repository cloned to: {tempFolder}")
+
+        # For sprint analysis, checkout repo state at end of sprint
+        if args.end_date:
+            from datetime import datetime, timezone
+            end_dt = datetime.strptime(args.end_date, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=timezone.utc
+            )
+            repo = Repo(tempFolder)
+            # Find the last commit before or on the end date
+            last_commit = None
+            for commit in repo.iter_commits('HEAD', max_count=None):
+                commit_dt = datetime.fromtimestamp(commit.committed_date, tz=timezone.utc)
+                if commit_dt <= end_dt:
+                    last_commit = commit
+                    break
+            if last_commit:
+                repo.git.checkout(last_commit.hexsha)
+                print(f"Checked out repo at {last_commit.hexsha[:7]} ({last_commit.committed_date})")
  
         results = analyse_functions(tempFolder, start_date=args.start_date, end_date=args.end_date)
         locPercentage = calculate_LOC(tempFolder, start_date=args.start_date, end_date=args.end_date)
@@ -93,13 +111,17 @@ def main():
  
     dataDir = os.path.join(currentDirectory, "data")
     os.makedirs(dataDir, exist_ok=True)
- 
-    # Write output.json (complexity + LOC)
-    outputJson = os.path.join(dataDir, "output.json")
+
+    # If custom output path, use temp intermediate files to avoid overwriting shared files
+    if args.output:
+        outputJson  = args.output.replace(".json", "_output.json")
+        commitsJson = args.output.replace(".json", "_commits.json")
+    else:
+        outputJson  = os.path.join(dataDir, "output.json")
+        commitsJson = os.path.join(dataDir, "commits.json")
+
     write_json(outputJson, repoURL, results, locPercentage)
- 
-    # Write commits.json from git log
-    commitsJson = os.path.join(dataDir, "commits.json")
+
     commitsData = build_commits_json(commitStats)
     with open(commitsJson, "w", encoding="utf-8") as f:
         json.dump(commitsData, f, indent=2)
@@ -125,13 +147,23 @@ def main():
     # Combine everything into finalStats.json
     finalStatsJson = args.output if args.output else os.path.join(dataDir, "finalStats.json")
     if args.output:
-        os.makedirs(os.path.dirname(finalStatsJson), exist_ok=True)
+        dirName = os.path.dirname(finalStatsJson)
+        if dirName:
+            os.makedirs(dirName, exist_ok=True)
     combine_json(
         outputJson=outputJson,
         commitsJson=commitsJson,
         finalStatsJson=finalStatsJson,
     )
- 
+
+    # Clean up temp intermediate files for sprint analysis
+    if args.output:
+        for f in [outputJson, commitsJson]:
+            try:
+                os.remove(f)
+            except Exception:
+                pass
+
  
 if __name__ == "__main__":
     main()

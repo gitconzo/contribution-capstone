@@ -2,7 +2,7 @@ import os
 from git import Repo
 from collections import defaultdict
 from ignoreFiles import should_ignore, IGNORE_DIRS
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 
 def calculate_LOC(tempFolder, start_date=None, end_date=None):
@@ -12,9 +12,7 @@ def calculate_LOC(tempFolder, start_date=None, end_date=None):
 
     isSprint = start_date is not None or end_date is not None
 
-    # For sprint mode, get files changed in date range
-    # then run blame on those files WITHOUT date filtering
-    # This counts who currently owns lines in files that were touched during the sprint
+    # For sprint mode — get files changed in date range, run blame without date filter
     sprintFiles = None
     if isSprint:
         start_dt = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -47,11 +45,8 @@ def calculate_LOC(tempFolder, start_date=None, end_date=None):
             relPath = os.path.relpath(absPath, tempFolder).replace("\\", "/")
             if should_ignore(relPath):
                 continue
-
-            # In sprint mode, only process files changed during the sprint
             if sprintFiles is not None and relPath not in sprintFiles:
                 continue
-
             try:
                 blameOutput = repo.git.blame('--line-porcelain', relPath)
             except Exception:
@@ -65,6 +60,10 @@ def calculate_LOC(tempFolder, start_date=None, end_date=None):
                 elif line.startswith("author "):
                     current_author = line.replace("author ", "").strip()
                 elif line.startswith("\t") and current_author:
+                    # Skip lines that are only closing brackets/braces/parens
+                    lineContent = line[1:].strip()
+                    if lineContent in ("}", ")", "]", "};", ");", "],", "},", "})", "}):", "});", " "):
+                        continue
                     authorLOC[current_author] += 1
 
     totalLOC = sum(authorLOC.values()) or 1

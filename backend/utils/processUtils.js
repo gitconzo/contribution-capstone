@@ -10,7 +10,7 @@ function pyBin() {
 // Runs an executable and returns a Promise resolving to { stdout, stderr }.
 function runFile(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, opts, (err, stdout, stderr) => {
+    execFile(cmd, args, { maxBuffer: 100 * 1024 * 1024, ...opts }, (err, stdout, stderr) => {
       if (err) return reject(new Error((stderr && stderr.trim()) || err.message));
       resolve({ stdout, stderr });
     });
