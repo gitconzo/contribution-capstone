@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useActiveTeam } from "../context/TeamContext";
 import { apiFetch } from "../utils/api";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -23,22 +24,26 @@ function formatWeightKey(key) {
 
 // Which sections each format supports
 const FORMAT_SUPPORTS = {
-  pdf:   { charts: true,  timeline: true,  rules: true  },
-  word:  { charts: false, timeline: true,  rules: true  },
-  csv:   { charts: false, timeline: false, rules: false },
-  excel: { charts: true,  timeline: false, rules: false },
+  pdf:   { charts: true,  timeline: true,  rules: true,  sprintTasks: true  },
+  word:  { charts: false, timeline: true,  rules: true,  sprintTasks: true  },
+  csv:   { charts: false, timeline: false, rules: false, sprintTasks: true  },
+  excel: { charts: true,  timeline: false, rules: false, sprintTasks: false },
 };
 
 export default function ExportReport({ darkMode }) {
   const [selectedFormat, setSelectedFormat] = useState("pdf");
   const [selectedStudents, setSelectedStudents] = useState([]);
-  const [sections, setSections] = useState({ charts: true, timeline: true, rules: true });
+  const [sections, setSections] = useState({ charts: true, timeline: true, rules: true, sprintTasks: true });
   const [team, setTeam] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState(null);
+  const [sprints, setSprints] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [selectedSprintId, setSelectedSprintId] = useState("all");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
+  const { activeTeamId } = useActiveTeam();
 
   const theme = darkMode
     ? {
@@ -66,19 +71,20 @@ export default function ExportReport({ darkMode }) {
     const loadTeam = async () => {
       try {
         setLoading(true);
-        const activeRes = await apiFetch(`/api/teams/active`);
-        const activeData = await activeRes.json();
-        const teamsRes = await apiFetch(`/api/teams`);
-        const teamsData = await teamsRes.json();
-        const teamId = activeData?.id;
+        const teamsData = await apiFetch(`/api/teams`).then(r => r.json()).catch(() => []);
+        const teamId = activeTeamId || teamsData?.[0]?.id;
         const activeTeam = (teamsData || []).find((t) => t.id === teamId);
         setTeam(activeTeam || null);
         setStudents(activeTeam?.students || []);
         if (teamId) {
-          const scoresRes = await apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`);
-          const scoresData = await scoresRes.json();
+          const [scoresData, sprintsData, tasksData] = await Promise.all([
+            apiFetch(`/api/scores?teamId=${encodeURIComponent(teamId)}`).then(r => r.json()),
+            apiFetch(`/api/teams/${encodeURIComponent(teamId)}/sprints`).then(r => r.json()).catch(() => []),
+            apiFetch(`/api/teams/${encodeURIComponent(teamId)}/tasks`).then(r => r.json()).catch(() => []),
+          ]);
           setScores(scoresData);
-          // Auto-select all students on first load
+          setSprints(Array.isArray(sprintsData) ? sprintsData : []);
+          setTasks(Array.isArray(tasksData) ? tasksData : []);
           if (scoresData?.ranking?.length) {
             setSelectedStudents(scoresData.ranking.map(s => s.email));
           }
@@ -92,7 +98,7 @@ export default function ExportReport({ darkMode }) {
       }
     };
     loadTeam();
-  }, []);
+  }, [activeTeamId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ranking = useMemo(() => scores?.ranking || [], [scores]);
 
@@ -100,6 +106,12 @@ export default function ExportReport({ darkMode }) {
     if (!selectedStudents.length) return ranking;
     return ranking.filter(student => selectedStudents.includes(student.email));
   }, [ranking, selectedStudents]);
+
+  const filteredTasks = useMemo(() => {
+    let result = selectedSprintId === "all" ? tasks : tasks.filter(t => String(t.sprint_id) === String(selectedSprintId));
+    if (selectedStudents.length) result = result.filter(t => selectedStudents.includes(t.assigned_to_email));
+    return result;
+  }, [tasks, selectedSprintId, selectedStudents]);
 
   const toggleStudent = (email) => {
     setSelectedStudents((prev) =>
@@ -120,11 +132,15 @@ export default function ExportReport({ darkMode }) {
   const sectionsIncluded = useMemo(() => {
     const supported = FORMAT_SUPPORTS[selectedFormat] || {};
     const list = ["Student scores and rankings"];
-    if (sections.charts && supported.charts)   list.push("Charts and visualizations");
-    if (sections.timeline && supported.timeline) list.push("Activity timeline & evidence");
-    if (sections.rules && supported.rules)     list.push("Rule weights & calculation methods");
+    if (sections.charts && supported.charts)         list.push("Charts and visualizations");
+    if (sections.timeline && supported.timeline)     list.push("Activity timeline & evidence");
+    if (sections.rules && supported.rules)           list.push("Rule weights & calculation methods");
+    if (sections.sprintTasks && supported.sprintTasks) {
+      const sp = sprints.find(s => String(s.id) === String(selectedSprintId));
+      list.push(`Sprint task breakdown (${sp ? `Sprint ${sp.sprint_number}` : "All Sprints"})`);
+    }
     return list;
-  }, [sections, selectedFormat]);
+  }, [sections, selectedFormat, selectedSprintId, sprints]);
 
   // PDF
   function generatePDF() {
@@ -271,6 +287,65 @@ export default function ExportReport({ darkMode }) {
       });
     }
 
+    // Sprint task breakdown
+    if (sections.sprintTasks && filteredTasks.length) {
+      if (y > 220) { doc.addPage(); y = 20; }
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      const sprintLabel = selectedSprintId === "all" ? "All Sprints" : `Sprint ${sprints.find(s => String(s.id) === String(selectedSprintId))?.sprint_number || ""}`;
+      doc.text(`Sprint Task Breakdown — ${sprintLabel}`, 14, y);
+      y += 4;
+
+      // Per-student summary
+      const taskSummary = filteredRanking.map(r => {
+        const mine = filteredTasks.filter(t => t.assigned_to_email === r.email);
+        const done = mine.filter(t => t.status === "complete");
+        return [
+          r.name || r.email,
+          mine.length,
+          done.length,
+          done.reduce((s, t) => s + (t.story_points || 0), 0),
+          mine.length ? `${Math.round((done.length / mine.length) * 100)}%` : "—",
+        ];
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Student", "Assigned", "Completed", "Story Points", "Completion"]],
+        body: taskSummary,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [17, 24, 39] },
+      });
+      y = doc.lastAutoTable.finalY + 10;
+
+      // Per-sprint detail tables
+      const sprintsToShow = selectedSprintId === "all" ? sprints : sprints.filter(s => String(s.id) === String(selectedSprintId));
+      sprintsToShow.forEach(sprint => {
+        const sprintTasks = filteredTasks.filter(t => String(t.sprint_id) === String(sprint.id));
+        if (!sprintTasks.length) return;
+        if (y > 240) { doc.addPage(); y = 20; }
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Sprint ${sprint.sprint_number}  (${sprint.start_date} → ${sprint.end_date})`, 14, y);
+        y += 4;
+        autoTable(doc, {
+          startY: y,
+          head: [["Student", "Task", "Difficulty", "Pts", "Status", "Completed"]],
+          body: sprintTasks.map(t => [
+            t.assigned_to_name || t.assigned_to_email,
+            t.title,
+            t.priority || "medium",
+            t.story_points || 1,
+            t.status === "complete" ? "Done" : "In Progress",
+            t.completed_at ? new Date(t.completed_at).toLocaleDateString() : "—",
+          ]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [55, 65, 81] },
+        });
+        y = doc.lastAutoTable.finalY + 10;
+      });
+    }
+
     doc.save(filename);
   }
 
@@ -375,6 +450,59 @@ export default function ExportReport({ darkMode }) {
       });
     }
 
+    // Sprint task breakdown
+    if (sections.sprintTasks && filteredTasks.length) {
+      const sprintLabel = selectedSprintId === "all" ? "All Sprints" : `Sprint ${sprints.find(s => String(s.id) === String(selectedSprintId))?.sprint_number || ""}`;
+      children.push(new Paragraph({ text: `Sprint Task Breakdown — ${sprintLabel}`, heading: HeadingLevel.HEADING_2 }));
+
+      // Summary table
+      children.push(
+        new Table({
+          width: { size: 9000, type: WidthType.DXA },
+          rows: [
+            headerRow(["Student", "Assigned", "Completed", "Story Points", "Completion %"]),
+            ...filteredRanking.map(r => {
+              const mine = filteredTasks.filter(t => t.assigned_to_email === r.email);
+              const done = mine.filter(t => t.status === "complete");
+              return dataRow([
+                r.name || r.email,
+                mine.length,
+                done.length,
+                done.reduce((s, t) => s + (t.story_points || 0), 0),
+                mine.length ? `${Math.round((done.length / mine.length) * 100)}%` : "—",
+              ]);
+            }),
+          ],
+        }),
+        new Paragraph({ text: "" }),
+      );
+
+      // Per-sprint detail tables
+      const sprintsToShow = selectedSprintId === "all" ? sprints : sprints.filter(s => String(s.id) === String(selectedSprintId));
+      sprintsToShow.forEach(sprint => {
+        const sprintTasks = filteredTasks.filter(t => String(t.sprint_id) === String(sprint.id));
+        if (!sprintTasks.length) return;
+        children.push(
+          new Paragraph({ text: `Sprint ${sprint.sprint_number} (${sprint.start_date} → ${sprint.end_date})`, heading: HeadingLevel.HEADING_3 }),
+          new Table({
+            width: { size: 9000, type: WidthType.DXA },
+            rows: [
+              headerRow(["Student", "Task", "Difficulty", "Points", "Status", "Completed"]),
+              ...sprintTasks.map(t => dataRow([
+                t.assigned_to_name || t.assigned_to_email,
+                t.title,
+                t.priority || "medium",
+                t.story_points || 1,
+                t.status === "complete" ? "Done" : "In Progress",
+                t.completed_at ? new Date(t.completed_at).toLocaleDateString() : "—",
+              ])),
+            ],
+          }),
+          new Paragraph({ text: "" }),
+        );
+      });
+    }
+
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     const url = URL.createObjectURL(blob);
@@ -453,7 +581,29 @@ export default function ExportReport({ darkMode }) {
             ((raw.attendance || 0) * 100).toFixed(1),
           ];
         });
-        const csv = [headers, ...rows]
+        let csvRows = [headers, ...rows];
+
+        if (sections.sprintTasks && filteredTasks.length) {
+          csvRows.push([]);
+          csvRows.push(["--- Sprint Task Breakdown ---"]);
+          csvRows.push(["Sprint", "Student", "Task", "Difficulty", "Story Points", "Status", "Completed Date"]);
+          const sprintsToShow = selectedSprintId === "all" ? sprints : sprints.filter(s => String(s.id) === String(selectedSprintId));
+          sprintsToShow.forEach(sprint => {
+            filteredTasks.filter(t => String(t.sprint_id) === String(sprint.id)).forEach(t => {
+              csvRows.push([
+                `Sprint ${sprint.sprint_number}`,
+                t.assigned_to_name || t.assigned_to_email,
+                t.title,
+                t.priority || "medium",
+                t.story_points || 1,
+                t.status === "complete" ? "Done" : "In Progress",
+                t.completed_at ? new Date(t.completed_at).toLocaleDateString() : "—",
+              ]);
+            });
+          });
+        }
+
+        const csv = csvRows
           .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
           .join("\n");
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -557,9 +707,10 @@ export default function ExportReport({ darkMode }) {
               <div style={{ fontSize: "15px", color: theme.subtext, marginBottom: "18px" }}>Select which sections to include in the exported report</div>
               <div style={{ display: "grid", gap: "12px", fontSize: "15px" }}>
                 {[
-                  ["charts",   "Contribution Charts & Visualizations"],
-                  ["timeline", "Activity Timeline & Evidence"],
-                  ["rules",    "Rule Weights & Calculation Methods"],
+                  ["charts",      "Contribution Charts & Visualizations"],
+                  ["timeline",    "Activity Timeline & Evidence"],
+                  ["rules",       "Rule Weights & Calculation Methods"],
+                  ["sprintTasks", "Sprint Task Breakdown"],
                 ].map(([key, label]) => {
                   const supported = FORMAT_SUPPORTS[selectedFormat]?.[key] ?? false;
                   return (
@@ -583,6 +734,29 @@ export default function ExportReport({ darkMode }) {
                   );
                 })}
               </div>
+
+              {/* Sprint selector — shown when sprint tasks section is on */}
+              {sections.sprintTasks && FORMAT_SUPPORTS[selectedFormat]?.sprintTasks && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${theme.border}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 8 }}>Sprint for Task Report</div>
+                  {sprints.length === 0 ? (
+                    <div style={{ fontSize: 13, color: theme.subtext }}>No sprints configured for this team.</div>
+                  ) : (
+                    <select
+                      value={selectedSprintId}
+                      onChange={e => setSelectedSprintId(e.target.value)}
+                      style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${theme.border}`, background: theme.card, color: theme.text, fontSize: 13, width: "100%", cursor: "pointer" }}
+                    >
+                      <option value="all">All Sprints</option>
+                      {sprints.map(sp => (
+                        <option key={sp.id} value={String(sp.id)}>
+                          Sprint {sp.sprint_number} ({sp.start_date} → {sp.end_date})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Student selection */}

@@ -4,3 +4,6 @@ node_modules
 __pycache__/
 *.pyc
 *.pyo
+backend/data/activeTeam.json
+backend/data/teams.json
+backend/data/groups/groups.json
