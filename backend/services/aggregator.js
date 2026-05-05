@@ -472,12 +472,12 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     : null;
 
   const artifactsRes = await db.query(
-    `SELECT json_path, COALESCE(user_type, detected_type) AS user_type FROM file_registry
+    `SELECT json_path, COALESCE(user_type, detected_type) AS user_type, sprint_id FROM file_registry
      WHERE team_id = $1 AND status = 'parsed'
        AND COALESCE(user_type, detected_type) IN ('sprint_report', 'project_plan', 'attendance')
        AND json_path IS NOT NULL
-       ${sprintId ? `AND (sprint_id = $2::text OR sprint_id IS NULL)` : ''}`,
-    sprintId ? [teamId, String(sprintId)] : [teamId]
+       AND ($2::text IS NULL OR sprint_id::text = $2::text OR sprint_id IS NULL)`,
+    [teamId, sprintId ? String(sprintId) : null]
   );
 
   const sprintData = [], projectData = [], attendanceData = [];

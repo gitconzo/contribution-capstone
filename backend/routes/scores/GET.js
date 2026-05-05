@@ -45,6 +45,7 @@ router.get("/", async (req, res) => {
         rootDir: ROOT_DIR,
         usePeerReview,
         sprintStats,
+        sprintId: sp.id,
       });
       sprintResults.push(scored);
     }

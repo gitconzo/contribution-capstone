@@ -265,9 +265,8 @@ router.get("/:id/sprints/:sprintId/scores", async (req, res) => {
     const scored = await aggregateTeamScores({ 
       teamId, 
       rootDir: ROOT_DIR, 
-      sprintStats,
-      sprintId: parseInt(sprintId),
-    });
+      sprintStats, 
+      sprintId: parseInt(sprintId) });
     res.json(scored);
   } catch (e) {
     res.status(500).json({ error: e.message });
