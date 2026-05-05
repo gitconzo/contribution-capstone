@@ -103,6 +103,9 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
   const [tasksBySprintId, setTasksBySprintId] = useState({});
   const [tasksLoading,    setTasksLoading]    = useState(false);
 
+  const fairShare = scores?.studentsCount > 0
+    ? Math.round(100 / scores.studentsCount)
+    : null;
 
   const theme = darkMode
     ? {
@@ -245,22 +248,33 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
   const codeScoreByKey = useMemo(() => {
     const ranking = activeScores?.ranking || [];
     if (!ranking.length) return new Map();
+    const map = new Map();
     const w = activeScores?.weights || {};
     const dw = { loc:12, editedCode:10, commits:7, functions:12, hotspots:10, codeComplexity:9 };
-    const ww = { loc:w.loc??dw.loc, editedCode:w.editedCode??dw.editedCode, commits:w.commits??dw.commits, functions:w.functions??dw.functions, hotspots:w.hotspots??dw.hotspots, codeComplexity:w.codeComplexity??dw.codeComplexity };
-    const dims = ["loc","editedCode","commits","functions","hotspots","codeComplexity"];
-    const sums = ranking.map(r => dims.reduce((s,d) => s+((r.breakdown?.[d]||0)*(ww[d]||0)),0));
-    const maxSum = Math.max(...sums, 1);
-    const map = new Map();
-    ranking.forEach((r,i) => map.set(r.email||r.name, Math.round((sums[i]/maxSum)*100)));
+    const codeWeightTotal = (w.loc??dw.loc) + (w.editedCode??dw.editedCode) + (w.commits??dw.commits) +
+      (w.functions??dw.functions) + (w.hotspots??dw.hotspots) + (w.codeComplexity??dw.codeComplexity);
+
+    ranking.forEach(r => {
+      const b = r.breakdown || {};
+      const weightedSum =
+        (b.loc || 0)            * (w.loc??dw.loc) +
+        (b.editedCode || 0)     * (w.editedCode??dw.editedCode) +
+        (b.commits || 0)        * (w.commits??dw.commits) +
+        (b.functions || 0)      * (w.functions??dw.functions) +
+        (b.hotspots || 0)       * (w.hotspots??dw.hotspots) +
+        (b.codeComplexity || 0) * (w.codeComplexity??dw.codeComplexity);
+      const score = Math.round((weightedSum / codeWeightTotal) * 100);
+      map.set(r.email || r.name, score);
+    });
     return map;
-  }, [activeScores]);
+  }, [activeScores])
 
   const kpis = useMemo(() => {
     const list = activeScores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
     const avg = Math.round((list.reduce((s,r) => s+(r.score||0),0)/list.length)*10)/10;
-    return { avg, high:`${list.filter(r=>r.score>=80).length}/${list.length}`, commits:0 };
+    const fs = list.length > 0 ? 100 / list.length : 25;
+    return { avg, high:`${list.filter(r=>r.score>=fs).length}/${list.length}`, commits:0 };
   }, [activeScores]);
 
   const handleReset = async () => {
@@ -330,7 +344,7 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
       <div style={rowBetween()}>
         <div>
           <h1 style={{ margin:0, fontSize:24, fontWeight:700, color:theme.text }}>Project Dashboard</h1>
-          <div style={{ color:theme.subtext, fontSize:14 }}>Monitor team contribution and performance metrics</div>
+          <div style={{ color:theme.subtext, fontSize:14 }}>Monitor team contribution and performance metrics. Scores are calculated based on group size. In a group of 4, a fair score score for contribution would be 25%</div>
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
           <button onClick={handleReset} disabled={resetting} style={{ padding:"8px 14px", borderRadius:10, border:"1px solid #dc2626", background:resetting?"#fee2e2":theme.buttonBg, cursor:resetting?"not-allowed":"pointer", fontSize:13, color:"#dc2626", fontWeight:500 }}>
@@ -420,12 +434,11 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
       {/* ── KPIs ── */}
       <div style={{ display:"grid", gap:12, gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))", marginTop:12 }}>
         <KpiCard theme={theme} title="Average Score" icon={<BarChart3 size={16} color={theme.mutedIcon}/>}>
-          <div style={{ fontSize:20, fontWeight:700, color:"#16a34a" }}>{kpis.avg}%</div>
-          <Progress value={kpis.avg} theme={theme}/>
+          <div style={{ fontSize:20, fontWeight:700, color:scoreColor(kpis.avg, fairShare) }}>{kpis.avg}%</div>
         </KpiCard>
         <KpiCard theme={theme} title="High Contributors" icon={<UserRound size={16} color={theme.mutedIcon}/>}>
           <div style={{ fontSize:20, fontWeight:700, color:theme.text }}>{kpis.high}</div>
-          <div style={{ fontSize:12, color:theme.subtext }}>Students scoring 80% or above</div>
+          <div style={{ fontSize:12, color:theme.subtext }}>Students at or above fair share ({fairShare || 25}%)</div>
         </KpiCard>
         <KpiCard theme={theme} title="Total Commits" icon={<GitCommitHorizontal size={16} color={theme.mutedIcon}/>}>
           <div style={{ fontSize:20, fontWeight:700, color:theme.text }}>{kpis.commits}</div>
@@ -666,12 +679,17 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
           const breakdown = s.breakdown||{};
           const raw       = s.raw||{};
           const weights   = activeScores?.weights||{};
-          const docWeights = { avgSentenceLength:weights.avgSentenceLength??5, sentenceComplexity:weights.sentenceComplexity??5, wordCount:weights.wordCount??7, readability:weights.readability??11 };
-          const docMetrics = { avgSentenceLength:breakdown.avgSentenceLength||0, sentenceComplexity:breakdown.sentenceComplexity||0, wordCount:breakdown.wordCount||0, readability:breakdown.readability||0 };
-          const totalDocWeight   = Object.values(docWeights).reduce((s,w)=>s+w,0);
-          const weightedDocScore = totalDocWeight>0 ? Object.entries(docMetrics).reduce((s,[k,v])=>s+(v*docWeights[k]),0)/totalDocWeight : 0;
-          const docScore   = Math.round(weightedDocScore*100);
-          const codeScore  = codeScoreByKey.get(s.email||s.name)??0;
+          const codeScore = codeScoreByKey.get(s.email || s.name) ?? 0;
+          const b = s.breakdown || {};
+          const dw2 = { wordCount:7, avgSentenceLength:5, sentenceComplexity:5, readability:11 };
+          const docWeightTotal = (weights.wordCount??dw2.wordCount) + (weights.avgSentenceLength??dw2.avgSentenceLength) +
+            (weights.sentenceComplexity??dw2.sentenceComplexity) + (weights.readability??dw2.readability);
+          const docWeightedSum =
+            (b.wordCount || 0)          * (weights.wordCount??dw2.wordCount) +
+            (b.avgSentenceLength || 0)  * (weights.avgSentenceLength??dw2.avgSentenceLength) +
+            (b.sentenceComplexity || 0) * (weights.sentenceComplexity??dw2.sentenceComplexity) +
+            (b.readability || 0)        * (weights.readability??dw2.readability);
+          const docScore = Math.round((docWeightedSum / docWeightTotal) * 100);
           const wordCount  = raw.wordCount||0;
           const attendance = Math.round((raw.attendance||0)*100);
 
@@ -684,23 +702,28 @@ export default function Dashboard({ onViewStudent, onViewTasks, onTeamSelect, da
                     const cfg = r==="leader" ? { bg:"#dbeafe", color:"#1d4ed8", label:"leader" } : r==="scrum_master" ? { bg:"#fef3c7", color:"#92400e", label:"scrum master" } : { bg:"#e5e7eb", color:"#374151", label:r.replace(/_/g," ") };
                     return (<span key={r} style={{ fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600, background:cfg.bg, color:cfg.color }}>{cfg.label}</span>);
                   })}
-                  <Badge level={badgeFromScore(s.score)}/>
+                  <Badge level={badgeFromScore(s.score, fairShare)}/>
                 </div>
                 <div style={{ color:theme.subtext, fontSize:13, marginTop:2 }}>{s.email}</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:14, marginTop:12, fontSize:13 }}>
-                  <Metric theme={theme} label="Code Score" value={`${codeScore}%`}/>
-                  <Metric theme={theme} label="Doc Score"  value={docScore>0?`${docScore}%`:"—"}/>
+                  <Metric theme={theme} label="Code Score" value={fairShare ? `${codeScore}% / ${fairShare}%` : `${codeScore}%`}/>
+                  <Metric theme={theme} label="Doc Score"  value={docScore>0 ? (fairShare ? `${docScore}% / ${fairShare}%` : `${docScore}%`) : "—"}/>
                   <Metric theme={theme} label="Word Count" value={wordCount>0?wordCount:"—"}/>
                   <Metric theme={theme} label="Attendance" value={attendance>0?`${attendance}%`:"—"}/>
                 </div>
               </div>
               <div style={{ display:"grid", alignContent:"center", justifyItems:"end", gap:6 }}>
                 <div style={{ color:theme.subtext, fontSize:12 }}>Overall Score</div>
-                <div style={{ fontWeight:700, color:scoreColor(s.score), fontSize:32 }}>{Math.round(s.score)||"—"}</div>
+                <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
+                  <div style={{ fontWeight:700, color:scoreColor(s.score, fairShare), fontSize:32 }}>{Math.round(s.score)||"—"}</div>
+                  <div style={{ color:scoreColor(s.score, fairShare), fontSize:14, fontWeight:600 }}>%</div>
+                  {fairShare && (
+                    <div style={{ color:theme.subtext, fontSize:12, marginLeft:2 }}>/ {fairShare}%</div>
+                  )}
+                </div>
                 {activeScores?.peerReviewApplied && s.peerMultiplier && (
                   <div style={{ fontSize:11, color:theme.subtext, marginTop:2 }}>Base: {Math.round(s.baseScore)}% × {s.peerMultiplier}</div>
                 )}
-                <div style={{ color:scoreColor(s.score), fontSize:12, marginTop:-8 }}>%</div>
                 <button onClick={() => onViewStudent?.(s)} style={linkBtn(theme)}>
                   <span style={{ display:"flex", alignItems:"center", gap:8 }}><Eye size={15}/>View Details</span>
                 </button>
@@ -756,14 +779,25 @@ function Metric({ label, value, theme }) {
 }
 function Badge({ level }) {
   const base = { fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600 };
-  if (level==="high")   return <span style={{ ...base, color:"#065f46", borderColor:"#a7f3d0", background:"#ecfdf5" }}>high contributor</span>;
-  if (level==="medium") return <span style={{ ...base, color:"#92400e", borderColor:"#fde68a", background:"#fffbeb" }}>medium contributor</span>;
+  if (level==="high")   return <span style={{ ...base, color:"#065f46", borderColor:"#16a34a", background:"#8cf791" }}>High contributor</span>;
+  if (level==="fair")   return <span style={{ ...base, color:"#065f46", borderColor:"#22c55e", background:"#ecfdf5" }}>Fair contributor</span>;
+  if (level==="medium") return <span style={{ ...base, color:"#92400e", borderColor:"#fde68a", background:"#fffbeb" }}>Medium contributor</span>;
   return <span style={{ ...base, color:"#991b1b", borderColor:"#fecaca", background:"#fef2f2" }}>low contributor</span>;
 }
-function badgeFromScore(s=0) { if (s>=80) return "high"; if (s>=60) return "medium"; return "low"; }
-function scoreColor(s=0) {
-  if (s>=90) return "#16a34a"; if (s>=80) return "#22c55e"; if (s>=70) return "#2563eb";
-  if (s>=60) return "#ca8a04"; if (s>=50) return "#ea580c"; return "#dc2626";
+function badgeFromScore(s=0, fairShare=25) {
+  const ratio = s / fairShare;
+  if (ratio >= 1.1) return "high";
+  if (ratio >= 0.90) return "fair";
+  if (ratio >= 0.75) return "medium";
+  return "low";
+}
+function scoreColor(s=0, fairShare=25) {
+  const ratio = s / fairShare;
+  if (ratio >= 1.1)  return "#16a34a"; // significantly above fair share — green
+  if (ratio >= 0.9)  return "#22c55e"; // at or above fair share — light green
+  if (ratio >= 0.8) return "#ca8a04"; // slightly below — amber
+  if (ratio >= 0.7)  return "#ea580c"; // notably below — orange
+  return "#dc2626"; // significantly below — red
 }
 function card(theme, extra={}) { return { background:theme.card, border:`1px solid ${theme.border}`, borderRadius:14, padding:14, boxShadow:theme.shadow, ...extra }; }
 function rowCard(theme) { return { ...card(theme), display:"grid", gridTemplateColumns:"1fr auto", gap:16, alignItems:"center" }; }

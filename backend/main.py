@@ -19,10 +19,40 @@ def cleanup_old_temps(directory):
             print(f"Removed leftover temp folder: {item}")
 
 def force_remove(directory):
+    import time
     def handle_readonly(func, path, exc):
-        os.chmod(path, stat.S_IWRITE)
-        func(path)
-    shutil.rmtree(directory, onerror=handle_readonly)
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception:
+            pass
+
+    for attempt in range(5):
+        try:
+            shutil.rmtree(directory, onerror=handle_readonly)
+            if not os.path.exists(directory):
+                return
+        except Exception:
+            pass
+        time.sleep(1)
+
+    try:
+        for root, dirs, files in os.walk(directory, topdown=False):
+            for f in files:
+                try:
+                    fp = os.path.join(root, f)
+                    os.chmod(fp, stat.S_IWRITE)
+                    os.remove(fp)
+                except Exception:
+                    pass
+            for d in dirs:
+                try:
+                    os.rmdir(os.path.join(root, d))
+                except Exception:
+                    pass
+        os.rmdir(directory)
+    except Exception as e:
+        print(f"Warning: could not fully remove temp folder {directory}: {e}")
 
 def parse_repo_url(repoURL):
     match = re.match(r'(https://github\.com/[^/]+/[^/]+)(?:/tree/(.+))?', repoURL)

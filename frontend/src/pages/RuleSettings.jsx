@@ -6,27 +6,27 @@ import { apiFetch } from "../utils/api";
 const METRIC_DESCRIPTIONS = {
   "Total Lines of Code": {
     short: "Percentage of code written in code base",
-    detailed: "Measures the total lines of code (LOC) contributed by each student as a percentage of the entire codebase. This includes all additions to the repository, reflecting the volume of code work contributed."
+    detailed: "Runs git blame on every file in the repository (or files changed during the sprint). Each line is attributed to whoever last committed it. The total lines per author is divided by the team total to produce a percentage."
   },
   "Total Edited Code": {
     short: "Percentage of total edited code (additions and deletions)",
-    detailed: "Combines both code additions and deletions to measure overall code activity. This metric captures refactoring, bug fixes, and improvements, providing a more complete picture of code contribution beyond just new lines."
+    detailed: "Counts the total additions and deletions across all commits per author from git log. Each author's total edits divided by the team's total edits gives their percentage. Merge commits are excluded."
   },
   "Total Commits": {
     short: "Percentage of commits made",
-    detailed: "Tracks the number of commits made by each student as a percentage of total team commits. Regular commits indicate consistent engagement with the project and good version control practices."
+    detailed: "Counts the number of commits per author across all branches. Each author's commit count divided by the total team commits gives their percentage. Merge commits are excluded."
   },
   "Total Functions Written": {
     short: "Percentage of functions written in codebase",
-    detailed: "Measures how many complete functions or methods each student has authored. This metric better captures structural contributions than raw line counts, as it focuses on discrete, functional units of code."
+    detailed: "Lizard analyses all files to detect functions. Git blame is run on each function's line range. Each author receives a proportional share of that function based on how many lines they contributed. All shares are summed and divided by total functions."
   },
   "Total Hotspot Contributed": {
     short: "Percentage of hotspots written in codebase",
-    detailed: "Identifies complex, high-maintenance code sections ('hotspots') above average cyclomatic complexity. Students who work on hotspots are tackling challenging, critical parts of the codebase that require deeper understanding."
+    detailed: "Each function is scored by combining normalised cyclomatic complexity and call frequency (how often it is called elsewhere in the codebase). The top 25% scoring functions are classified as hotspots. Each hotspot is split proportionally among all authors who contributed lines to it. Total hotspot shares divided by total hotspots gives each author's percentage"
   },
   "Code Complexity": {
     short: "Average code complexity",
-    detailed: "Measures the average cyclomatic complexity of contributed code, indicating how intricate and sophisticated the code is. Higher complexity may show advanced problem-solving but could also indicate code that needs refactoring."
+    detailed: "For every function a student contributed lines to, their complexity score is calculated using a weighted combination of four metrics from Lizard: cyclomatic complexity (weighted 0.5), maximum nesting depth (how deeply blocks are nested, weighted 0.2), length of function (weighted 0.2 scaled by /10), and parameter count (weighted 0.1). Each function's complexity score is then weighted by the student's proportional line contribution to that function. The average across all functions they touched is their final complexity score"
   },
   "Average Sentence Length": {
     short: "Average sentence length in documentation",

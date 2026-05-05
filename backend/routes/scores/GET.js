@@ -52,11 +52,29 @@ router.get("/", async (req, res) => {
     // Average each student's score across all analysed sprints
     const baseRanking = sprintResults[0].ranking;
     const averaged = baseRanking.map(student => {
-      const sprintScores = sprintResults.map(sr =>
-        sr.ranking.find(r => r.email === student.email)?.score || 0
-      );
-      const avgScore = +(sprintScores.reduce((a, b) => a + b, 0) / sprintScores.length).toFixed(2);
-      return { ...student, score: avgScore };
+      const sprintRankings = sprintResults.map(sr =>
+        sr.ranking.find(r => r.email === student.email)
+      ).filter(Boolean);
+
+      const avgScore = +(sprintRankings.reduce((a, r) => a + (r.score || 0), 0) / sprintRankings.length).toFixed(2);
+
+      // Average each breakdown dimension across all sprints
+      const allDims = Object.keys(sprintRankings[0]?.breakdown || {});
+      const avgBreakdown = {};
+      allDims.forEach(dim => {
+        const vals = sprintRankings.map(r => r.breakdown?.[dim] || 0);
+        avgBreakdown[dim] = +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(4);
+      });
+
+      // Average raw values too
+      const allRawKeys = Object.keys(sprintRankings[0]?.raw || {});
+      const avgRaw = {};
+      allRawKeys.forEach(key => {
+        const vals = sprintRankings.map(r => r.raw?.[key] || 0);
+        avgRaw[key] = +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+      });
+
+      return { ...student, score: avgScore, breakdown: avgBreakdown, raw: avgRaw };
     });
 
     // Re-normalise so scores add up to 100%

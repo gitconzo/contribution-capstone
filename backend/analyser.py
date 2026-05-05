@@ -132,7 +132,12 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
             if totalLines == 0:
                 continue
 
-            complexity = (func.cyclomatic_complexity / 10) + (func.token_count / 100)
+            complexity = (
+                0.5 * (func.cyclomatic_complexity or 1) +
+                0.2 * (func.max_nesting_level or 0) +
+                0.2 * ((func.nloc or 0) / 10) +
+                0.1 * (func.parameter_count or 0)
+            )
             callFrequency = callCounts.get(func.name, 0)
 
             entry = {
@@ -146,7 +151,7 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
             allFunctionData.append(entry)
 
             # Only non-trivial functions are hotspot candidates
-            if complexity >= 0.5:
+            if complexity >= 1:
                 functionData.append(entry)
 
     if not allFunctionData:
@@ -163,12 +168,8 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
         for author, numOfLines in linesInFunction.items():
             authorComplexity = complexity * (numOfLines / totalLines)
             Authors[author].append(authorComplexity)
-
-        maxLines = max(linesInFunction.values())
-        owners = [a for a, n in linesInFunction.items() if n == maxLines]
-        share = 1.0 / len(owners)
-        for a in owners:
-            authorsFunctions[a] += share
+            # Proportional share of function based on lines contributed
+            authorsFunctions[author] += numOfLines / totalLines
 
     # Compute hotspots using call frequency
     authorHotspots = defaultdict(float)
@@ -188,12 +189,11 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
         for d, score in zip(functionData, hotspotScores):
             if score >= hotspotThreshold:
                 linesInFunction = d["linesInFunction"]
-                maxLines = max(linesInFunction.values())
-                owners = [a for a, n in linesInFunction.items() if n == maxLines]
-                share = 1.0 / len(owners)
+                totalLines = d["totalLines"]
                 totalHotspots += 1
-                for a in owners:
-                    authorHotspots[a] += share
+                for author, numOfLines in linesInFunction.items():
+                    # Proportional share of hotspot based on lines contributed
+                    authorHotspots[author] += numOfLines / totalLines
 
     scores = {}
     for author, complexityList in Authors.items():
