@@ -27,34 +27,38 @@ async function ensureTasksTable() {
   await db.query(`ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_priority_check`).catch(() => {});
   await db.query(`ALTER TABLE tasks ADD CONSTRAINT tasks_priority_check CHECK (priority IN ('low', 'medium', 'high'))`).catch(() => {});
   // Migrate 'ongoing' → 'in_progress' and update status constraint
+  await db.query(`ALTER TABLE tasks ALTER COLUMN status SET DEFAULT 'in_progress'`).catch(() => {});
   await db.query(`ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check`).catch(() => {});
   await db.query(`UPDATE tasks SET status = 'in_progress' WHERE status = 'ongoing'`).catch(() => {});
   await db.query(`ALTER TABLE tasks ADD CONSTRAINT tasks_status_check CHECK (status IN ('in_progress', 'complete'))`).catch(() => {});
 }
 
-// Helper: verify the requesting user is the scrum master for this sprint
-// Passes if: sprint has this email as scrum_master_email OR student holds scrum_master role in team
+// Helper: verify the requesting user is the scrum master for this sprint.
+// If the sprint has an explicit scrum_master_email, only that person qualifies.
+// If the sprint has no assigned SM, fall back to the team-level scrum_master role.
 async function isScrumMaster(teamId, sprintId, email) {
   if (!email) return false;
 
-  // Check if student holds scrum_master role in the team
-  const roleCheck = await db.query(
-    "SELECT role FROM students WHERE team_id = $1 AND LOWER(email) = LOWER($2)",
-    [teamId, email]
-  );
-  if (roleCheck.rows.length) {
-    const roles = String(roleCheck.rows[0].role || "").split(",").map(r => r.trim());
-    if (roles.includes("scrum_master")) return true;
-  }
-
-  // Also check sprint's assigned scrum_master_email
   const sprintCheck = await db.query(
     "SELECT scrum_master_email FROM sprints WHERE id = $1 AND team_id = $2",
     [sprintId, teamId]
   );
   if (!sprintCheck.rows.length) return false;
+
   const smEmail = String(sprintCheck.rows[0].scrum_master_email || "").toLowerCase();
-  return smEmail !== "" && smEmail === String(email).toLowerCase();
+
+  if (smEmail !== "") {
+    return smEmail === String(email).toLowerCase();
+  }
+
+  // Sprint has no assigned SM — fall back to team role
+  const roleCheck = await db.query(
+    "SELECT role FROM students WHERE team_id = $1 AND LOWER(email) = LOWER($2)",
+    [teamId, email]
+  );
+  if (!roleCheck.rows.length) return false;
+  const roles = String(roleCheck.rows[0].role || "").split(",").map(r => r.trim());
+  return roles.includes("scrum_master");
 }
 
 // GET /api/teams/:id/tasks?sprintId=&email=
@@ -175,8 +179,8 @@ router.put("/:id/tasks/:taskId", async (req, res) => {
 
     // Students can only update status; scrum master can update everything
     if (status !== undefined) {
-      if (!["ongoing", "complete"].includes(status)) {
-        return res.status(400).json({ error: "Status must be 'ongoing' or 'complete'" });
+      if (!["in_progress", "complete"].includes(status)) {
+        return res.status(400).json({ error: "Status must be 'in_progress' or 'complete'" });
       }
       if (!isAssignedStudent && !scrumCheck) {
         return res.status(403).json({ error: "Only the assigned student or Scrum Master can update task status." });

@@ -111,6 +111,21 @@ router.post("/:id/claim-scrum-master", async (req, res) => {
     const newRole = buildRoleString(currentRoles);
 
     await db.query("UPDATE students SET role = $1 WHERE team_id = $2 AND email = $3", [newRole, teamId, email]);
+
+    // Also assign this student as SM on the current/upcoming sprint if it has no SM set
+    await db.query(
+      `UPDATE sprints SET scrum_master_email = $1
+       WHERE id = (
+         SELECT id FROM sprints
+         WHERE team_id = $2
+           AND (scrum_master_email IS NULL OR scrum_master_email = '')
+           AND end_date >= CURRENT_DATE
+         ORDER BY start_date ASC
+         LIMIT 1
+       )`,
+      [email, teamId]
+    ).catch(() => {});
+
     const updatedStudents = await db.query("SELECT * FROM students WHERE team_id = $1", [teamId]);
     res.json({ success: true, message: "Scrum Master role added.", students: updatedStudents.rows });
   } catch (e) {
@@ -139,6 +154,14 @@ router.post("/:id/remove-scrum-master", async (req, res) => {
 
     const newRole = buildRoleString(currentRoles.filter(r => r !== "scrum_master"));
     await db.query("UPDATE students SET role = $1 WHERE team_id = $2 AND email = $3", [newRole, teamId, email]);
+
+    // Clear scrum_master_email on any sprint where this student was the SM
+    await db.query(
+      `UPDATE sprints SET scrum_master_email = NULL
+       WHERE team_id = $1 AND LOWER(scrum_master_email) = LOWER($2)`,
+      [teamId, email]
+    ).catch(() => {});
+
     const updatedStudents = await db.query("SELECT * FROM students WHERE team_id = $1", [teamId]);
     res.json({ success: true, message: "Scrum Master role removed.", students: updatedStudents.rows });
   } catch (e) {
