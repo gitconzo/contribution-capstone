@@ -8,7 +8,6 @@ import {
   Eye,
   ChevronDown,
   Search,
-  AlertTriangle,
 } from "lucide-react";
 
 export default function Dashboard({ onViewStudent, darkMode }) {
@@ -68,10 +67,6 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       .catch(() => setScores(null));
   }, [teamId]);
 
-  const isAtRisk = (student) => {
-    return Number(student?.score || 0) < 60;
-  };
-
   const students = useMemo(() => {
     const list = scores?.ranking || [];
     const q = query.trim().toLowerCase();
@@ -88,7 +83,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   const kpis = useMemo(() => {
     const list = scores?.ranking || [];
 
-    if (!list.length) return { avg: 0, high: "0/0", commits: 0, atRisk: 0 };
+    if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
 
     const avg =
       Math.round(
@@ -102,9 +97,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
       0
     );
 
-    const atRisk = list.filter((r) => Number(r.score || 0) < 60).length;
-
-    return { avg, high, commits, atRisk };
+    return { avg, high, commits };
   }, [scores]);
 
   return (
@@ -118,6 +111,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         color: theme.text,
       }}
     >
+      {/* header */}
       <div style={rowBetween()}>
         <div>
           <h1
@@ -150,6 +144,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </select>
       </div>
 
+      {/* project card */}
       <div style={card(theme, { marginTop: 16, padding: 16 })}>
         <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>
           {scores?.team?.name || "—"}
@@ -181,6 +176,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </div>
       </div>
 
+      {/* KPIs */}
       <div
         style={{
           display: "grid",
@@ -217,20 +213,6 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
         <KpiCard
           theme={theme}
-          title="At Risk Students"
-          icon={<AlertTriangle size={16} color="#dc2626" />}
-        >
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#dc2626" }}>
-            {kpis.atRisk}
-          </div>
-
-          <div style={{ fontSize: 12, color: theme.subtext }}>
-            Students scoring below 60%
-          </div>
-        </KpiCard>
-
-        <KpiCard
-          theme={theme}
           title="Total Commits"
           icon={<GitCommitHorizontal size={16} color={theme.mutedIcon} />}
         >
@@ -244,6 +226,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </KpiCard>
       </div>
 
+      {/* search header */}
       <div style={card(theme, { marginTop: 16, paddingBottom: 10 })}>
         <div style={rowBetween()}>
           <div>
@@ -287,22 +270,10 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </div>
       </div>
 
+      {/* rows */}
       <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
         {students.map((s) => (
-          <div
-            key={s.email || s.name}
-            style={{
-              ...rowCard(theme),
-              border: isAtRisk(s)
-                ? "1px solid #ef4444"
-                : `1px solid ${theme.border}`,
-              background: isAtRisk(s)
-                ? darkMode
-                  ? "#1f1111"
-                  : "#fff5f5"
-                : theme.card,
-            }}
-          >
+          <div key={s.email || s.name} style={rowCard(theme)}>
             <div>
               <div
                 style={{
@@ -317,18 +288,17 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                 </div>
 
                 <Badge level={badgeFromScore(s.score)} />
-
-                {isAtRisk(s) && <AtRiskBadge />}
               </div>
 
               <div style={{ color: theme.subtext, fontSize: 13, marginTop: 2 }}>
                 {s.email}
               </div>
 
+              {/* metrics */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gridTemplateColumns: "repeat(5, 1fr)",
                   gap: 14,
                   marginTop: 12,
                   fontSize: 13,
@@ -354,8 +324,14 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
                 <Metric
                   theme={theme}
-                  label="Meetings"
-                  value={Math.round(s.raw?.meetings || 0)}
+                  label="Internal Meeting"
+                  value={Math.round(s.raw?.internalMeetings || 0)}
+                />
+
+                <Metric
+                  theme={theme}
+                  label="Supervisor Meeting"
+                  value={Math.round(s.raw?.supervisorMeetings || 0)}
                 />
               </div>
             </div>
@@ -406,6 +382,8 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   );
 }
 
+/* helpers */
+
 function KpiCard({ title, icon, children, theme }) {
   return (
     <div style={card(theme)}>
@@ -433,7 +411,13 @@ function Progress({ value, theme }) {
 
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{ height: 8, borderRadius: 999, background: theme.progressBg }}>
+      <div
+        style={{
+          height: 8,
+          borderRadius: 999,
+          background: theme.progressBg,
+        }}
+      >
         <div
           style={{
             width: `${pct}%`,
@@ -453,28 +437,6 @@ function Metric({ label, value, theme }) {
       <div style={{ color: theme.subtext, fontSize: 12 }}>{label}:</div>
       <div style={{ fontWeight: 600, color: theme.text }}>{value}</div>
     </div>
-  );
-}
-
-function AtRiskBadge() {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        fontSize: 11,
-        padding: "3px 9px",
-        borderRadius: 999,
-        border: "1px solid #ef4444",
-        fontWeight: 700,
-        color: "#b91c1c",
-        background: "#fee2e2",
-      }}
-    >
-      <AlertTriangle size={12} />
-      At Risk
-    </span>
   );
 }
 
