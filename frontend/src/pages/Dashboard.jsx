@@ -8,6 +8,7 @@ import {
   Eye,
   ChevronDown,
   Search,
+  AlertTriangle,
 } from "lucide-react";
 
 export default function Dashboard({ onViewStudent, darkMode }) {
@@ -52,6 +53,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         fetch(`${API}/api/teams`).then((r) => r.json()),
         fetch(`${API}/api/teams/active`).then((r) => r.json()),
       ]);
+
       setTeams(tres || []);
       setTeamId(ares?.teamId || tres?.[0]?.id || "");
     })();
@@ -59,16 +61,23 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
   useEffect(() => {
     if (!teamId) return;
+
     fetch(`${API}/api/scores?teamId=${encodeURIComponent(teamId)}`)
       .then((r) => r.json())
       .then(setScores)
       .catch(() => setScores(null));
   }, [teamId]);
 
+  const isAtRisk = (student) => {
+    return Number(student?.score || 0) < 60;
+  };
+
   const students = useMemo(() => {
     const list = scores?.ranking || [];
     const q = query.trim().toLowerCase();
+
     if (!q) return list;
+
     return list.filter(
       (s) =>
         (s.name || "").toLowerCase().includes(q) ||
@@ -78,17 +87,24 @@ export default function Dashboard({ onViewStudent, darkMode }) {
 
   const kpis = useMemo(() => {
     const list = scores?.ranking || [];
-    if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
+
+    if (!list.length) return { avg: 0, high: "0/0", commits: 0, atRisk: 0 };
+
     const avg =
       Math.round(
         (list.reduce((sum, r) => sum + (r.score || 0), 0) / list.length) * 10
       ) / 10;
+
     const high = `${list.filter((r) => r.score >= 80).length}/${list.length}`;
+
     const commits = list.reduce(
       (sum, r) => sum + Math.round(r.raw?.codeCommits || 0),
       0
     );
-    return { avg, high, commits };
+
+    const atRisk = list.filter((r) => Number(r.score || 0) < 60).length;
+
+    return { avg, high, commits, atRisk };
   }, [scores]);
 
   return (
@@ -102,12 +118,19 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         color: theme.text,
       }}
     >
-      {/* header */}
       <div style={rowBetween()}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: theme.text }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 700,
+              color: theme.text,
+            }}
+          >
             Project Dashboard
           </h1>
+
           <div style={{ color: theme.subtext, fontSize: 14 }}>
             Monitor team contribution and performance metrics
           </div>
@@ -127,11 +150,11 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </select>
       </div>
 
-      {/* project card */}
       <div style={card(theme, { marginTop: 16, padding: 16 })}>
         <div style={{ fontWeight: 700, marginBottom: 6, color: theme.text }}>
           {scores?.team?.name || "—"}
         </div>
+
         <div style={{ color: theme.subtext, fontSize: 14 }}>
           {scores?.team?.code || ""}
         </div>
@@ -150,6 +173,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
             icon={<Users size={15} color={theme.mutedIcon} />}
             text={`${scores?.studentsCount || 0} Students`}
           />
+
           <InfoInline
             icon={<LinkIcon size={15} color={theme.mutedIcon} />}
             text={scores?.team?.repo?.url || "Repository not connected"}
@@ -157,7 +181,6 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </div>
       </div>
 
-      {/* KPIs */}
       <div
         style={{
           display: "grid",
@@ -174,6 +197,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           <div style={{ fontSize: 20, fontWeight: 700, color: "#16a34a" }}>
             {kpis.avg}%
           </div>
+
           <Progress value={kpis.avg} theme={theme} />
         </KpiCard>
 
@@ -185,8 +209,23 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           <div style={{ fontSize: 20, fontWeight: 700, color: theme.text }}>
             {kpis.high}
           </div>
+
           <div style={{ fontSize: 12, color: theme.subtext }}>
             Students scoring 80% or above
+          </div>
+        </KpiCard>
+
+        <KpiCard
+          theme={theme}
+          title="At Risk Students"
+          icon={<AlertTriangle size={16} color="#dc2626" />}
+        >
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#dc2626" }}>
+            {kpis.atRisk}
+          </div>
+
+          <div style={{ fontSize: 12, color: theme.subtext }}>
+            Students scoring below 60%
           </div>
         </KpiCard>
 
@@ -198,17 +237,20 @@ export default function Dashboard({ onViewStudent, darkMode }) {
           <div style={{ fontSize: 20, fontWeight: 700, color: theme.text }}>
             {kpis.commits}
           </div>
+
           <div style={{ fontSize: 12, color: theme.subtext }}>
             Across all team members
           </div>
         </KpiCard>
       </div>
 
-      {/* search header */}
       <div style={card(theme, { marginTop: 16, paddingBottom: 10 })}>
         <div style={rowBetween()}>
           <div>
-            <div style={{ fontWeight: 700, color: theme.text }}>Team Members</div>
+            <div style={{ fontWeight: 700, color: theme.text }}>
+              Team Members
+            </div>
+
             <div style={{ color: theme.subtext, fontSize: 13 }}>
               View and assess individual student contributions
             </div>
@@ -226,6 +268,7 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                   transform: "translateY(-50%)",
                 }}
               />
+
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -244,16 +287,38 @@ export default function Dashboard({ onViewStudent, darkMode }) {
         </div>
       </div>
 
-      {/* rows */}
       <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
         {students.map((s) => (
-          <div key={s.email || s.name} style={rowCard(theme)}>
+          <div
+            key={s.email || s.name}
+            style={{
+              ...rowCard(theme),
+              border: isAtRisk(s)
+                ? "1px solid #ef4444"
+                : `1px solid ${theme.border}`,
+              background: isAtRisk(s)
+                ? darkMode
+                  ? "#1f1111"
+                  : "#fff5f5"
+                : theme.card,
+            }}
+          >
             <div>
               <div
-                style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
               >
-                <div style={{ fontWeight: 700, color: theme.text }}>{s.name}</div>
+                <div style={{ fontWeight: 700, color: theme.text }}>
+                  {s.name}
+                </div>
+
                 <Badge level={badgeFromScore(s.score)} />
+
+                {isAtRisk(s) && <AtRiskBadge />}
               </div>
 
               <div style={{ color: theme.subtext, fontSize: 13, marginTop: 2 }}>
@@ -274,16 +339,19 @@ export default function Dashboard({ onViewStudent, darkMode }) {
                   label="Code Contribution"
                   value={Math.round(s.raw?.codeCommits || 0)}
                 />
+
                 <Metric
                   theme={theme}
                   label="Work Hours"
                   value={`${Math.round(s.raw?.worklogHours || 0)}h`}
                 />
+
                 <Metric
                   theme={theme}
                   label="Documentation"
                   value={Math.round(s.raw?.documents || 0)}
                 />
+
                 <Metric
                   theme={theme}
                   label="Meetings"
@@ -293,13 +361,36 @@ export default function Dashboard({ onViewStudent, darkMode }) {
             </div>
 
             <div
-              style={{ display: "grid", alignContent: "center", justifyItems: "end", gap: 6 }}
+              style={{
+                display: "grid",
+                alignContent: "center",
+                justifyItems: "end",
+                gap: 6,
+              }}
             >
-              <div style={{ color: theme.subtext, fontSize: 12 }}>Overall Score</div>
-              <div style={{ fontWeight: 700, color: scoreColor(s.score), fontSize: 16 }}>
+              <div style={{ color: theme.subtext, fontSize: 12 }}>
+                Overall Score
+              </div>
+
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: scoreColor(s.score),
+                  fontSize: 16,
+                }}
+              >
                 {s.score}
               </div>
-              <div style={{ color: scoreColor(s.score), fontSize: 12, marginTop: -4 }}>%</div>
+
+              <div
+                style={{
+                  color: scoreColor(s.score),
+                  fontSize: 12,
+                  marginTop: -4,
+                }}
+              >
+                %
+              </div>
 
               <button onClick={() => onViewStudent?.(s)} style={linkBtn(theme)}>
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -315,7 +406,6 @@ export default function Dashboard({ onViewStudent, darkMode }) {
   );
 }
 
-/* helpers / small components */
 function KpiCard({ title, icon, children, theme }) {
   return (
     <div style={card(theme)}>
@@ -323,6 +413,7 @@ function KpiCard({ title, icon, children, theme }) {
         <span>{title}</span>
         <span style={{ display: "flex", alignItems: "center" }}>{icon}</span>
       </div>
+
       <div style={{ marginTop: 8 }}>{children}</div>
     </div>
   );
@@ -339,6 +430,7 @@ function InfoInline({ icon, text }) {
 
 function Progress({ value, theme }) {
   const pct = Math.max(0, Math.min(100, Number(value) || 0));
+
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ height: 8, borderRadius: 999, background: theme.progressBg }}>
@@ -361,6 +453,28 @@ function Metric({ label, value, theme }) {
       <div style={{ color: theme.subtext, fontSize: 12 }}>{label}:</div>
       <div style={{ fontWeight: 600, color: theme.text }}>{value}</div>
     </div>
+  );
+}
+
+function AtRiskBadge() {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 11,
+        padding: "3px 9px",
+        borderRadius: 999,
+        border: "1px solid #ef4444",
+        fontWeight: 700,
+        color: "#b91c1c",
+        background: "#fee2e2",
+      }}
+    >
+      <AlertTriangle size={12} />
+      At Risk
+    </span>
   );
 }
 
@@ -514,4 +628,3 @@ function rowBetween(extra = {}) {
     ...extra,
   };
 }
-
