@@ -255,11 +255,11 @@ export default function UploadFile({ darkMode }) {
     if (!repoUrl.trim()) { setAnalyzeMsg("Please paste a GitHub repository URL first."); return; }
     setAnalyzing(true);
     try {
-      await apiFetch("/api/github/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: repoUrl.trim() }) });
+      await apiFetch("/api/github/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: repoUrl.trim(), teamId: uploadTeamId }) });
       let attempts = 0;
       const poll = setInterval(async () => {
         attempts++;
-        const st = await apiFetch("/api/github/status").then(r => r.json());
+        const st = await apiFetch(`/api/github/status?teamId=${encodeURIComponent(uploadTeamId)}`).then(r => r.json());
         if (st.finalStatsExists) { clearInterval(poll); setAnalyzing(false); setAnalyzeMsg("Analysis complete! Refresh the dashboard to see results."); }
         else if (attempts > 60) { clearInterval(poll); setAnalyzing(false); setAnalyzeMsg("Analysis is taking longer than expected."); }
         else setAnalyzeMsg(`Analysis running... (${attempts * 5}s elapsed)`);

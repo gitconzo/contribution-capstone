@@ -3,7 +3,7 @@ const path = require("path");
 const { execFile } = require("child_process");
 const router = require("express").Router();
 const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
-const { writeJson, safeReadJson, ensureDir } = require("../../utils/fileUtils");
+const { writeJson, ensureDir } = require("../../utils/fileUtils");
 const { pyBin, runFile } = require("../../utils/processUtils");
 const db = require("../../utils/db");
 
@@ -53,31 +53,39 @@ router.post("/fetch", async (req, res) => {
   }
 });
 
-/// POST /api/github/analyze  { url }
+/// POST /api/github/analyze  { url, teamId }
 router.post("/analyze", async (req, res) => {
   try {
-    const rawUrl = String(req.body?.url || "").trim();
-    if (!rawUrl) return res.status(400).json({ error: "Missing 'url' in body." });
+    const rawUrl  = String(req.body?.url    || "").trim();
+    const teamId  = String(req.body?.teamId || "").trim();
+    if (!rawUrl)  return res.status(400).json({ error: "Missing 'url' in body." });
+    if (!teamId)  return res.status(400).json({ error: "Missing 'teamId' in body." });
 
     const { url, owner, repo } = parseRepoFromUrl(rawUrl);
     if (!owner || !repo) return res.status(400).json({ error: "Could not parse owner/repo from URL." });
 
     ensureDir(DATA_DIR);
-    const branch = rawUrl.includes("/tree/") ? rawUrl.split("/tree/")[1] : "";
+    const branch     = rawUrl.includes("/tree/") ? rawUrl.split("/tree/")[1] : "";
+    const outputPath = path.join(DATA_DIR, `overall_${teamId}_stats.json`);
+    const statusPath = path.join(DATA_DIR, `overall_${teamId}_status.json`);
+
     writeJson(path.join(DATA_DIR, "repo.json"), { url, owner, repo, branch });
-    writeJson(path.join(DATA_DIR, "analysisStatus.json"), { status: "running", startedAt: new Date().toISOString() });
+    writeJson(statusPath, { status: "running", startedAt: new Date().toISOString() });
 
     // Return immediately — run analysis in background
     res.json({ success: true, status: "running", message: "Analysis started." });
 
-    // Run fetch + analysis in background (don't await)
     (async () => {
       try {
-        await runFile(pyBin(), [path.join(ROOT_DIR, "main.py"), "--repo-url", url], { cwd: ROOT_DIR });
-        writeJson(path.join(DATA_DIR, "analysisStatus.json"), { status: "complete", completedAt: new Date().toISOString() });
+        await runFile(pyBin(), [
+          path.join(ROOT_DIR, "main.py"),
+          "--repo-url", url,
+          "--output", outputPath,
+        ], { cwd: ROOT_DIR });
+        writeJson(statusPath, { status: "complete", completedAt: new Date().toISOString() });
       } catch (e) {
         console.error("Background analysis error:", e.message);
-        writeJson(path.join(DATA_DIR, "analysisStatus.json"), { status: "error", error: e.message });
+        writeJson(statusPath, { status: "error", error: e.message });
       }
     })();
 
@@ -85,13 +93,6 @@ router.post("/analyze", async (req, res) => {
     console.error("analyze error:", e);
     res.status(500).json({ error: e.message || "Failed to analyze GitHub repo" });
   }
-});
-
-// GET /api/github/status — frontend polls this
-router.get("/status", (req, res) => {
-  const statusPath = path.join(DATA_DIR, "analysisStatus.json");
-  const status = safeReadJson(statusPath, { status: "idle" });
-  res.json(status);
 });
 
 module.exports = router;

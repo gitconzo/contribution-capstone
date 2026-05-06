@@ -150,8 +150,12 @@ function extractAttendanceMetrics(json) {
 }
 
 // ---------- main aggregation ----------
-function loadGitHubMetrics(dataDir) {
-  const finalStats = safeReadJSON(path.join(dataDir, "finalStats.json"), {});
+function loadGitHubMetrics(dataDir, teamId) {
+  const teamScoped = teamId ? path.join(dataDir, `overall_${teamId}_stats.json`) : null;
+  const finalStats = safeReadJSON(
+    (teamScoped && require("fs").existsSync(teamScoped)) ? teamScoped : path.join(dataDir, "finalStats.json"),
+    {}
+  );
   const authors = {};
   Object.entries(finalStats).forEach(([author, s]) => {
     authors[author] = {
@@ -187,7 +191,7 @@ function loadParsedArtifacts(rootDir) {
   return results;
 }
 
-function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendanceOverride = null, sprintStats = null) {
+function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendanceOverride = null, sprintStats = null, teamId = null) {
   const dataDir = path.join(rootDir, "data");
   const aliasMap = buildAliasMap(team);
   const students = team.students.map(s => ({
@@ -219,7 +223,7 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
       };
     });
     return authors;
-  })() : loadGitHubMetrics(dataDir);
+  })() : loadGitHubMetrics(dataDir, teamId);
 
   Object.entries(gh).forEach(([author, m]) => {
     let idx = matchStudentIndex(aliasMap, author);
@@ -420,25 +424,27 @@ function scoreStudents(students, rules = null) {
     return r;
   });
 
-  // Each student's value divided by the sum across the team
+  // Max-normalize: top student in each metric scores 1.0, others relative to them.
+  // This produces absolute marks rather than share-of-total, so the best contributor
+  // can score near 100 regardless of how many students are in the team.
   const normVectors = {};
   dims.forEach(d => {
     const values = raw.map(r => r[d]);
-    const teamTotal = values.reduce((sum, v) => sum + v, 0);
-    normVectors[d] = teamTotal === 0
-      ? values.map(() => 1 / students.length)
-      : values.map(v => v / teamTotal);
+    const maxVal = Math.max(...values);
+    normVectors[d] = maxVal === 0
+      ? values.map(() => 0)
+      : values.map(v => v / maxVal);
   });
 
   const totals = students.map((_, i) =>
     dims.reduce((sum, d) => sum + (normVectors[d][i] || 0) * (w[d] || 0), 0)
   );
 
-  // Proportional scoring — all scores add up to 100% across the team
-  const teamTotal = totals.reduce((sum, t) => sum + t, 0);
-  const percent = teamTotal === 0
-    ? totals.map(() => +(100 / students.length).toFixed(2))
-    : totals.map(t => +(100 * (t / teamTotal)).toFixed(2));
+  // Score as a percentage of the maximum possible weighted total.
+  const maxPossible = dims.reduce((sum, d) => sum + (w[d] || 0), 0);
+  const percent = maxPossible === 0
+    ? totals.map(() => 0)
+    : totals.map(t => Math.min(100, +(100 * (t / maxPossible)).toFixed(2)));
 
   const ranked = students
     .map((s, i) => ({
@@ -471,13 +477,32 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     ? { rules: rulesRes.rows.map(r => ({ name: r.name, value: r.weight, desc: r.description })) }
     : null;
 
+  // When scoring a specific sprint, look up its date range and use upload_date
+  // to decide which documents belong to it — no manual sprint tagging required.
+  let sprintStart = null, sprintEnd = null;
+  if (sprintId) {
+    const sprintRes = await db.query(
+      `SELECT TO_CHAR(start_date, 'YYYY-MM-DD') AS start_date,
+              TO_CHAR(end_date,   'YYYY-MM-DD') AS end_date
+       FROM sprints WHERE id = $1 AND team_id = $2`,
+      [sprintId, teamId]
+    );
+    if (sprintRes.rows.length) {
+      sprintStart = sprintRes.rows[0].start_date;
+      sprintEnd   = sprintRes.rows[0].end_date;
+    }
+  }
+
   const artifactsRes = await db.query(
     `SELECT json_path, COALESCE(user_type, detected_type) AS user_type FROM file_registry
      WHERE team_id = $1 AND status = 'parsed'
        AND COALESCE(user_type, detected_type) IN ('sprint_report', 'project_plan', 'attendance')
        AND json_path IS NOT NULL
-       ${sprintId ? `AND (sprint_id = $2::text OR sprint_id IS NULL)` : ''}`,
-    sprintId ? [teamId, String(sprintId)] : [teamId]
+       ${sprintStart ? `AND (
+         sprint_id = $2::text
+         OR (sprint_id IS NULL AND upload_date::date BETWEEN $3::date AND $4::date)
+       )` : ''}`,
+    sprintStart ? [teamId, String(sprintId), sprintStart, sprintEnd] : [teamId]
   );
 
   const sprintData = [], projectData = [], attendanceData = [];
@@ -495,7 +520,7 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     ? combineDocsInMemory(sprintData, projectData)
     : { students: {} };
 
-  const students = aggregateForTeam(team, rootDir, combinedDocsOverride, attendanceData, sprintStats);
+  const students = aggregateForTeam(team, rootDir, combinedDocsOverride, attendanceData, sprintStats, teamId);
 
   // Worklog hours
   // Submitted info is in the DB.
@@ -511,8 +536,12 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
      WHERE team_id = $1
        AND (user_type = 'worklog' OR detected_type = 'worklog')
        AND status = 'parsed'
-       AND json_path IS NOT NULL`,
-    [teamId]
+       AND json_path IS NOT NULL
+       ${sprintStart ? `AND (
+         sprint_id = $2::text
+         OR (sprint_id IS NULL AND upload_date::date BETWEEN $3::date AND $4::date)
+       )` : ''}`,
+    sprintStart ? [teamId, String(sprintId), sprintStart, sprintEnd] : [teamId]
   );
 
   // For each student, keep track of their most complete worklog
