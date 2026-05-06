@@ -42,6 +42,7 @@ export function Login({ onLogin }) {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetRequiredEmail, setResetRequiredEmail] = useState("");
 
   // New password challenge state
   const [pendingCognitoUser, setPendingCognitoUser] = useState(null);
@@ -58,6 +59,7 @@ export function Login({ onLogin }) {
     }
 
     setError("");
+    setResetRequiredEmail("");
     setLoading(true);
 
     try {
@@ -133,7 +135,10 @@ export function Login({ onLogin }) {
     console.error("Login error:", err);
     const message = err?.message || err?.code || "Login failed.";
 
-    if (message.includes("Incorrect username or password")) {
+    if (err?.code === "PasswordResetRequiredException" || message.includes("Password reset required")) {
+      setResetRequiredEmail(email.trim().toLowerCase());
+      setError("");
+    } else if (message.includes("Incorrect username or password")) {
       setError("Incorrect email or password.");
     } else if (message.includes("User does not exist")) {
       setError("No account found with this email.");
@@ -276,6 +281,18 @@ export function Login({ onLogin }) {
           </div>
 
           {error && <div className="p17-error">{error}</div>}
+
+          {resetRequiredEmail && (
+            <div className="p17-error" style={{ background: "#fef9c3", color: "#713f12", borderColor: "#fde047" }}>
+              Your password has been reset by your lecturer. Check your email for a reset code, then{" "}
+              <Link
+                to={`/forgot-password?step=2&email=${encodeURIComponent(resetRequiredEmail)}`}
+                style={{ color: "#92400e", fontWeight: 600 }}
+              >
+                click here to set a new password
+              </Link>.
+            </div>
+          )}
 
           <button type="submit" className="p17-cta" disabled={loading}>
             {loading ? "Signing in..." : "Sign in"}

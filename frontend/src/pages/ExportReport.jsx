@@ -22,6 +22,13 @@ function formatWeightKey(key) {
   return WEIGHT_KEY_LABELS[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, firstChar => firstChar.toUpperCase());
 }
 
+function fmtDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "—";
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
 // Which sections each format supports
 const FORMAT_SUPPORTS = {
   pdf:   { charts: true,  timeline: true,  rules: true,  sprintTasks: true  },
@@ -207,7 +214,7 @@ export default function ExportReport({ darkMode }) {
         if (y > 270) { doc.addPage(); y = 20; }
         const score = student.score || 0;
         const barW = (score / 100) * chartW;
-        const [red, green, blue] = score >= 80 ? [22, 163, 74] : score >= 60 ? [202, 138, 4] : [220, 38, 38];
+        const [red, green, blue] = score >= 70 ? [22, 163, 74] : score >= 40 ? [249, 115, 22] : [220, 38, 38];
 
         // Background track
         doc.setFillColor(229, 231, 235);
@@ -326,19 +333,25 @@ export default function ExportReport({ darkMode }) {
         if (y > 240) { doc.addPage(); y = 20; }
         doc.setFontSize(10);
         doc.setFont("helvetica", "bold");
-        doc.text(`Sprint ${sprint.sprint_number}  (${sprint.start_date} → ${sprint.end_date})`, 14, y);
+        doc.text(`Sprint ${sprint.sprint_number} (${sprint.start_date} - ${sprint.end_date})`, 14, y);
         y += 4;
         autoTable(doc, {
           startY: y,
-          head: [["Student", "Task", "Difficulty", "Pts", "Status", "Completed"]],
-          body: sprintTasks.map(t => [
-            t.assigned_to_name || t.assigned_to_email,
-            t.title,
-            t.priority || "medium",
-            t.story_points || 1,
-            t.status === "complete" ? "Done" : "In Progress",
-            t.completed_at ? new Date(t.completed_at).toLocaleDateString() : "—",
-          ]),
+          head: [["Student", "Task", "Difficulty", "Pts", "Status", "Assigned", "Completed"]],
+          body: sprintTasks.map(t => {
+            const raw = t.priority || "medium";
+            const priority = raw.charAt(0).toUpperCase() + raw.slice(1);
+            const title = t.title ? t.title.charAt(0).toUpperCase() + t.title.slice(1) : "";
+            return [
+              t.assigned_to_name || t.assigned_to_email,
+              title,
+              priority,
+              t.story_points || 1,
+              t.status === "complete" ? "Done" : "In Progress",
+              fmtDate(t.created_at),
+              fmtDate(t.completed_at),
+            ];
+          }),
           styles: { fontSize: 8 },
           headStyles: { fillColor: [55, 65, 81] },
         });
@@ -483,19 +496,25 @@ export default function ExportReport({ darkMode }) {
         const sprintTasks = filteredTasks.filter(t => String(t.sprint_id) === String(sprint.id));
         if (!sprintTasks.length) return;
         children.push(
-          new Paragraph({ text: `Sprint ${sprint.sprint_number} (${sprint.start_date} → ${sprint.end_date})`, heading: HeadingLevel.HEADING_3 }),
+          new Paragraph({ text: `Sprint ${sprint.sprint_number} (${sprint.start_date} - ${sprint.end_date})`, heading: HeadingLevel.HEADING_3 }),
           new Table({
             width: { size: 9000, type: WidthType.DXA },
             rows: [
-              headerRow(["Student", "Task", "Difficulty", "Points", "Status", "Completed"]),
-              ...sprintTasks.map(t => dataRow([
-                t.assigned_to_name || t.assigned_to_email,
-                t.title,
-                t.priority || "medium",
-                t.story_points || 1,
-                t.status === "complete" ? "Done" : "In Progress",
-                t.completed_at ? new Date(t.completed_at).toLocaleDateString() : "—",
-              ])),
+              headerRow(["Student", "Task", "Difficulty", "Points", "Status", "Assigned", "Completed"]),
+              ...sprintTasks.map(t => {
+                const raw = t.priority || "medium";
+                const priority = raw.charAt(0).toUpperCase() + raw.slice(1);
+                const title = t.title ? t.title.charAt(0).toUpperCase() + t.title.slice(1) : "";
+                return dataRow([
+                  t.assigned_to_name || t.assigned_to_email,
+                  title,
+                  priority,
+                  t.story_points || 1,
+                  t.status === "complete" ? "Done" : "In Progress",
+                  fmtDate(t.created_at),
+                  fmtDate(t.completed_at),
+                ]);
+              }),
             ],
           }),
           new Paragraph({ text: "" }),

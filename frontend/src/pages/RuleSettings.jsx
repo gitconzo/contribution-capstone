@@ -1,6 +1,7 @@
 // frontend/src/pages/RuleSettings.jsx
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiFetch } from "../utils/api";
+import { useActiveTeam } from "../context/TeamContext";
 
 // Enhanced descriptions for each metric
 const METRIC_DESCRIPTIONS = {
@@ -63,6 +64,7 @@ const DEFAULT_RULES = {
 };
 
 export default function RuleSettings({ darkMode }) {
+  const { activeTeamId } = useActiveTeam();
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -117,10 +119,11 @@ export default function RuleSettings({ darkMode }) {
   );
 
   const fetchRules = useCallback(async () => {
+    if (!activeTeamId) return;
     try {
       setLoading(true);
       setError("");
-      const res = await apiFetch("/api/rules");
+      const res = await apiFetch(`/api/rules?teamId=${encodeURIComponent(activeTeamId)}`);
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || `Failed to fetch rules (${res.status})`);
@@ -139,12 +142,13 @@ export default function RuleSettings({ darkMode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeTeamId]);
 
   const fetchScores = useCallback(async () => {
+    if (!activeTeamId) return;
     try {
       setLoadingScores(true);
-      const res = await apiFetch("/api/scores");
+      const res = await apiFetch(`/api/scores?teamId=${encodeURIComponent(activeTeamId)}`);
       if (!res.ok) throw new Error("Failed to fetch scores");
       const data = await res.json();
       setScores(data);
@@ -154,7 +158,7 @@ export default function RuleSettings({ darkMode }) {
     } finally {
       setLoadingScores(false);
     }
-  }, []);
+  }, [activeTeamId]);
 
   useEffect(() => {
     fetchRules();
@@ -173,6 +177,7 @@ export default function RuleSettings({ darkMode }) {
       setSaving(true);
       setError("");
       const body = {
+        teamId: activeTeamId,
         rules: effectiveRules.rules,
         autoRecalc: effectiveRules.autoRecalc,
       };

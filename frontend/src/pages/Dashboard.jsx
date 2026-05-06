@@ -4,7 +4,7 @@ import { useActiveTeam } from "../context/TeamContext";
 import { apiFetch } from "../utils/api";
 import {
   Users, Link as LinkIcon, BarChart3, UserRound,
-  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search,
+  GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search, AlertTriangle,
 } from "lucide-react";
 
 // Format a date from API using UTC to avoid timezone shift (AEST = UTC+10 would shift midnight UTC back 1 day)
@@ -168,7 +168,8 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
     const list = activeScores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
     const avg = Math.round((list.reduce((s,r) => s+(r.score||0),0)/list.length)*10)/10;
-    return { avg, high:`${list.filter(r=>r.score>=80).length}/${list.length}`, commits:0 };
+    const commits = list.reduce((total, student) => total + (student.raw?.codeCommits || 0), 0);
+    return { avg, high:`${list.filter(r=>r.score>=70).length}/${list.length}`, commits };
   }, [activeScores]);
 
   const handleReset = async () => {
@@ -228,13 +229,19 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
             icon={<LinkIcon size={15} color={theme.mutedIcon}/>}
             text={scores?.team?.repo?.url || scores?.team?.repo_url || teams.find(t=>t.id===teamId)?.repo?.url || "Repository not connected"}
           />
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+        </div>
+
+        {/* ── Sprint / score period selector ── */}
+        <div style={{ marginTop:14, paddingTop:14, borderTop:`1px solid ${theme.border}`, display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:.8, color:theme.subtext, marginBottom:5 }}>Score Period</div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <select
                 value={selectedSprintId}
                 onChange={e => { setSelectedSprintId(e.target.value); setSprintScores(null); }}
-                style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${theme.border}`, background:theme.inputBg, color:theme.text, fontSize:13, outline:"none", minWidth:160 }}
+                style={{ padding:"8px 12px", borderRadius:10, border:`1px solid ${theme.border}`, background:theme.inputBg, color:theme.text, fontSize:14, fontWeight:500, outline:"none", minWidth:180 }}
               >
-                <option value="overall">Overall Score</option>
+                <option value="overall">Overall (All time)</option>
                 {allSprints.map(s => (
                   <option key={s.id} value={s.id}>Sprint {s.sprint_number}</option>
                 ))}
@@ -265,15 +272,18 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
                       }, 4000);
                     } catch { setSprintAnalyzing(false); }
                   }}
-                  style={{ padding:"6px 12px", borderRadius:8, border:"none", background:sprintAnalyzing?"#6b7280":"#111827", color:"#fff", fontSize:12, fontWeight:600, cursor:sprintAnalyzing?"not-allowed":"pointer" }}
+                  style={{ padding:"8px 14px", borderRadius:10, border:"none", background:sprintAnalyzing?"#6b7280":"#111827", color:"#fff", fontSize:13, fontWeight:600, cursor:sprintAnalyzing?"not-allowed":"pointer" }}
                 >
                   {sprintAnalyzing ? "Analysing..." : "Analyse Sprint"}
                 </button>
               )}
               {selectedSprintId !== "overall" && sprintScores && (
-                <span style={{ fontSize:12, color:"#16a34a", fontWeight:600 }}>Sprint scores loaded</span>
+                <span style={{ fontSize:12, color:"#16a34a", fontWeight:600, background:"#f0fdf4", border:"1px solid #bbf7d0", padding:"4px 10px", borderRadius:999 }}>
+                  Sprint scores loaded
+                </span>
               )}
             </div>
+          </div>
         </div>
       </div>
 
@@ -285,11 +295,15 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
         </KpiCard>
         <KpiCard theme={theme} title="High Contributors" icon={<UserRound size={16} color={theme.mutedIcon}/>}>
           <div style={{ fontSize:20, fontWeight:700, color:theme.text }}>{kpis.high}</div>
-          <div style={{ fontSize:12, color:theme.subtext }}>Students scoring 80% or above</div>
+          <div style={{ fontSize:12, color:theme.subtext }}>Students scoring 70% or above</div>
         </KpiCard>
         <KpiCard theme={theme} title="Total Commits" icon={<GitCommitHorizontal size={16} color={theme.mutedIcon}/>}>
           <div style={{ fontSize:20, fontWeight:700, color:theme.text }}>{kpis.commits}</div>
-          <div style={{ fontSize:12, color:theme.subtext }}>Across all team members</div>
+          <div style={{ fontSize:12, color:theme.subtext }}>
+            {kpis.commits > 0 && activeScores?.ranking?.length
+              ? `~${Math.round(kpis.commits / activeScores.ranking.length)} per student`
+              : "No commit data yet"}
+          </div>
         </KpiCard>
       </div>
 
@@ -432,16 +446,22 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
           const wordCount  = raw.wordCount||0;
           const attendance = Math.round((raw.attendance||0)*100);
 
+          const atRisk = (s.score||0) < 40;
           return (
-            <div key={s.email||s.name} style={rowCard(theme)}>
+            <div key={s.email||s.name} style={{ ...rowCard(theme), borderLeft: atRisk ? "4px solid #f97316" : undefined }}>
               <div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                   <div style={{ fontWeight:700, color:theme.text }}>{s.name}</div>
                   {s.role && String(s.role).split(",").map(r => r.trim()).filter(Boolean).map(r => {
-                    const cfg = r==="leader" ? { bg:"#dbeafe", color:"#1d4ed8", label:"leader" } : r==="scrum_master" ? { bg:"#fef3c7", color:"#92400e", label:"scrum master" } : { bg:"#e5e7eb", color:"#374151", label:r.replace(/_/g," ") };
+                    const cfg = r==="leader" ? { bg:"#dbeafe", color:"#1d4ed8", label:"Leader" } : r==="scrum_master" ? { bg:"#fef3c7", color:"#92400e", label:"Scrum Master" } : { bg:"#e5e7eb", color:"#374151", label:r.replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase()) };
                     return (<span key={r} style={{ fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600, background:cfg.bg, color:cfg.color }}>{cfg.label}</span>);
                   })}
                   <Badge level={badgeFromScore(s.score)}/>
+                  {atRisk && (
+                    <span style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid #f97316", background:"#fff7ed", color:"#c2410c", fontWeight:700 }}>
+                      <AlertTriangle size={11}/> At Risk
+                    </span>
+                  )}
                 </div>
                 <div style={{ color:theme.subtext, fontSize:13, marginTop:2 }}>{s.email}</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:14, marginTop:12, fontSize:13 }}>
@@ -505,14 +525,14 @@ function Metric({ label, value, theme }) {
 }
 function Badge({ level }) {
   const base = { fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600 };
-  if (level==="high")   return <span style={{ ...base, color:"#065f46", borderColor:"#a7f3d0", background:"#ecfdf5" }}>high contributor</span>;
-  if (level==="medium") return <span style={{ ...base, color:"#92400e", borderColor:"#fde68a", background:"#fffbeb" }}>medium contributor</span>;
-  return <span style={{ ...base, color:"#991b1b", borderColor:"#fecaca", background:"#fef2f2" }}>low contributor</span>;
+  if (level==="high")   return <span style={{ ...base, color:"#065f46", borderColor:"#a7f3d0", background:"#ecfdf5" }}>High Contributor</span>;
+  if (level==="medium") return <span style={{ ...base, color:"#92400e", borderColor:"#fde68a", background:"#fffbeb" }}>Medium Contributor</span>;
+  return <span style={{ ...base, color:"#991b1b", borderColor:"#fecaca", background:"#fef2f2" }}>Low Contributor</span>;
 }
-function badgeFromScore(s=0) { if (s>=80) return "high"; if (s>=60) return "medium"; return "low"; }
+function badgeFromScore(s=0) { if (s>=70) return "high"; if (s>=40) return "medium"; return "low"; }
 function scoreColor(s=0) {
-  if (s>=90) return "#16a34a"; if (s>=80) return "#22c55e"; if (s>=70) return "#2563eb";
-  if (s>=60) return "#ca8a04"; if (s>=50) return "#ea580c"; return "#dc2626";
+  if (s>=90) return "#16a34a"; if (s>=70) return "#22c55e"; if (s>=70) return "#2563eb";
+  if (s>=55) return "#ca8a04"; if (s>=40) return "#ea580c"; return "#dc2626";
 }
 function card(theme, extra={}) { return { background:theme.card, border:`1px solid ${theme.border}`, borderRadius:14, padding:14, boxShadow:theme.shadow, ...extra }; }
 function rowCard(theme) { return { ...card(theme), display:"grid", gridTemplateColumns:"1fr auto", gap:16, alignItems:"center" }; }

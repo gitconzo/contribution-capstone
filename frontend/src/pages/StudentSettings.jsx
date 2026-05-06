@@ -227,7 +227,7 @@ const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
         return;
       }
 
-      setUploadMessage("Document uploaded successfully. Parsing started.");
+      setUploadMessage("Document uploaded successfully.");
       setSelectedFile(null);
       await onRefreshUploads?.();
       setSelectedDocType("worklog");

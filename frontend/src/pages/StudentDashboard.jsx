@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { User, ChevronDown, ChevronRight, Check } from "lucide-react";
+import { User, ChevronDown, ChevronRight } from "lucide-react";
 import { apiFetch } from "../utils/api";
 
 const AUTHOR_MAP = {
@@ -27,9 +27,9 @@ function roleBadges(roleStr) {
 
 // ── Misc helpers ──────────────────────────────────────────────────────────────
 function normalizeText(v = "") { return String(v).trim().toLowerCase().replace(/\s+/g, ""); }
-function getProgressColor(s) { return s === "On Track" ? "#166534" : s === "Needs Attention" ? "#92400e" : "#991b1b"; }
-function getProgressBg(s)    { return s === "On Track" ? "#dcfce7" : s === "Needs Attention" ? "#fef3c7" : "#fee2e2"; }
-function getStatus(score = 0) { return score >= 70 ? "On Track" : score >= 40 ? "Needs Attention" : "At Risk"; }
+function getProgressColor(s) { return s === "High Performing" ? "#166534" : s === "On Track" ? "#92400e" : "#991b1b"; }
+function getProgressBg(s)    { return s === "High Performing" ? "#dcfce7" : s === "On Track" ? "#fef3c7" : "#fee2e2"; }
+function getStatus(score = 0) { return score >= 70 ? "High Performing" : score >= 40 ? "On Track" : "At Risk"; }
 function average(values = []) {
   const v = values.filter(x => Number.isFinite(x));
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
@@ -87,7 +87,7 @@ function normalizeStudentRecord(record, user) {
     score: Number(record.score || 0),
     rank: Number(record.rank || 0),
     commits:      Math.round(raw.codeCommits || 0) || Math.round(record.commits || 0) || 0,
-    worklogHours: Math.round(raw.worklogHours || 0) || Math.round(record.worklogHours || 0) || 0,
+    worklogHours: Math.round(raw.hours || 0) || Math.round(record.worklogHours || 0) || 0,
     documents:    Math.round(raw.documents || 0) || Math.round(record.documents || 0) || 0,
     meetings:     Math.round(raw.meetings || 0) || Math.round(record.meetings || 0) || 0,
     percent: record.percent || "",
@@ -124,29 +124,61 @@ function PriorityBadge({ priority }) {
 // ── Single task card ──────────────────────────────────────────────────────────
 function TaskCard({ task, isScrumMaster, isAssignedToMe, onStatusToggle, onEdit, onDelete, theme }) {
   const isDone = task.status === "complete";
+  const canComplete = (isAssignedToMe || isScrumMaster) && !isDone;
+  const [confirming, setConfirming] = useState(false);
+  const [completing, setCompleting] = useState(false);
+
+  async function handleComplete() {
+    if (!confirming) { setConfirming(true); return; }
+    setConfirming(false);
+    setCompleting(true);
+    try { await onStatusToggle(task); } finally { setCompleting(false); }
+  }
+
   return (
-    <div style={{ background: theme.card, border: `1px solid ${isDone ? "#bbf7d0" : theme.border}`, borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12, opacity: isDone ? 0.85 : 1 }}>
-      {(isAssignedToMe || isScrumMaster) && (
-        <button onClick={() => onStatusToggle(task)} title={isDone ? "Mark ongoing" : "Mark complete"} style={{ marginTop: 2, flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: `2px solid ${isDone ? "#16a34a" : theme.border}`, background: isDone ? "#16a34a" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {isDone && <Check size={12} color="#fff" />}
-        </button>
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontWeight: 600, fontSize: 14, color: theme.text, textDecoration: isDone ? "line-through" : "none" }}>{task.title}</span>
-          <PriorityBadge priority={task.priority || 'medium'} />
-          <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, fontWeight: 600, background: isDone ? "#dcfce7" : "#fef3c7", color: isDone ? "#166534" : "#92400e" }}>
-            {isDone ? "Complete" : "Ongoing"}
-          </span>
-        </div>
-        {task.description && <div style={{ fontSize: 13, color: theme.subtext, marginTop: 4 }}>{task.description}</div>}
-        {isScrumMaster && task._showAssignee && (
-          <div style={{ fontSize: 12, color: theme.subtext, marginTop: 4 }}>
-            Assigned to: <strong style={{ color: theme.text }}>{task.assigned_to_name || task.assigned_to_email}</strong>
+    <div style={{ background: theme.card, border: `1px solid ${isDone ? "#bbf7d0" : theme.border}`, borderRadius: 12, padding: "12px 14px", opacity: isDone ? 0.85 : 1 }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ marginTop: 4, flexShrink: 0, width: 10, height: 10, borderRadius: "50%", background: isDone ? "#16a34a" : "#fbbf24" }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 600, fontSize: 14, color: theme.text, textDecoration: isDone ? "line-through" : "none" }}>{task.title}</span>
+            <PriorityBadge priority={task.priority || 'medium'} />
+            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, fontWeight: 600, background: isDone ? "#dcfce7" : "#fef3c7", color: isDone ? "#166534" : "#92400e" }}>
+              {isDone ? "Complete" : "In Progress"}
+            </span>
           </div>
-        )}
+          {task.description && <div style={{ fontSize: 13, color: theme.subtext, marginTop: 4 }}>{task.description}</div>}
+          {isScrumMaster && task._showAssignee && (
+            <div style={{ fontSize: 12, color: theme.subtext, marginTop: 4 }}>
+              Assigned to: <strong style={{ color: theme.text }}>{task.assigned_to_name || task.assigned_to_email}</strong>
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
+          {isDone ? (
+            <button disabled style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 600, cursor: "default", display: "flex", alignItems: "center", gap: 5 }}>
+              ✓ Completed
+            </button>
+          ) : canComplete ? (
+            <>
+              <button
+                onClick={handleComplete}
+                disabled={completing}
+                style={{ border: "none", background: confirming ? "#92400e" : "#1d4ed8", color: "#fff", borderRadius: 7, padding: "5px 11px", fontSize: 12, fontWeight: 600, cursor: completing ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5, opacity: completing ? 0.8 : 1 }}
+              >
+                {completing && <span style={{ width: 11, height: 11, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", display: "inline-block", animation: "spin 0.75s linear infinite", flexShrink: 0 }} />}
+                {completing ? "Completing…" : confirming ? "Are you sure?" : "Mark as Complete"}
+              </button>
+              {confirming && !completing && (
+                <button onClick={() => setConfirming(false)} style={{ background: "none", border: `1px solid ${theme.border}`, borderRadius: 6, padding: "4px 8px", fontSize: 11, color: theme.subtext, cursor: "pointer" }}>
+                  Cancel
+                </button>
+              )}
+            </>
+          ) : null}
+        </div>
       </div>
-{/* Edit/delete removed — managed from Sprint Task Management page */}
     </div>
   );
 }
@@ -265,7 +297,7 @@ export default function StudentDashboard({ darkMode, studentTeams = [], scores =
   const progressStatus = getStatus(student?.score || 0);
 
   const selectedTeamObject = useMemo(() => studentTeams.find(t => t.id === selectedTeamId) || null, [studentTeams, selectedTeamId]);
-  const teamStudents       = selectedTeamObject?.students || [];
+  const teamStudents       = useMemo(() => selectedTeamObject?.students || [], [selectedTeamObject]);
 
   const currentStudentTeamRecord = useMemo(() => {
     const se = normalizeText(savedUser?.email || "");
@@ -285,11 +317,11 @@ export default function StudentDashboard({ darkMode, studentTeams = [], scores =
   const isBoth         = isLeader && isScrumMaster;
 
   const isCurrentSprintSM = useMemo(() => {
-    if (!savedUser?.email) return false;
-    // Allow if sprint has this student assigned as scrum master
-    if (currentSprint && normalizeText(currentSprint.scrum_master_email) === normalizeText(savedUser.email)) return true;
-    // Also allow if the student holds the scrum_master role in the team
-    // (covers case where sprint has no scrum master assigned yet)
+    if (!savedUser?.email || !currentSprint) return false;
+    const sprintSM = normalizeText(currentSprint.scrum_master_email || "");
+    // Sprint has an explicit SM — only match them
+    if (sprintSM !== "") return sprintSM === normalizeText(savedUser.email);
+    // Sprint has no assigned SM — fall back to team role
     return isScrumMaster;
   }, [currentSprint, savedUser, isScrumMaster]);
 
@@ -376,7 +408,7 @@ export default function StudentDashboard({ darkMode, studentTeams = [], scores =
   const handleStepDownScrumMaster = () => { setStepDownOpen(false); callRoleApi("remove-scrum-master", "You have stepped down as Scrum Master."); };
 
   async function toggleTaskStatus(task) {
-    const newStatus = task.status === "complete" ? "ongoing" : "complete";
+    const newStatus = task.status === "complete" ? "in_progress" : "complete";
     try {
       const res = await apiFetch(`/api/teams/${selectedTeamId}/tasks/${task.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus, updated_by_email: savedUser?.email }) });
       if (!res.ok) { const d = await res.json(); alert(d.error || "Failed to update"); return; }
@@ -389,9 +421,9 @@ export default function StudentDashboard({ darkMode, studentTeams = [], scores =
     const cb = student.breakdown || {}; const raw = student.raw || {};
     const githubActivity             = Math.round(average(["loc","editedCode","commits","functions","hotspots","codeComplexity"].map(k => (cb[k]||0)*100)));
     const documentationContribution = Math.round(average(["avgSentenceLength","sentenceComplexity","wordCount","readability"].map(k => (cb[k]||0)*100)));
-    const maxWH = Math.max(...ranking.map(r => Number(r.raw?.worklogHours || r.worklogHours || 0)), 0);
-    const maxM  = Math.max(...ranking.map(r => Number(r.raw?.meetings     || r.meetings     || 0)), 0);
-    const worklogContribution  = maxWH > 0 ? safePercentFromRatio(Number(raw.worklogHours||student.worklogHours||0), maxWH) : 0;
+    const maxWH = Math.max(...ranking.map(r => Number(r.raw?.hours || r.worklogHours || 0)), 0);
+    const maxM  = Math.max(...ranking.map(r => Number(r.raw?.meetings || r.meetings || 0)), 0);
+    const worklogContribution  = maxWH > 0 ? safePercentFromRatio(Number(raw.hours || student.worklogHours || 0), maxWH) : 0;
     const meetingParticipation = Number.isFinite(raw.attendance) ? Math.round((raw.attendance||0)*100) : maxM > 0 ? safePercentFromRatio(Number(raw.meetings||student.meetings||0), maxM) : 0;
     return { githubActivity, worklogContribution, documentationContribution, meetingParticipation };
   }, [student, ranking]);
@@ -496,7 +528,7 @@ export default function StudentDashboard({ darkMode, studentTeams = [], scores =
               <div style={{ padding: "10px 14px", borderRadius: 999, background: getProgressBg(progressStatus), color: getProgressColor(progressStatus), fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{progressStatus}</div>
               {showTooltip && (
                 <div style={{ position: "absolute", top: "120%", right: 0, width: 220, background: "#111827", color: "#fff", padding: 12, borderRadius: 10, fontSize: 13, lineHeight: 1.7, boxShadow: "0 6px 18px rgba(0,0,0,0.2)", zIndex: 20 }}>
-                  0–40% → At Risk<br />40–70% → Needs Attention<br />70–100% → On Track
+                  0–40% → At Risk<br />40–70% → On Track<br />70–100% → High Performing
                 </div>
               )}
             </div>
@@ -527,7 +559,7 @@ export default function StudentDashboard({ darkMode, studentTeams = [], scores =
                   </div>
                 )}
                 {isCurrentSprintSM && (
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#92400e", background: "#fef3c7", padding: "4px 10px", borderRadius: 999, border: "1px solid #fde68a" }}>⭐ You are Scrum Master this sprint</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#92400e", background: "#fef3c7", padding: "4px 10px", borderRadius: 999, border: "1px solid #fde68a" }}>You are Scrum Master this sprint</span>
                 )}
                 {sprintProgress && (
                   <div style={{ textAlign: "center", minWidth: 120 }}>

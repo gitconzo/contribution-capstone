@@ -1,11 +1,15 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { forgotPasswordRequest, forgotPasswordConfirm } from "../utils/cognitoAuth";
 
 export default function ForgotPassword() {
-  const [step, setStep] = useState(1);
+  const [searchParams] = useSearchParams();
+  const initialEmail = searchParams.get("email") || "";
+  const startAtStep2 = searchParams.get("step") === "2";
 
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState(startAtStep2 ? 2 : 1);
+
+  const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -118,6 +122,14 @@ export default function ForgotPassword() {
             <button type="submit" style={buttonStyle} disabled={loading}>
               {loading ? "Sending..." : "Send Reset Code"}
             </button>
+
+            <button
+              type="button"
+              onClick={() => { setStep(2); setError(""); setMessage(""); }}
+              style={secondaryButtonStyle}
+            >
+              Already have a reset code?
+            </button>
           </form>
         ) : (
           <form onSubmit={handleResetPassword} style={{ display: "grid", gap: 14 }}>
@@ -157,7 +169,7 @@ export default function ForgotPassword() {
             {message && <div style={successStyle}>{message}</div>}
 
             <button type="submit" style={buttonStyle} disabled={loading}>
-              {loading ? "Resetting..." : "Reset Password"}
+              {loading ? "Setting password..." : "Set New Password"}
             </button>
 
             <button

@@ -87,7 +87,8 @@ function toInputDate(d) {
 }
 
 export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
-  const { setActiveTeamId } = useActiveTeam();
+  const { activeTeamId, setActiveTeamId } = useActiveTeam();
+  const [activeTeamFlash, setActiveTeamFlash] = useState("");
   // ── Create-team form ──
   const [name, setName]           = useState("");
   const [code, setCode]           = useState("");
@@ -1151,7 +1152,15 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                       <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>{t.repo?.url||"No repo set"}</div>
                     </div>
                     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                      <button onClick={e => { e.stopPropagation(); setActiveTeamId(t.id); }} style={btn({fontSize:11,padding:"5px 9px"})}>Make Active</button>
+                      {activeTeamId === t.id && activeTeamFlash !== t.id && (
+                        <span style={{ fontSize:11, color:"#16a34a", fontWeight:600 }}>✓ Active</span>
+                      )}
+                      {activeTeamFlash === t.id && (
+                        <span style={{ fontSize:11, color:"#16a34a", fontWeight:600 }}>✓ Set as active</span>
+                      )}
+                      <button onClick={e => { e.stopPropagation(); setActiveTeamId(t.id); setActiveTeamFlash(t.id); setTimeout(() => setActiveTeamFlash(""), 2500); }} style={btn({fontSize:11,padding:"5px 9px", background: activeTeamId === t.id ? "#16a34a" : darkMode ? "#ffffff" : "#111827", color: activeTeamId === t.id || !darkMode ? "#fff" : "#111827"})}>
+                        {activeTeamId === t.id ? "Active" : "Make Active"}
+                      </button>
                       <button onClick={e => { e.stopPropagation(); onDeleteTeam(t.id); }} style={btn({background:"#b83232",fontSize:11,padding:"5px 9px"})}>Delete</button>
                       <span style={{ color:theme.subtext, fontSize:16, userSelect:"none" }}>{isExpanded?"▲":"▼"}</span>
                     </div>

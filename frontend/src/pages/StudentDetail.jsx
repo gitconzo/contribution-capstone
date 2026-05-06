@@ -1,19 +1,29 @@
 
-const METRIC_LABELS = {
-  loc:                "Lines of Code",
-  editedCode:         "Total Edited Code",
-  commits:            "Total Commits",
-  functions:          "Total Functions Written",
-  hotspots:           "Total Hotspots Contributed",
-  codeComplexity:     "Code Complexity",
-  avgSentenceLength:  "Average Sentence Length",
-  sentenceComplexity: "Sentence Complexity",
-  wordCount:          "Word Count",
-  readability:        "Readability",
+const METRIC_META = {
+  loc:                { label: "Lines of Code",         group: "code", description: "Total lines of code written, scored relative to the highest contributor in the team. Reflects raw coding output." },
+  editedCode:         { label: "Edited Code",           group: "code", description: "Volume of code actively changed or refactored. Indicates ongoing engagement with the codebase beyond initial writes." },
+  commits:            { label: "Commits",               group: "code", description: "Number of commits to the repository relative to the team's top committer. Reflects frequency of contribution." },
+  functions:          { label: "Functions Written",     group: "code", description: "New functions or methods authored. A proxy for feature and logic contribution to the codebase." },
+  hotspots:           { label: "Hotspot Contribution",  group: "code", description: "Work concentrated in frequently-changed files - a strong signal of code ownership and active maintenance responsibility." },
+  codeComplexity:     { label: "Code Complexity",       group: "code", description: "Relative complexity of authored code. Higher values mean more complex code was written; interpret alongside commits and LOC." },
+  avgSentenceLength:  { label: "Avg Sentence Length",   group: "docs", description: "Average sentence length across submitted documents. Shorter, clearer sentences typically improve document quality." },
+  sentenceComplexity: { label: "Sentence Complexity",   group: "docs", description: "Structural variety and complexity of written sentences. Reflects depth of written communication in documentation." },
+  wordCount:          { label: "Word Count",            group: "docs", description: "Total documentation volume relative to the highest contributor. Reflects quantity of written output." },
+  readability:        { label: "Readability",           group: "docs", description: "Clarity and ease of reading for submitted documents. Scored using standard readability measures - higher is clearer." },
 };
 
-function formatMetricKey(key) {
-  return METRIC_LABELS[key] || key.replace(/([A-Z])/g, " $1").replace(/^./, firstChar => firstChar.toUpperCase());
+function metricBarColor(score) {
+  if (score >= 75) return "#16a34a";
+  if (score >= 50) return "#2563eb";
+  if (score >= 30) return "#d97706";
+  return "#dc2626";
+}
+
+function metricBadge(score) {
+  if (score >= 75) return { text: "Strong",  bg: "#dcfce7", color: "#166534" };
+  if (score >= 50) return { text: "Average", bg: "#dbeafe", color: "#1e40af" };
+  if (score >= 30) return { text: "Low",     bg: "#fef3c7", color: "#92400e" };
+  return                   { text: "Minimal",bg: "#fee2e2", color: "#991b1b" };
 }
 
 export default function StudentDetail({ student, onBack, darkMode }) {
@@ -134,63 +144,78 @@ export default function StudentDetail({ student, onBack, darkMode }) {
       </div>
 
       <div style={card(theme, { marginTop: 12 })}>
-        <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>
-          Metric Breakdown (Normalized)
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: theme.text }}>Score Contribution by Metric</div>
+          <div style={{ fontSize: 12, color: theme.subtext, marginTop: 5, lineHeight: 1.65 }}>
+            Each metric is scored <strong style={{ color: theme.text }}>relative to the highest performer in the team</strong> - a score of 100 means this student leads the team on that metric; 0 means no recorded contribution. The overall score is a weighted average across all metrics below.
+          </div>
         </div>
 
-        <ul
-          style={{
-            margin: 0,
-            padding: 0,
-            listStyle: "none",
-            display: "grid",
-            gap: 8,
-          }}
-        >
-          {Object.entries(student.breakdown || {}).map(([k, v]) => (
-            <li key={k} style={row()}>
-              <span
-                style={{
-                  width: 160,
-                  color: theme.subtext,
-                  fontSize: 12,
-                }}
-              >
-                {formatMetricKey(k)}
-              </span>
+        {(() => {
+          const breakdown = student.breakdown || {};
+          const allEntries = Object.entries(breakdown);
+          const codeEntries = allEntries.filter(([k]) => METRIC_META[k]?.group === "code");
+          const docEntries  = allEntries.filter(([k]) => METRIC_META[k]?.group === "docs");
+          const sorted = [...allEntries].sort(([, a], [, b]) => b - a);
+          const best   = sorted[0];
+          const worst  = sorted[sorted.length - 1];
 
-              <span style={{ flex: 1 }}>
-                <div
-                  style={{
-                    height: 8,
-                    borderRadius: 999,
-                    background: theme.progressBg,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.round((v || 0) * 100)}%`,
-                      height: "100%",
-                      borderRadius: 999,
-                      background: "#2563eb",
-                    }}
-                  />
+          const MetricRow = ([k, v]) => {
+            const score = Math.round((v || 0) * 100);
+            const meta  = METRIC_META[k] || { label: k, description: "" };
+            const badge = metricBadge(score);
+            const color = metricBarColor(score);
+            return (
+              <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr 52px", gap: 12, alignItems: "start" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{meta.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: "1px 8px", borderRadius: 999, background: badge.bg, color: badge.color }}>{badge.text}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: theme.subtext, marginBottom: 7, lineHeight: 1.55 }}>{meta.description}</div>
+                  <div style={{ height: 7, borderRadius: 999, background: theme.progressBg }}>
+                    <div style={{ width: `${score}%`, height: "100%", borderRadius: 999, background: color }} />
+                  </div>
                 </div>
-              </span>
+                <div style={{ textAlign: "right", paddingTop: 2 }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: color, lineHeight: 1 }}>{score}</div>
+                  <div style={{ fontSize: 10, color: theme.subtext }}>/ 100</div>
+                </div>
+              </div>
+            );
+          };
 
-              <span
-                style={{
-                  width: 40,
-                  textAlign: "right",
-                  fontSize: 12,
-                  color: theme.text,
-                }}
-              >
-                {Math.round((v || 0) * 100)}
-              </span>
-            </li>
-          ))}
-        </ul>
+          return (
+            <>
+              {best && worst && (
+                <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1, minWidth: 160, background: "#dcfce7", border: "1px solid #bbf7d0", borderRadius: 10, padding: "10px 14px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#166534", marginBottom: 2 }}>▲ Strongest Metric</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d" }}>{METRIC_META[best[0]]?.label || best[0]}</div>
+                    <div style={{ fontSize: 12, color: "#166534" }}>{Math.round((best[1] || 0) * 100)} / 100</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 160, background: "#fee2e2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#991b1b", marginBottom: 2 }}>▼ Weakest Metric</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#7f1d1d" }}>{METRIC_META[worst[0]]?.label || worst[0]}</div>
+                    <div style={{ fontSize: 12, color: "#991b1b" }}>{Math.round((worst[1] || 0) * 100)} / 100</div>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: theme.subtext, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Code Metrics</div>
+              <div style={{ display: "grid", gap: 14, marginBottom: 22 }}>
+                {codeEntries.map(MetricRow)}
+              </div>
+
+              <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: 18 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: theme.subtext, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Documentation Metrics</div>
+                <div style={{ display: "grid", gap: 14 }}>
+                  {docEntries.map(MetricRow)}
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
@@ -207,14 +232,6 @@ function card(theme, extra = {}) {
   };
 }
 
-function row() {
-  return {
-    display: "grid",
-    gridTemplateColumns: "160px 1fr 40px",
-    alignItems: "center",
-    gap: 10,
-  };
-}
 
 function btn(theme) {
   return {
