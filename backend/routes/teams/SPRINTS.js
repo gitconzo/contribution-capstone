@@ -48,7 +48,7 @@ router.get("/:id/sprints", async (req, res) => {
       `SELECT sp.id, sp.team_id, sp.sprint_number,
               TO_CHAR(sp.start_date, 'YYYY-MM-DD') AS start_date,
               TO_CHAR(sp.end_date,   'YYYY-MM-DD') AS end_date,
-              sp.scrum_master_email, sp.created_at,
+              sp.scrum_master_email, sp.branch, sp.created_at,
               s.name AS scrum_master_name
        FROM sprints sp
        LEFT JOIN students s ON s.team_id = sp.team_id AND s.email = sp.scrum_master_email
@@ -104,7 +104,7 @@ router.post("/:id/sprints", async (req, res) => {
       `SELECT sp.id, sp.team_id, sp.sprint_number,
               TO_CHAR(sp.start_date, 'YYYY-MM-DD') AS start_date,
               TO_CHAR(sp.end_date,   'YYYY-MM-DD') AS end_date,
-              sp.scrum_master_email, sp.created_at
+              sp.scrum_master_email, sp.branch, sp.created_at
        FROM sprints sp WHERE sp.id = $1`,
       [result.rows[0].id]
     );
@@ -117,7 +117,7 @@ router.post("/:id/sprints", async (req, res) => {
 
 // PUT /api/teams/:id/sprints/:sprintId
 router.put("/:id/sprints/:sprintId", async (req, res) => {
-  const { start_date, end_date, scrum_master_email } = req.body || {};
+  const { start_date, end_date, scrum_master_email, branch } = req.body || {};
 
   if (start_date && end_date && end_date <= start_date) {
     return res.status(400).json({ error: "end_date must be after start_date" });
@@ -137,13 +137,15 @@ router.put("/:id/sprints/:sprintId", async (req, res) => {
       `UPDATE sprints SET
          start_date         = $1::date,
          end_date           = $2::date,
-         scrum_master_email = $3
-       WHERE id = $4 AND team_id = $5
+         scrum_master_email = $3,
+         branch             = $4
+       WHERE id = $5 AND team_id = $6
        RETURNING *`,
       [
         start_date || current.start_date,
         end_date   || current.end_date,
         scrum_master_email !== undefined ? scrum_master_email : current.scrum_master_email,
+        branch !== undefined ? branch : current.branch,
         req.params.sprintId,
         req.params.id,
       ]
@@ -153,7 +155,7 @@ router.put("/:id/sprints/:sprintId", async (req, res) => {
       `SELECT sp.id, sp.team_id, sp.sprint_number,
               TO_CHAR(sp.start_date, 'YYYY-MM-DD') AS start_date,
               TO_CHAR(sp.end_date,   'YYYY-MM-DD') AS end_date,
-              sp.scrum_master_email, sp.created_at
+              sp.scrum_master_email, sp.branch, sp.created_at
        FROM sprints sp WHERE sp.id = $1`,
       [result.rows[0].id]
     );
@@ -199,6 +201,9 @@ router.post("/:id/sprints/:sprintId/analyze", async (req, res) => {
 
     if (!team.repo_url) return res.status(400).json({ error: "Team has no repo URL configured" });
 
+    const baseUrl = team.repo_url.replace(/\/tree\/[^/]+$/, "");
+    const repoUrl = sprint.branch ? `${baseUrl}/tree/${sprint.branch}` : team.repo_url;
+
     const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
     const { pyBin, runFile } = require("../../utils/processUtils");
     const { writeJson } = require("../../utils/fileUtils");
@@ -215,13 +220,14 @@ router.post("/:id/sprints/:sprintId/analyze", async (req, res) => {
     // Run in background
     (async () => {
       try {
-        await runFile(pyBin(), [
+        const { stderr } = await runFile(pyBin(), [
           path.join(ROOT_DIR, "main.py"),
-          "--repo-url", team.repo_url,
+          "--repo-url", repoUrl,
           "--start-date", startDate,
           "--end-date", endDate,
           "--output", outputPath,
         ], { cwd: ROOT_DIR });
+        if (stderr) console.warn("Sprint analysis warning:", stderr?.slice(-200));
         writeJson(statusPath, { status: "complete", completedAt: new Date().toISOString() });
       } catch (e) {
         console.error("Sprint analysis error:", e.message);

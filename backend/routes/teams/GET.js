@@ -27,19 +27,29 @@ function normalizeTeam(t, students) {
   };
 }
 
-// GET /api/teams — only return teams belonging to the logged-in tutor
+// GET /api/teams
+// Tutors: return teams they own. Students: return teams they are enrolled in.
 router.get("/", protect, async (req, res) => {
   try {
-    const email = req.user.email;
-    const teamsResult = await db.query(
-      `SELECT t.*, u.code FROM teams t
-       LEFT JOIN units u ON t.unit_id = u.id
-       WHERE t.owner_email = $1 OR t.owner_email IS NULL
-       ORDER BY t.created_at DESC`,
-      [email]
-    );
-    const studentsResult = await db.query("SELECT * FROM students");
+    const { email, role } = req.user;
 
+    const teamsResult = role === "student"
+      ? await db.query(
+          `SELECT DISTINCT t.*, u.code FROM teams t
+           LEFT JOIN units u ON t.unit_id = u.id
+           INNER JOIN students s ON s.team_id = t.id AND LOWER(s.email) = LOWER($1)
+           ORDER BY t.created_at DESC`,
+          [email]
+        )
+      : await db.query(
+          `SELECT t.*, u.code FROM teams t
+           LEFT JOIN units u ON t.unit_id = u.id
+           WHERE t.owner_email = $1 OR t.owner_email IS NULL
+           ORDER BY t.created_at DESC`,
+          [email]
+        );
+
+    const studentsResult = await db.query("SELECT * FROM students");
     const studentsByTeam = {};
     for (const s of studentsResult.rows) {
       if (!studentsByTeam[s.team_id]) studentsByTeam[s.team_id] = [];
