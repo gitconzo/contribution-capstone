@@ -54,9 +54,7 @@ export default function UploadFile({ darkMode }) {
     return overrideType !== "unknown" ? overrideType : detectedType;
   }, [overrideType, detectedType]);
 
-  const displayedFiles = showAllFiles
-    ? files
-    : files.slice(0, 3);
+  const visibleFiles = showAllFiles ? files : files.slice(0, 3);
 
   const fetchFiles = () => {
     fetch(`${API}/api/uploads`)
@@ -98,17 +96,13 @@ export default function UploadFile({ darkMode }) {
     const res = await fetch(`${API}/api/uploads/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: uploadResult.id,
-        type: effectiveType,
-      }),
+      body: JSON.stringify({ id: uploadResult.id, type: effectiveType }),
     });
 
     const json = await res.json();
 
     setUploadResult(json);
     setConfirming(false);
-
     fetchFiles();
   };
 
@@ -121,7 +115,6 @@ export default function UploadFile({ darkMode }) {
       background: theme.pageBg,
       color: theme.text,
     },
-
     card: {
       background: theme.card,
       padding: "20px",
@@ -130,14 +123,12 @@ export default function UploadFile({ darkMode }) {
       marginBottom: "20px",
       border: `1px solid ${theme.border}`,
     },
-
     label: {
       fontWeight: "bold",
       marginTop: "10px",
       color: theme.text,
       display: "block",
     },
-
     select: {
       width: "100%",
       padding: "10px",
@@ -148,7 +139,6 @@ export default function UploadFile({ darkMode }) {
       color: theme.text,
       outline: "none",
     },
-
     uploadBox: {
       border: `2px dashed ${theme.softBorder}`,
       padding: "15px",
@@ -158,7 +148,6 @@ export default function UploadFile({ darkMode }) {
       background: theme.cardAlt,
       color: theme.subtext,
     },
-
     filePreview: {
       marginTop: "10px",
       padding: "10px",
@@ -170,7 +159,6 @@ export default function UploadFile({ darkMode }) {
       color: theme.text,
       border: `1px solid ${theme.border}`,
     },
-
     removeBtn: {
       border: "none",
       background: "#dc2626",
@@ -180,7 +168,6 @@ export default function UploadFile({ darkMode }) {
       padding: "6px 8px",
       fontWeight: 700,
     },
-
     uploadBtn: {
       width: "100%",
       padding: "12px",
@@ -193,7 +180,6 @@ export default function UploadFile({ darkMode }) {
       fontWeight: 700,
       opacity: file ? 1 : 0.6,
     },
-
     confirmBox: {
       background: theme.cardAlt,
       color: theme.text,
@@ -203,7 +189,6 @@ export default function UploadFile({ darkMode }) {
       border: `1px solid ${theme.border}`,
       lineHeight: 1.5,
     },
-
     confirmBtn: {
       marginTop: "10px",
       width: "100%",
@@ -215,7 +200,6 @@ export default function UploadFile({ darkMode }) {
       cursor: "pointer",
       fontWeight: 600,
     },
-
     tableCard: {
       background: theme.card,
       padding: "20px",
@@ -223,7 +207,23 @@ export default function UploadFile({ darkMode }) {
       boxShadow: theme.shadow,
       border: `1px solid ${theme.border}`,
     },
-
+    tableHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "10px",
+      gap: "12px",
+    },
+    refreshBtn: {
+      border: `1px solid ${theme.border}`,
+      background: theme.buttonBg,
+      color: theme.text,
+      padding: "8px 12px",
+      borderRadius: "10px",
+      cursor: "pointer",
+      fontWeight: 700,
+      fontSize: "13px",
+    },
     table: {
       width: "100%",
       borderCollapse: "separate",
@@ -231,19 +231,16 @@ export default function UploadFile({ darkMode }) {
       marginTop: "10px",
       color: theme.text,
     },
-
     th: {
       textAlign: "left",
       color: theme.subtext,
       fontSize: "13px",
       padding: "0 12px 8px 12px",
     },
-
     tableRow: {
       background: theme.tableRow,
       boxShadow: darkMode ? "none" : "0 1px 3px rgba(0,0,0,0.1)",
     },
-
     tableCell: {
       padding: "12px 15px",
       textAlign: "left",
@@ -251,19 +248,16 @@ export default function UploadFile({ darkMode }) {
       borderTop: `1px solid ${theme.border}`,
       borderBottom: `1px solid ${theme.border}`,
     },
-
     firstCell: {
       borderLeft: `1px solid ${theme.border}`,
       borderTopLeftRadius: "10px",
       borderBottomLeftRadius: "10px",
     },
-
     lastCell: {
       borderRight: `1px solid ${theme.border}`,
       borderTopRightRadius: "10px",
       borderBottomRightRadius: "10px",
     },
-
     downloadBtn: {
       background: "#000",
       color: "white",
@@ -274,17 +268,23 @@ export default function UploadFile({ darkMode }) {
       fontWeight: "bold",
       display: "inline-block",
     },
+    seeMoreBtn: {
+      border: `1px solid ${theme.border}`,
+      background: theme.buttonBg,
+      color: theme.text,
+      padding: "9px 16px",
+      borderRadius: "10px",
+      cursor: "pointer",
+      fontWeight: 700,
+    },
   };
 
   return (
     <div style={styles.pageContainer}>
       <div style={styles.card}>
-        <h1 style={{ marginTop: 0, color: theme.text }}>
-          Upload Documents
-        </h1>
+        <h1 style={{ marginTop: 0, color: theme.text }}>Upload Documents</h1>
 
         <label style={styles.label}>Select Document Type</label>
-
         <select
           value={overrideType}
           onChange={(e) => setOverrideType(e.target.value)}
@@ -298,10 +298,8 @@ export default function UploadFile({ darkMode }) {
         </select>
 
         <label style={styles.label}>Browse Files</label>
-
         <div style={styles.uploadBox}>
           <input type="file" onChange={handleFileSelect} />
-
           <div style={{ marginTop: "8px" }}>
             <small>Supported formats: .docx .pdf .xlsx</small>
           </div>
@@ -310,21 +308,13 @@ export default function UploadFile({ darkMode }) {
         {file && (
           <div style={styles.filePreview}>
             <span>{file.name}</span>
-
-            <button
-              onClick={() => setFile(null)}
-              style={styles.removeBtn}
-            >
+            <button onClick={() => setFile(null)} style={styles.removeBtn}>
               Remove
             </button>
           </div>
         )}
 
-        <button
-          onClick={handleUpload}
-          disabled={!file}
-          style={styles.uploadBtn}
-        >
+        <button onClick={handleUpload} disabled={!file} style={styles.uploadBtn}>
           Upload
         </button>
 
@@ -333,7 +323,6 @@ export default function UploadFile({ darkMode }) {
             Uploaded: {uploadResult.originalName}
             <br />
             Detected Type: <b>{uploadResult.detectedType}</b>
-
             <button
               onClick={handleConfirm}
               disabled={confirming}
@@ -346,9 +335,15 @@ export default function UploadFile({ darkMode }) {
       </div>
 
       <div style={styles.tableCard}>
-        <h2 style={{ marginTop: 0, color: theme.text }}>
-          Uploaded Files
-        </h2>
+        <div style={styles.tableHeader}>
+          <h2 style={{ marginTop: 0, marginBottom: 0, color: theme.text }}>
+            Uploaded Files
+          </h2>
+
+          <button onClick={fetchFiles} style={styles.refreshBtn}>
+            Refresh
+          </button>
+        </div>
 
         <table style={styles.table}>
           <thead>
@@ -363,14 +358,9 @@ export default function UploadFile({ darkMode }) {
 
           <tbody>
             {files.length ? (
-              displayedFiles.map((file) => (
+              visibleFiles.map((file) => (
                 <tr key={file.id} style={styles.tableRow}>
-                  <td
-                    style={{
-                      ...styles.tableCell,
-                      ...styles.firstCell,
-                    }}
-                  >
+                  <td style={{ ...styles.tableCell, ...styles.firstCell }}>
                     {file.originalName}
                   </td>
 
@@ -382,16 +372,9 @@ export default function UploadFile({ darkMode }) {
                     {new Date(file.uploadDate).toLocaleString()}
                   </td>
 
-                  <td style={styles.tableCell}>
-                    {file.status}
-                  </td>
+                  <td style={styles.tableCell}>{file.status}</td>
 
-                  <td
-                    style={{
-                      ...styles.tableCell,
-                      ...styles.lastCell,
-                    }}
-                  >
+                  <td style={{ ...styles.tableCell, ...styles.lastCell }}>
                     <a
                       href={`http://localhost:5002/${file.storedPath}`}
                       download
@@ -420,23 +403,10 @@ export default function UploadFile({ darkMode }) {
         </table>
 
         {files.length > 3 && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              marginTop: "14px",
-            }}
-          >
+          <div style={{ marginTop: "16px", textAlign: "center" }}>
             <button
               onClick={() => setShowAllFiles(!showAllFiles)}
-              style={{
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                fontWeight: 600,
-                color: theme.subtext,
-                fontSize: "14px",
-              }}
+              style={styles.seeMoreBtn}
             >
               {showAllFiles ? "Show Less" : "See More"}
             </button>

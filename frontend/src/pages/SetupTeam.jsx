@@ -9,6 +9,7 @@ export default function SetupTeam({ darkMode }) {
   const [csvText, setCsvText] = useState("");
   const [teams, setTeams] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [refreshingTeams, setRefreshingTeams] = useState(false);
   const [error, setError] = useState("");
 
   const theme = darkMode
@@ -41,15 +42,19 @@ export default function SetupTeam({ darkMode }) {
 
   const students = useMemo(() => parseCsv(csvText), [csvText]);
 
-  const loadTeams = async () => {
+  const loadTeams = async (isManualRefresh = false) => {
     setError("");
     try {
+      if (isManualRefresh) setRefreshingTeams(true);
+
       const res = await fetch(`${API}/api/teams`);
       if (!res.ok) throw new Error(`Load teams failed (${res.status})`);
       const data = await res.json();
       setTeams(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(e.message || "Unable to load teams");
+    } finally {
+      setRefreshingTeams(false);
     }
   };
 
@@ -57,12 +62,18 @@ export default function SetupTeam({ darkMode }) {
     loadTeams();
   }, []);
 
+  const handleRefreshTeams = async () => {
+    await loadTeams(true);
+  };
+
   const onCreate = async () => {
     setError("");
+
     if (!name.trim() || !code.trim() || !repoUrl.trim()) {
       setError("Team Name, Project Code, and Repository URL are required.");
       return;
     }
+
     if (students.length === 0) {
       setError("Must include at least one student.");
       return;
@@ -82,6 +93,7 @@ export default function SetupTeam({ darkMode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `Create failed (${res.status})`);
 
@@ -102,16 +114,22 @@ export default function SetupTeam({ darkMode }) {
     <div
       style={{
         padding: "80px 16px",
-        maxWidth: 1000,
+        maxWidth: 1100,
         margin: "0 auto",
         minHeight: "100vh",
         background: theme.pageBg,
         color: theme.text,
       }}
     >
-      <h1 style={{ margin: 0, fontSize: 22, color: theme.text }}>Setup Team</h1>
-      <div style={{ color: theme.subtext, marginBottom: 12 }}>
-        Create a new project team and provide the repo and students CSV.
+      <div style={headerCard(theme)}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: theme.text }}>
+            Setup Team
+          </h1>
+          <p style={{ margin: "8px 0 0", fontSize: 15, color: theme.subtext }}>
+            Create a project team, link the repository, and upload student members by CSV.
+          </p>
+        </div>
       </div>
 
       {error && (
@@ -119,10 +137,12 @@ export default function SetupTeam({ darkMode }) {
           style={{
             background: theme.dangerBg,
             color: theme.dangerText,
-            padding: 10,
-            borderRadius: 8,
-            marginBottom: 12,
+            padding: "12px 14px",
+            borderRadius: 12,
+            marginBottom: 16,
             border: `1px solid ${darkMode ? "#7f1d1d" : "#fecaca"}`,
+            fontSize: 14,
+            fontWeight: 500,
           }}
         >
           {error}
@@ -130,79 +150,220 @@ export default function SetupTeam({ darkMode }) {
       )}
 
       <div style={card(theme)}>
-        <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 17, color: theme.text }}>
+              Team Information
+            </div>
+            <div style={{ marginTop: 4, fontSize: 14, color: theme.subtext }}>
+              Enter the basic project details below.
+            </div>
+          </div>
+
+          <button
+            onClick={handleRefreshTeams}
+            disabled={refreshingTeams}
+            style={iconBtn(refreshingTeams)}
+            title="Refresh"
+          >
+            ↻
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gap: 16,
+            gridTemplateColumns: "1fr 1fr",
+            marginTop: 18,
+          }}
+        >
           <Field label="Team Name" theme={theme}>
-            <input value={name} onChange={(e) => setName(e.target.value)} style={inp(theme)} />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Team Alpha"
+              style={inp(theme)}
+            />
           </Field>
+
           <Field label="Project Code" theme={theme}>
-            <input value={code} onChange={(e) => setCode(e.target.value)} style={inp(theme)} />
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="e.g. COS40005"
+              style={inp(theme)}
+            />
           </Field>
         </div>
 
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 16 }}>
           <Field label="Repository URL" theme={theme}>
             <input
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
               placeholder="e.g. https://github.com/org/repo"
-              style={inp(theme, { minWidth: 400 })}
+              style={inp(theme)}
             />
           </Field>
         </div>
 
-        <div style={{ marginTop: 10 }}>
-          <Field label="Students CSV (name,email per line)" theme={theme}>
+        <div style={{ marginTop: 24 }}>
+          {sectionHeader(
+            theme,
+            "Team Members CSV",
+            "Paste one student per line in this format: name,email"
+          )}
+
+          <div style={{ marginTop: 14 }}>
             <textarea
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
-              placeholder={`Example:\nAlice Smith, alice@example.com\nBob Jones, bob@example.com`}
+              placeholder="Paste team member CSV here"
               rows={8}
-              style={inp(theme, { fontFamily: "monospace", resize: "vertical" })}
+              style={textareaStyle(theme)}
             />
-          </Field>
-          <div style={{ marginTop: 6, fontSize: 12, color: theme.subtext }}>
+          </div>
+
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 13,
+              color: theme.subtext,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: darkMode ? "#0b1220" : "#f9fafb",
+              border: `1px solid ${theme.border}`,
+            }}
+          >
             Parsed {students.length} student{students.length !== 1 ? "s" : ""}.
           </div>
         </div>
 
-        <div style={{ marginTop: 14 }}>
-          <button onClick={onCreate} disabled={creating} style={btn()}>
+        {students.length > 0 && (
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontWeight: 700, color: theme.text, marginBottom: 10 }}>
+              Preview
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              {students.map((student, index) => (
+                <div
+                  key={`${student.email}-${index}`}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "10px 12px",
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: 10,
+                    background: theme.cardAlt,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, color: theme.text }}>{student.name}</div>
+                    <div style={{ fontSize: 12, color: theme.subtext }}>{student.email}</div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: darkMode ? "#cbd5e1" : "#374151",
+                      padding: "5px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${theme.softBorder}`,
+                      background: darkMode ? "#0b1220" : "#ffffff",
+                    }}
+                  >
+                    Student
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 22, display: "flex", justifyContent: "flex-end" }}>
+          <button onClick={onCreate} disabled={creating} style={btn(creating)}>
             {creating ? "Creating..." : "Create Team"}
           </button>
         </div>
       </div>
 
-      <div style={card(theme, { marginTop: 16 })}>
-        <div style={{ fontWeight: 700, marginBottom: 8, color: theme.text }}>Existing Teams</div>
+      <div style={card(theme, { marginTop: 18 })}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 17, color: theme.text }}>
+              Existing Teams
+            </div>
+            <div style={{ marginTop: 4, fontSize: 14, color: theme.subtext }}>
+              Review teams already created in the system.
+            </div>
+          </div>
+
+          <button
+            onClick={handleRefreshTeams}
+            disabled={refreshingTeams}
+            style={iconBtn(refreshingTeams)}
+            title="Refresh"
+          >
+            ↻
+          </button>
+        </div>
 
         {teams.length ? (
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
             {teams.map((t) => (
               <div
                 key={t.id}
                 style={{
                   border: `1px solid ${theme.border}`,
                   background: theme.cardAlt,
-                  borderRadius: 10,
-                  padding: "10px 12px",
+                  borderRadius: 14,
+                  padding: "14px 16px",
                   display: "grid",
                   gridTemplateColumns: "1fr auto",
-                  gap: 8,
+                  gap: 12,
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 600, color: theme.text }}>
+                  <div style={{ fontWeight: 700, color: theme.text, fontSize: 15 }}>
                     {t.name}{" "}
-                    <span style={{ color: theme.subtext, fontWeight: 400 }}>
+                    <span style={{ color: theme.subtext, fontWeight: 500 }}>
                       ({t.code})
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: theme.subtext }}>
-                    {t.repo?.url} • {t.students?.length || 0} students
+
+                  <div style={{ fontSize: 13, color: theme.subtext, marginTop: 4 }}>
+                    {t.repo?.url || "No repository"} • {t.students?.length || 0} student
+                    {(t.students?.length || 0) !== 1 ? "s" : ""}
                   </div>
+
+                  {t.students?.length > 0 && (
+                    <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
+                      {t.students.map((student, index) => (
+                        <div
+                          key={`${student.email}-${index}`}
+                          style={{
+                            fontSize: 13,
+                            color: theme.text,
+                            padding: "8px 10px",
+                            borderRadius: 10,
+                            border: `1px solid ${theme.border}`,
+                            background: darkMode ? "#0b1220" : "#f9fafb",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600 }}>{student.name}</div>
+                          <div style={{ color: theme.subtext, fontSize: 12 }}>
+                            {student.email}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "start" }}>
                   <button
                     onClick={async () => {
                       try {
@@ -226,7 +387,7 @@ export default function SetupTeam({ darkMode }) {
             ))}
           </div>
         ) : (
-          <div style={{ color: theme.subtext }}>No teams yet.</div>
+          <div style={{ color: theme.subtext, marginTop: 14 }}>No teams yet.</div>
         )}
       </div>
     </div>
@@ -263,17 +424,37 @@ function card(theme, extra = {}) {
   return {
     background: theme.card,
     border: `1px solid ${theme.border}`,
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 18,
     boxShadow: theme.shadow,
     ...extra,
   };
 }
 
+function headerCard(theme) {
+  return {
+    background: theme.card,
+    border: `1px solid ${theme.border}`,
+    borderRadius: 18,
+    padding: "22px 20px",
+    boxShadow: theme.shadow,
+    marginBottom: 18,
+  };
+}
+
+function sectionHeader(theme, title, desc) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: 17, color: theme.text }}>{title}</div>
+      <div style={{ marginTop: 4, fontSize: 14, color: theme.subtext }}>{desc}</div>
+    </div>
+  );
+}
+
 function Field({ label, children, theme }) {
   return (
     <label style={{ display: "grid", gap: 6 }}>
-      <span style={{ fontSize: 13, color: theme.text }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{label}</span>
       {children}
     </label>
   );
@@ -284,8 +465,8 @@ function inp(theme, extra = {}) {
     border: `1px solid ${theme.softBorder}`,
     background: theme.inputBg,
     color: theme.text,
-    borderRadius: 10,
-    padding: "8px 10px",
+    borderRadius: 12,
+    padding: "10px 12px",
     fontSize: 14,
     outline: "none",
     width: "100%",
@@ -294,16 +475,51 @@ function inp(theme, extra = {}) {
   };
 }
 
-function btn(extra = {}) {
+function textareaStyle(theme) {
+  return {
+    border: `1px solid ${theme.softBorder}`,
+    background: theme.inputBg,
+    color: theme.text,
+    borderRadius: 12,
+    padding: "12px 14px",
+    fontSize: 14,
+    outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
+    resize: "vertical",
+    fontFamily: "monospace",
+  };
+}
+
+function btn(disabled = false, extra = {}) {
   return {
     background: "#000",
     color: "#fff",
     border: "none",
     padding: "10px 14px",
-    borderRadius: 10,
-    cursor: "pointer",
+    borderRadius: 12,
+    cursor: disabled ? "not-allowed" : "pointer",
     fontWeight: 600,
+    opacity: disabled ? 0.7 : 1,
     ...extra,
   };
 }
 
+function iconBtn(disabled = false) {
+  return {
+    background: "#000",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    width: 36,
+    height: 36,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.7 : 1,
+    fontSize: 16,
+    fontWeight: 700,
+    marginTop: 1,
+  };
+}
