@@ -5,6 +5,7 @@ import { apiFetch } from "../utils/api";
 import {
   Users, Link as LinkIcon, BarChart3, UserRound,
   GitCommitHorizontal, Eye, ChevronDown, ChevronRight, Search, AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
 // Format a date from API using UTC to avoid timezone shift (AEST = UTC+10 would shift midnight UTC back 1 day)
@@ -36,7 +37,7 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [resetting, setResetting]       = useState(false);
 
-  // ── Current sprint ──
+  // Current sprint
   const [currentSprint, setCurrentSprint] = useState(null);
   const [allSprints, setAllSprints]       = useState([]);
   const [selectedSprintId, setSelectedSprintId] = useState("overall");
@@ -44,9 +45,12 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
   const [sprintAnalyzing, setSprintAnalyzing] = useState(false);
   
 
-  // ── Tasks ──
+  // Tasks
   const [tasksBySprintId, setTasksBySprintId] = useState({});
   const [tasksLoading,    setTasksLoading]    = useState(false);
+
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
 
   const theme = darkMode
@@ -123,7 +127,7 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
       .catch(() => setTasksBySprintId({}))
       .finally(() => setTasksLoading(false));
 
-  }, [teamId, peerReview]);
+  }, [teamId, peerReview, refreshTick]);
 
   useEffect(() => {
   if (!teamId || selectedSprintId === "overall") {
@@ -196,6 +200,26 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
           <div style={{ color:theme.subtext, fontSize:14 }}>Monitor team contribution and performance metrics</div>
         </div>
         <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+          <style>{`@keyframes refreshSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          <button
+            onClick={() => {
+              setRefreshing(true);
+              setRefreshTick(t => t+1);
+              setTimeout(() => setRefreshing(false), 800);
+            }}
+            disabled={refreshing}
+            style={refreshBtn(theme)}
+            title="Refresh scores and team data"
+          >
+            <RefreshCw
+              size={15}
+              style={{
+                animation: refreshing ? "refreshSpin 0.8s linear infinite" : "none",
+                transformOrigin: "center",
+              }}
+            />
+            Refresh
+          </button>
           <button onClick={handleReset} disabled={resetting} style={{ padding:"8px 14px", borderRadius:10, border:"1px solid #dc2626", background:resetting?"#fee2e2":theme.buttonBg, cursor:resetting?"not-allowed":"pointer", fontSize:13, color:"#dc2626", fontWeight:500 }}>
             {resetting ? "Resetting..." : "Reset Scores"}
           </button>
@@ -490,7 +514,7 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
   );
 }
 
-/* ── Lecturer sprint task group ──────────────────────────────────────────── */
+// Lecturer sprint task group
 
 function KpiCard({ title, icon, children, theme }) {
   return (
@@ -502,9 +526,11 @@ function KpiCard({ title, icon, children, theme }) {
     </div>
   );
 }
+
 function InfoInline({ icon, text }) {
   return <div style={{ display:"flex", alignItems:"center", gap:6 }}>{icon}<span>{text}</span></div>;
 }
+
 function Progress({ value, theme }) {
   const pct = Math.max(0, Math.min(100, Number(value)||0));
   return (
@@ -515,6 +541,7 @@ function Progress({ value, theme }) {
     </div>
   );
 }
+
 function Metric({ label, value, theme }) {
   return (
     <div>
@@ -523,6 +550,7 @@ function Metric({ label, value, theme }) {
     </div>
   );
 }
+
 function Badge({ level }) {
   const base = { fontSize:11, padding:"2px 8px", borderRadius:999, border:"1px solid", fontWeight:600 };
   if (level==="high")   return <span style={{ ...base, color:"#065f46", borderColor:"#a7f3d0", background:"#ecfdf5" }}>High Contributor</span>;
@@ -539,5 +567,20 @@ function rowCard(theme) { return { ...card(theme), display:"grid", gridTemplateC
 function inputBoxWithIcon(theme) { return { padding:"8px 12px 8px 32px", borderRadius:10, border:`1px solid ${theme.border}`, background:theme.inputBg, color:theme.text, fontSize:14, minWidth:240, outline:"none" }; }
 function selectBox(theme) { return { padding:"10px 12px", borderRadius:10, border:`1px solid ${theme.border}`, background:theme.inputBg, color:theme.text, fontSize:14, minWidth:300, outline:"none" }; }
 function ghostBtn(theme) { return { border:`1px solid ${theme.border}`, background:theme.buttonBg, color:theme.text, borderRadius:10, padding:"8px 10px", fontSize:13, cursor:"pointer" }; }
+function refreshBtn(theme) {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    border: `1px solid ${theme.border}`,
+    background: "#111827",
+    color: "#ffffff",
+    borderRadius: 10,
+    padding: "8px 12px",
+    fontSize: 13,
+    cursor: "pointer",
+    fontWeight: 700,
+  };
+}
 function linkBtn(theme) { return { border:`1px solid ${theme.border}`, background:theme.buttonBg, borderRadius:10, padding:"8px 12px", fontSize:13, cursor:"pointer", fontWeight:600, color:theme.text }; }
 function rowBetween(extra={}) { return { display:"flex", justifyContent:"space-between", alignItems:"center", ...extra }; }

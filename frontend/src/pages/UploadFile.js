@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
 import { useActiveTeam } from "../context/TeamContext";
+import { RefreshCw } from "lucide-react";
 
 const TYPE_OPTIONS = [
   { value: "attendance", label: "Attendance Sheet (.xlsx)" },
@@ -16,6 +17,19 @@ const GROUP_VIEW_OPTIONS = [
   { value: "active", label: "Active Group" },
   { value: "all", label: "All Groups" }
 ];
+
+const TYPE_LABELS = {
+  attendance: "Attendance Sheet",
+  worklog: "Worklog",
+  peer_review: "Peer Review",
+  sprint_report: "Sprint Report",
+  project_plan: "Project Plan",
+  unknown: "Unknown",
+};
+
+function prettyType(v = "") {
+  return TYPE_LABELS[v] || v || "Unknown";
+}
 
 function normalizeUploadRecord(fileItem = {}) {
   return {
@@ -77,6 +91,7 @@ export default function UploadFile({ darkMode }) {
   const [repoUrl, setRepoUrl] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeMsg, setAnalyzeMsg] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   const [groupView, setGroupView] = useState("active");
   const [selectedGroup, setSelectedGroup] = useState("all");
@@ -287,7 +302,12 @@ export default function UploadFile({ darkMode }) {
   const tableRowStyle  = { background: theme.tableRow, boxShadow: darkMode ? "none" : "0 1px 3px rgba(0,0,0,0.1)" };
 
   return (
-    <div style={{ maxWidth: "980px", margin: "0 auto", padding: "20px", minHeight: "100vh", background: theme.pageBg, color: theme.text }}>
+    <div style={{ maxWidth: "1500px", margin: "0 auto", padding: "20px", minHeight: "100vh", background: theme.pageBg, color: theme.text }}>
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 440px) 1fr", gap: 20, alignItems: "stretch" }}>
+
+      {/* ── Left column: Analyze Repo + Upload Documents ── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
       {/* ── Analyze Repo ── */}
       <div style={cardStyle}>
@@ -371,9 +391,41 @@ export default function UploadFile({ darkMode }) {
         )}
       </div>
 
-      {/* ── Uploaded Files by Group ── */}
+      </div>
+      {/* end left column */}
+
+      {/* ── Right column: Uploaded Files by Group ── */}
       <div style={cardStyle}>
-        <h2 style={{ marginTop: 0, color: theme.text }}>Uploaded Files by Group</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <h2 style={{ margin: 0, color: theme.text }}>Uploaded Files by Group</h2>
+          <style>{`@keyframes refreshSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          <button
+            onClick={() => {
+              setRefreshing(true);
+              fetchFiles();
+              fetchTeams();
+              setTimeout(() => setRefreshing(false), 800);
+            }}
+            disabled={refreshing}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              border: `1px solid ${theme.border}`,
+              background: "#111827", color: "#ffffff",
+              borderRadius: 10, padding: "8px 12px",
+              fontSize: 13, cursor: refreshing ? "not-allowed" : "pointer", fontWeight: 700,
+            }}
+            title="Refresh uploaded files"
+          >
+            <RefreshCw
+              size={15}
+              style={{
+                animation: refreshing ? "refreshSpin 0.8s linear infinite" : "none",
+                transformOrigin: "center",
+              }}
+            />
+            Refresh
+          </button>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 18 }}>
           <div>
             <label style={labelStyle}>Group View</label>
@@ -394,7 +446,7 @@ export default function UploadFile({ darkMode }) {
             <label style={labelStyle}>Filter by Type</label>
             <select value={selectedType} onChange={e => setSelectedType(e.target.value)} style={selectStyle}>
               <option value="all">All Types</option>
-              {TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
+              {TYPE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{prettyType(opt.value)}</option>)}
             </select>
           </div>
           <div>
@@ -447,7 +499,7 @@ export default function UploadFile({ darkMode }) {
                           <div style={{ fontWeight: 600 }}>{f.originalName}</div>
                         </td>
                         <td style={tableCellStyle}>
-                          <div>{f.userType !== "unknown" ? f.userType : f.detectedType}</div>
+                          <div>{prettyType(f.userType !== "unknown" ? f.userType : f.detectedType)}</div>
                           {f.sprintId && (
                             <div style={{ fontSize: 11, marginTop: 3, color: "#0369a1", background: "#e0f2fe", padding: "1px 6px", borderRadius: 999, display: "inline-block" }}>
                               {sprints.find(s => String(s.id) === String(f.sprintId))?.sprint_number
@@ -559,6 +611,10 @@ export default function UploadFile({ darkMode }) {
           <div style={{ textAlign: "center", padding: "12px", color: theme.subtext }}>No files found for the selected filters.</div>
         )}
       </div>
+      {/* end right column */}
+
+      </div>
+      {/* end grid */}
     </div>
   );
 }
