@@ -151,8 +151,13 @@ const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
     loadProfilePhoto();
   }, [currentMembership]);
 
-  const visibleUploadTypes =
-  currentRole === "leader"
+  // Roles can be combined (e.g. "leader,scrum_master") — match on inclusion, not equality
+  const isLeader = String(currentRole || "")
+    .split(",")
+    .map(r => r.trim())
+    .includes("leader");
+
+  const visibleUploadTypes = isLeader
     ? STUDENT_UPLOAD_TYPES
     : STUDENT_UPLOAD_TYPES.filter(
         (type) => !["attendance", "sprint_report", "project_plan"].includes(type.value)

@@ -9,6 +9,14 @@ const PRIORITY_CONFIG = {
   high:   { label: "High",   bg: "#fee2e2", color: "#991b1b", border: "#fca5a5" },
 };
 
+// Story points → difficulty band: 1-3 Low, 4-7 Medium, 8+ High
+function priorityFromPoints(n) {
+  const p = Number(n) || 0;
+  if (p >= 8) return "high";
+  if (p >= 4) return "medium";
+  return "low";
+}
+
 function fmtDate(d) {
   if (!d) return "—";
   const str = typeof d === "string" ? d : String(d);
@@ -104,7 +112,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, savedUserEmail, theme })
   );
 }
 
-const EMPTY_FORM = { sprint_id: "", assigned_to_email: "", title: "", description: "", priority: "medium" };
+const EMPTY_FORM = { sprint_id: "", assigned_to_email: "", title: "", description: "", story_points: 1 };
 
 export default function SprintTasksSM({ teamId, teamStudents = [], savedUserEmail, darkMode, onBack }) {
   const theme = darkMode
@@ -161,7 +169,7 @@ export default function SprintTasksSM({ teamId, teamStudents = [], savedUserEmai
   }
   function openEditForm(task) {
     setEditingTask(task);
-    setForm({ sprint_id: String(task.sprint_id), assigned_to_email: task.assigned_to_email, title: task.title, description: task.description || "", priority: task.priority || "medium" });
+    setForm({ sprint_id: String(task.sprint_id), assigned_to_email: task.assigned_to_email, title: task.title, description: task.description || "", story_points: task.story_points || 1 });
     setFormError("");
     setShowForm(true);
   }
@@ -174,7 +182,8 @@ export default function SprintTasksSM({ teamId, teamStudents = [], savedUserEmai
     if (!form.title.trim())      { setFormError("Task title is required."); return; }
     setFormSaving(true);
     try {
-      const body   = { ...form, sprint_id: Number(form.sprint_id), story_points: form.priority === "high" ? 8 : form.priority === "medium" ? 5 : 2, created_by_email: savedUserEmail, updated_by_email: savedUserEmail };
+      const points = Math.max(1, Number(form.story_points) || 1);
+      const body   = { ...form, sprint_id: Number(form.sprint_id), story_points: points, priority: priorityFromPoints(points), created_by_email: savedUserEmail, updated_by_email: savedUserEmail };
       const url    = editingTask ? `/api/teams/${teamId}/tasks/${editingTask.id}` : `/api/teams/${teamId}/tasks`;
       const method = editingTask ? "PUT" : "POST";
       const res    = await apiFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -318,17 +327,19 @@ export default function SprintTasksSM({ teamId, teamStudents = [], savedUserEmai
                 <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} placeholder="Add more details about what needs to be done..." style={{ ...inp(theme), resize: "vertical" }} />
               </label>
               <label style={{ display: "grid", gap: 6, marginBottom: 14 }}>
-                <span style={{ fontSize: 12, color: theme.subtext }}>Task Difficulty</span>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {Object.entries(PRIORITY_CONFIG).map(([key, cfg]) => (
-                    <button
-                      key={key}
-                      onClick={() => setForm(p => ({ ...p, priority: key }))}
-                      style={{ padding: "8px 18px", borderRadius: 8, border: `2px solid ${form.priority === key ? cfg.color : theme.border}`, background: form.priority === key ? cfg.bg : theme.card, color: form.priority === key ? cfg.color : theme.text, fontWeight: 700, fontSize: 13, cursor: "pointer" }}
-                    >
-                      {cfg.label}
-                    </button>
-                  ))}
+                <span style={{ fontSize: 12, color: theme.subtext }}>Story Points</span>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.story_points}
+                    onChange={e => setForm(p => ({ ...p, story_points: e.target.value === "" ? "" : Math.max(1, Number(e.target.value)) }))}
+                    style={{ ...inp(theme), width: 100 }}
+                  />
+                  <PriorityBadge priority={priorityFromPoints(form.story_points)} />
+                  <span style={{ fontSize: 11, color: theme.subtext }}>
+                    1–3 Low &nbsp;·&nbsp; 4–7 Medium &nbsp;·&nbsp; 8+ High
+                  </span>
                 </div>
               </label>
               {formError && <div style={{ background: "#fee2e2", color: "#b91c1c", padding: "8px 12px", borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{formError}</div>}

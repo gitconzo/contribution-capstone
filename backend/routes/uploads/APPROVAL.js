@@ -7,7 +7,6 @@ const db = require("../../utils/db");
 const { ROOT_DIR, PARSED_DIR } = require("../../utils/config");
 const { pyBin } = require("../../utils/processUtils");
 const { downloadToFile, uploadFile } = require("../../utils/s3");
-const { combineDocumentationMetrics } = require("../../services/combineDocumentationMetrics");
 
 const PARSERS = {
   attendance:   { extensions: [".xlsx", ".xls"], script: path.join(ROOT_DIR, "parsers", "attendance.py"),               label: "Attendance",    combineAfter: false },
@@ -52,9 +51,6 @@ async function parseEntry(entry) {
         const s3ParsedKey = `${entry.team_id || "unknown"}/parsed/${parsedFileName}`;
         await uploadFile(s3ParsedKey, tempOutputPath, "application/json");
         fs.copyFileSync(tempOutputPath, path.join(PARSED_DIR, parsedFileName));
-        if (parser.combineAfter) {
-          try { combineDocumentationMetrics(ROOT_DIR); } catch (_) {}
-        }
         await db.query(
           "UPDATE file_registry SET status = $1, s3_parsed_key = $2, json_path = $3, parse_message = $4 WHERE id = $5",
           ["parsed", s3ParsedKey, `data/parsed/${parsedFileName}`, `${parser.label} parsed successfully`, entry.id]

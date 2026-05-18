@@ -84,11 +84,6 @@ router.delete("/cleanup-docs", async (_req, res) => {
       [docTypes]
     );
 
-    const combinedMetricsPath = path.join(PARSED_DIR, "combined_documentation_metrics.json");
-    if (fs.existsSync(combinedMetricsPath)) {
-      fs.unlinkSync(combinedMetricsPath);
-    }
-
     return res.json({
       success: true,
       message: `Cleaned up ${deletedCount} documentation files`,

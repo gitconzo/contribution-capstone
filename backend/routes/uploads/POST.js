@@ -6,7 +6,6 @@ const router = require("express").Router();
 const db = require("../../utils/db");
 const { ROOT_DIR, PARSED_DIR } = require("../../utils/config");
 const { pyBin } = require("../../utils/processUtils");
-const { combineDocumentationMetrics } = require("../../services/combineDocumentationMetrics");
 const { downloadToFile, uploadFile } = require("../../utils/s3");
 
 // Detects the document type from the filename, falling back to the user's selection
@@ -173,12 +172,6 @@ router.post("/confirm", async (req, res) => {
         // Also copy to local parsed directory so the aggregator can fall back to it
         const fs = require("fs");
         fs.copyFileSync(tempOutputPath, path.join(PARSED_DIR, parsedFileName));
-
-        if (parser.combineAfter) {
-          try { combineDocumentationMetrics(ROOT_DIR); } catch (combineError) {
-            console.error("Failed to combine documentation metrics:", combineError);
-          }
-        }
 
         return finish({
           userType: finalType,

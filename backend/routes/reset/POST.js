@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const path = require("path");
 const fs = require("fs");
-const { ROOT_DIR, PARSED_DIR } = require("../../utils/config");
+const { ROOT_DIR } = require("../../utils/config");
 const db = require("../../utils/db");
 
 router.post("/", async (req, res) => {
@@ -34,11 +34,6 @@ router.post("/", async (req, res) => {
        WHERE team_id = $1`,
       [teamId]
     );
-
-    // Delete the combined documentation metrics file — it is derived from
-    // parsed sprint/project plan files and must be regenerated after a reset
-    const combinedPath = path.join(PARSED_DIR, "combined_documentation_metrics.json");
-    if (fs.existsSync(combinedPath)) fs.unlinkSync(combinedPath);
 
     res.json({ success: true, message: "Team scores reset successfully" });
   } catch (e) {

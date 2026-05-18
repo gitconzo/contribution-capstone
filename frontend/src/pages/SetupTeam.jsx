@@ -903,10 +903,9 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                                             <input type="date" value={editSprint.end_date} onChange={e=>setEditSprint(p=>({...p,end_date:e.target.value}))} style={inp(theme)} />
                                           </Field>
                                           <Field label="Scrum Master" theme={theme}>
-                                            <select value={editSprint.scrum_master_email} onChange={e=>setEditSprint(p=>({...p,scrum_master_email:e.target.value}))} style={inp(theme)}>
-                                              <option value="">— None —</option>
-                                              {(t.students||[]).map(s=><option key={s.email} value={s.email}>{s.name}</option>)}
-                                            </select>
+                                            <div style={{ ...inp(theme), display:"flex", alignItems:"center", color:theme.subtext, fontStyle:"italic", fontSize:12 }} title="Scrum Master is elected by the students">
+                                              {(t.students||[]).find(s=>s.email===editSprint.scrum_master_email)?.name || "Set by students"}
+                                            </div>
                                           </Field>
                                           <div style={{ display:"flex", gap:4 }}>
                                             <button onClick={onSaveSprint} style={btn({fontSize:12,padding:"6px 10px"})}>Save</button>
@@ -1043,8 +1042,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
         <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:10, paddingLeft:2 }}>
           <span style={{ fontSize:12, color:theme.subtext }}>Role:</span>
           {[
-            { value:"leader",       label:"Leader"       },
-            { value:"scrum_master", label:"Scrum Master" },
+            { value:"leader", label:"Leader" },
           ].map(({ value, label }) => {
             const checked = (s.roles || []).includes(value);
             return (
@@ -1183,10 +1181,9 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                                     <Field label="Email" theme={theme}><input value={editStudentEmail} onChange={e=>setEditStudentEmail(e.target.value)} style={inp(theme)} /></Field>
                                     <Field label="GitHub" theme={theme}><input value={editStudentGithub} onChange={e=>setEditStudentGithub(e.target.value)} style={inp(theme)} /></Field>
                                     <Field label="Role" theme={theme}>
-                                      <select value={editStudentRole} onChange={e=>setEditStudentRole(e.target.value)} style={inp(theme)}>
+                                      <select value={editStudentRole === "scrum_master" ? "member" : editStudentRole} onChange={e=>setEditStudentRole(e.target.value)} style={inp(theme)}>
                                         <option value="member">Member</option>
                                         <option value="leader">Leader</option>
-                                        <option value="scrum_master">Scrum Master</option>
                                       </select>
                                     </Field>
                                     <div style={{display:"flex",gap:4}}>
@@ -1240,7 +1237,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
                           <div>
                             <div style={{ fontSize:13, fontWeight:600, color:theme.expandEditText }}>Sprints</div>
-                            <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>Assign sprint dates and Scrum Masters per sprint</div>
+                            <div style={{ fontSize:12, color:theme.subtext, marginTop:2 }}>Set sprint dates — Scrum Masters are elected by the students</div>
                           </div>
                           {sprints.length>0&&<span style={{fontSize:12,color:theme.subtext}}>{sprints.length} sprint{sprints.length!==1?"s":""} defined</span>}
                         </div>
@@ -1259,10 +1256,9 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                                     <Field label="Start Date" theme={theme}><input type="date" value={editSprint.start_date} onChange={e=>setEditSprint(p=>({...p,start_date:e.target.value}))} style={inp(theme)} /></Field>
                                     <Field label="End Date" theme={theme}><input type="date" value={editSprint.end_date} onChange={e=>setEditSprint(p=>({...p,end_date:e.target.value}))} style={inp(theme)} /></Field>
                                     <Field label="Scrum Master" theme={theme}>
-                                      <select value={editSprint.scrum_master_email} onChange={e=>setEditSprint(p=>({...p,scrum_master_email:e.target.value}))} style={inp(theme)}>
-                                        <option value="">— None —</option>
-                                        {(t.students||[]).map(s=><option key={s.email} value={s.email}>{s.name}</option>)}
-                                      </select>
+                                      <div style={{ ...inp(theme), display:"flex", alignItems:"center", color:theme.subtext, fontStyle:"italic", fontSize:12 }} title="Scrum Master is elected by the students">
+                                        {(t.students||[]).find(s=>s.email===editSprint.scrum_master_email)?.name || "Set by students"}
+                                      </div>
                                     </Field>
                                     <div style={{display:"flex",gap:4}}>
                                       <button onClick={onSaveSprint} style={btn({fontSize:12,padding:"6px 10px"})}>Save</button>
@@ -1325,10 +1321,9 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                               <Field label="Start Date" theme={theme}><input type="date" value={newSprint.start_date} onChange={e=>setNewSprint(p=>({...p,start_date:e.target.value}))} style={inp(theme)} /></Field>
                               <Field label="End Date" theme={theme}><input type="date" value={newSprint.end_date} onChange={e=>setNewSprint(p=>({...p,end_date:e.target.value}))} style={inp(theme)} /></Field>
                               <Field label="Scrum Master" theme={theme}>
-                                <select value={newSprint.scrum_master_email} onChange={e=>setNewSprint(p=>({...p,scrum_master_email:e.target.value}))} style={inp(theme)}>
-                                  <option value="">— None —</option>
-                                  {(t.students||[]).map(s=><option key={s.email} value={s.email}>{s.name}</option>)}
-                                </select>
+                                <div style={{ ...inp(theme), display:"flex", alignItems:"center", color:theme.subtext, fontStyle:"italic", fontSize:12 }} title="Scrum Master is elected by the students">
+                                  Set by students
+                                </div>
                               </Field>
                               <div style={{display:"flex",gap:4}}>
                                 <button onClick={()=>onAddSprint(t.id)} style={btn({fontSize:12,padding:"6px 10px"})}>Add</button>

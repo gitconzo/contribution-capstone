@@ -1,14 +1,27 @@
 // Combines GitHub + docs + attendance (+ peer review later) into per-student scores for a selected team.
-const fs = require("fs");
 const path = require("path");
-const { combineDocumentationMetrics } = require("./combineDocumentationMetrics");
 const { safeReadJson } = require("../utils/fileUtils");
 const { combineDocsInMemory } = require("./dataLoaders");
+const { getObjectAsJson } = require("../utils/s3");
 
 // Alias for backwards-compatibility within this file
 const safeReadJSON = safeReadJson;
 
 const db = require("../utils/db");
+
+// Read a parsed document JSON. S3 is the source of truth — falls back to the
+// local copy at `json_path` only if S3 is unavailable (older entries, network
+// issue, or an instance that never held the local copy).
+async function readParsedJson({ s3ParsedKey, jsonPath, rootDir }) {
+  if (s3ParsedKey) {
+    const data = await getObjectAsJson(s3ParsedKey);
+    if (data) return data;
+  }
+  if (jsonPath) {
+    return safeReadJSON(path.join(rootDir, jsonPath), null);
+  }
+  return null;
+}
 
 function normalize(values) {
   const arr = Array.isArray(values) ? values : [];
@@ -256,17 +269,10 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
   });
 
   // ---------- Documentation from combined metrics
-  // Prefer the in-memory override built from DB query; fall back to local file
-  const combinedDocsPath = path.join(rootDir, "data", "parsed", "combined_documentation_metrics.json");
-  let combinedDocs = combinedDocsOverride;
-  if (!combinedDocs) {
-    if (!fs.existsSync(combinedDocsPath)) {
-      try { combineDocumentationMetrics(rootDir); } catch (e) {
-        console.warn("failed to generate combined_documentation_metrics.json", e.message);
-      }
-    }
-    combinedDocs = safeReadJSON(combinedDocsPath, null);
-  }
+  // The aggregator is always called with an in-memory override built from the
+  // team-scoped RDS query. The old cross-team `combined_documentation_metrics.json`
+  // fallback was removed because it leaked metrics between teams.
+  const combinedDocs = combinedDocsOverride;
   if (combinedDocs?.students) {
     Object.entries(combinedDocs.students).forEach(([name, data]) => {
       const idx = matchStudentIndex(aliasMap, name);
@@ -288,17 +294,17 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
 // ---------- Peer Review ----------
 async function loadPeerReviewMetrics(teamId, rootDir, aliasMap) {
   const result = await db.query(
-    `SELECT json_path FROM file_registry
+    `SELECT s3_parsed_key, json_path FROM file_registry
      WHERE team_id = $1
        AND (user_type = 'peer_review' OR detected_type = 'peer_review')
        AND status = 'parsed'
-       AND json_path IS NOT NULL`,
+       AND (s3_parsed_key IS NOT NULL OR json_path IS NOT NULL)`,
     [teamId]
   );
 
   const peerFiles = [];
   for (const row of result.rows) {
-    const data = safeReadJSON(path.join(rootDir, row.json_path), null);
+    const data = await readParsedJson({ s3ParsedKey: row.s3_parsed_key, jsonPath: row.json_path, rootDir });
     if (data?.scores) peerFiles.push(data);
   }
 
@@ -494,10 +500,10 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
   }
 
   const artifactsRes = await db.query(
-    `SELECT json_path, COALESCE(user_type, detected_type) AS user_type FROM file_registry
+    `SELECT s3_parsed_key, json_path, COALESCE(user_type, detected_type) AS user_type FROM file_registry
      WHERE team_id = $1 AND status = 'parsed'
        AND COALESCE(user_type, detected_type) IN ('sprint_report', 'project_plan', 'attendance')
-       AND json_path IS NOT NULL
+       AND (s3_parsed_key IS NOT NULL OR json_path IS NOT NULL)
        ${sprintStart ? `AND (
          sprint_id = $2::text
          OR (sprint_id IS NULL AND upload_date::date BETWEEN $3::date AND $4::date)
@@ -507,7 +513,7 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
 
   const sprintData = [], projectData = [], attendanceData = [];
   for (const row of artifactsRes.rows) {
-    const data = safeReadJSON(path.join(rootDir, row.json_path), null);
+    const data = await readParsedJson({ s3ParsedKey: row.s3_parsed_key, jsonPath: row.json_path, rootDir });
     if (!data) continue;
     if (row.user_type === "sprint_report") sprintData.push(data);
     else if (row.user_type === "project_plan") projectData.push(data);
@@ -531,12 +537,12 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
   // the most weeks per student. This handles the case where a student uploads
   // week 4 after already having uploaded week 12 — we want week 12's hours.
   const worklogRes = await db.query(
-    `SELECT uploaded_by_email, uploaded_by_name, json_path
+    `SELECT uploaded_by_email, uploaded_by_name, s3_parsed_key, json_path
      FROM file_registry
      WHERE team_id = $1
        AND (user_type = 'worklog' OR detected_type = 'worklog')
        AND status = 'parsed'
-       AND json_path IS NOT NULL
+       AND (s3_parsed_key IS NOT NULL OR json_path IS NOT NULL)
        ${sprintStart ? `AND (
          sprint_id = $2::text
          OR (sprint_id IS NULL AND upload_date::date BETWEEN $3::date AND $4::date)
@@ -547,9 +553,9 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
   // For each student, keep track of their most complete worklog
   const bestWorklog = {};
 
-  worklogRes.rows.forEach(row => {
-    const weekData = safeReadJSON(path.join(rootDir, row.json_path), null);
-    if (!Array.isArray(weekData)) return;
+  for (const row of worklogRes.rows) {
+    const weekData = await readParsedJson({ s3ParsedKey: row.s3_parsed_key, jsonPath: row.json_path, rootDir });
+    if (!Array.isArray(weekData)) continue;
 
     const highestWeek = Math.max(...weekData.map(w => w.Week || 0));
     const current = bestWorklog[row.uploaded_by_email];
@@ -557,7 +563,7 @@ async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, spr
     if (!current || highestWeek > current.highestWeek) {
       bestWorklog[row.uploaded_by_email] = { row, weekData, highestWeek };
     }
-  });
+  }
 
   // Apply hours from the winning worklog for each student
   Object.values(bestWorklog).forEach(({ row, weekData }) => {

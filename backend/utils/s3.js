@@ -63,12 +63,27 @@ async function deleteFile(key) {
   return s3.send(command);
 }
 
-module.exports = { 
-  s3, 
-  BUCKET, 
-  getPresignedUploadUrl, 
-  getPresignedDownloadUrl, 
-  downloadToFile, 
+// Fetch an S3 object directly into memory and parse it as JSON.
+// Returns the parsed value, or null if the key is missing / unreadable.
+async function getObjectAsJson(key) {
+  if (!key) return null;
+  try {
+    const command  = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+    const response = await s3.send(command);
+    const body     = await response.Body.transformToString();
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
+module.exports = {
+  s3,
+  BUCKET,
+  getPresignedUploadUrl,
+  getPresignedDownloadUrl,
+  downloadToFile,
   uploadFile,
-  deleteFile
+  deleteFile,
+  getObjectAsJson,
 };
