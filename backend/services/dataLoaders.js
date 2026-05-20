@@ -84,28 +84,6 @@ function combineDocsInMemory(sprintData, projectData) {
   return { students };
 }
 
-// Reads finalStats.json (produced by the Python GitHub analysis) and shapes it per author
-function loadGitHubMetrics(dataDir) {
-  const finalStats = safeReadJson(path.join(dataDir, "finalStats.json"), {});
-  const authors = {};
-
-  Object.entries(finalStats).forEach(([author, stats]) => {
-    authors[author] = {
-      avgComplexity: pickNumber(stats.average_complexity),
-      pctFunctions:  pickNumber(stats.percentage_of_functions_written),
-      pctHotspots:   pickNumber(stats.percentage_of_hotspots),
-      pctLOC:        pickNumber(stats.percentage_of_LOC),
-      commits:       pickNumber(stats.commits),
-      additions:     pickNumber(stats.additions),
-      deletions:     pickNumber(stats.deletions),
-      commitPct:     pickNumber(stats.commit_percentage),
-      editPct:       pickNumber(stats.edit_percentage),
-    };
-  });
-
-  return authors;
-}
-
 // Queries the database for all parsed files belonging to the team
 // Downloads each parsed JSON from S3, falling back to local file path if S3 fails
 async function loadParsedArtifacts(rootDir, teamId) {
@@ -198,7 +176,6 @@ function extractAttendanceMetrics(attendanceJson) {
 
 module.exports = {
   downloadJsonFromS3,
-  loadGitHubMetrics,
   loadParsedArtifacts,
   extractAttendanceMetrics,
   combineDocsInMemory,

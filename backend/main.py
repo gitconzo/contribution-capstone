@@ -92,10 +92,11 @@ def main():
     for author, count in by_author.items():
         print(f"{author}: {count} commits")
  
-    # Combine everything into finalStats.json
-    finalStatsJson = args.output if args.output else os.path.join(dataDir, "finalStats.json")
-    if args.output:
-        os.makedirs(os.path.dirname(finalStatsJson), exist_ok=True)
+    # Combine everything into the requested output file
+    if not args.output:
+        raise SystemExit("--output is required")
+    finalStatsJson = args.output
+    os.makedirs(os.path.dirname(finalStatsJson), exist_ok=True)
     combine_json(
         outputJson=outputJson,
         commitsJson=commitsJson,

@@ -18,7 +18,7 @@ npm install
 cd ..
 
 # PYTHON DEPENDENCIES
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 
 # NLP MODEL DOWNLOADS
 python - <<'EOF'

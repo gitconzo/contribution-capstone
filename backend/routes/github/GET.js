@@ -8,14 +8,11 @@ const { safeReadJson } = require("../../utils/fileUtils");
 // GET /api/github/status?teamId=
 router.get("/status", (req, res) => {
   const teamId = String(req.query.teamId || "").trim();
-  const commits = path.join(DATA_DIR, "commits.json");
+  if (!teamId) return res.json({ status: "idle" });
 
-  const statsPath  = teamId
-    ? path.join(ANALYSES_DIR, `overall_${teamId}_stats.json`)
-    : path.join(DATA_DIR, "finalStats.json");
-  const statusPath = teamId
-    ? path.join(ANALYSES_DIR, `overall_${teamId}_status.json`)
-    : path.join(DATA_DIR, "analysisStatus.json");
+  const commits = path.join(DATA_DIR, "commits.json");
+  const statsPath  = path.join(ANALYSES_DIR, `overall_${teamId}_stats.json`);
+  const statusPath = path.join(ANALYSES_DIR, `overall_${teamId}_status.json`);
 
   const analysisStatus = safeReadJson(statusPath, { status: "idle" });
 

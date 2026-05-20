@@ -164,12 +164,10 @@ function extractAttendanceMetrics(json) {
 
 // ---------- main aggregation ----------
 function loadGitHubMetrics(dataDir, teamId) {
+  if (!teamId) return {};
   const analysesDir = path.join(dataDir, "analyses");
-  const teamScoped = teamId ? path.join(analysesDir, `overall_${teamId}_stats.json`) : null;
-  const finalStats = safeReadJSON(
-    (teamScoped && require("fs").existsSync(teamScoped)) ? teamScoped : path.join(dataDir, "finalStats.json"),
-    {}
-  );
+  const statsPath = path.join(analysesDir, `overall_${teamId}_stats.json`);
+  const finalStats = safeReadJSON(statsPath, {});
   const authors = {};
   Object.entries(finalStats).forEach(([author, s]) => {
     authors[author] = {
@@ -202,7 +200,7 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
     peer: { score: 0 },
   }));
 
-  // ---------- GitHub — use sprint stats if provided, otherwise load from finalStats.json
+  // ---------- GitHub — use sprint stats if provided, otherwise load the team's overall stats file
   const gh = sprintStats ? (() => {
     const authors = {};
     Object.entries(sprintStats).forEach(([author, s]) => {
