@@ -2,7 +2,7 @@
 const path = require("path");
 const { execFile } = require("child_process");
 const router = require("express").Router();
-const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
+const { ROOT_DIR, DATA_DIR, ANALYSES_DIR } = require("../../utils/config");
 const { writeJson, ensureDir } = require("../../utils/fileUtils");
 const { pyBin, runFile } = require("../../utils/processUtils");
 const db = require("../../utils/db");
@@ -64,10 +64,17 @@ router.post("/analyze", async (req, res) => {
     const { url, owner, repo } = parseRepoFromUrl(rawUrl);
     if (!owner || !repo) return res.status(400).json({ error: "Could not parse owner/repo from URL." });
 
+    const teamUpdate = await db.query(
+      "UPDATE teams SET repo_url = $1, repo_owner = $2, repo_name = $3 WHERE id = $4 RETURNING id",
+      [url, owner, repo, teamId]
+    );
+    if (!teamUpdate.rows.length) return res.status(404).json({ error: "Team not found." });
+
     ensureDir(DATA_DIR);
+    ensureDir(ANALYSES_DIR);
     const branch     = rawUrl.includes("/tree/") ? rawUrl.split("/tree/")[1] : "";
-    const outputPath = path.join(DATA_DIR, `overall_${teamId}_stats.json`);
-    const statusPath = path.join(DATA_DIR, `overall_${teamId}_status.json`);
+    const outputPath = path.join(ANALYSES_DIR, `overall_${teamId}_stats.json`);
+    const statusPath = path.join(ANALYSES_DIR, `overall_${teamId}_status.json`);
 
     writeJson(path.join(DATA_DIR, "repo.json"), { url, owner, repo, branch });
     writeJson(statusPath, { status: "running", startedAt: new Date().toISOString() });

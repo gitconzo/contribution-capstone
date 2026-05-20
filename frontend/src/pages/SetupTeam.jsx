@@ -544,7 +544,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
           setTemplateOpen(opening);
           setTplResult("");
           setManagedOpenSprint(null);
-          if (opening) {
+          if (opening && Array.isArray(teams)) {
             teams.forEach(t => loadSprints(t.id));
           }
         }} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }}>
@@ -664,7 +664,7 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
                 {(() => {
                   // Build a map of sprint_number -> { teams with that sprint }
                   const sprintMap = {};
-                  teams.forEach(t => {
+                  (Array.isArray(teams) ? teams : []).forEach(t => {
                     (sprintsByTeam[t.id] || []).forEach(sp => {
                       const num = sp.sprint_number;
                       if (!sprintMap[num]) sprintMap[num] = [];
@@ -1005,7 +1005,16 @@ const onAnalyzeSprintAllTeams = async (sprint) => {
 
             {/* Apply button */}
             {tplMode !== "manage" && <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <button onClick={applyTemplate} disabled={tplApplying} style={btn({ background:"#16a34a", opacity:tplApplying?0.6:1 })}>
+              <button
+                onClick={applyTemplate}
+                disabled={tplApplying || tplTargets.length === 0}
+                style={btn({
+                  background: tplTargets.length === 0 ? "#9ca3af" : "#16a34a",
+                  opacity: tplApplying || tplTargets.length === 0 ? 0.6 : 1,
+                  cursor: tplApplying || tplTargets.length === 0 ? "not-allowed" : "pointer",
+                })}
+                title={tplTargets.length === 0 ? "Create a team before applying a sprint template" : undefined}
+              >
                 {tplApplying ? "Applying…" : `Apply to ${tplTargets.length} team${tplTargets.length!==1?"s":""}`}
               </button>
               {tplResult && <span style={{ fontSize:13, color: tplResult.startsWith("✓") ? "#16a34a" : "#991b1b" }}>{tplResult}</span>}

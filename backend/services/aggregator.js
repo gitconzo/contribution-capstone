@@ -164,7 +164,8 @@ function extractAttendanceMetrics(json) {
 
 // ---------- main aggregation ----------
 function loadGitHubMetrics(dataDir, teamId) {
-  const teamScoped = teamId ? path.join(dataDir, `overall_${teamId}_stats.json`) : null;
+  const analysesDir = path.join(dataDir, "analyses");
+  const teamScoped = teamId ? path.join(analysesDir, `overall_${teamId}_stats.json`) : null;
   const finalStats = safeReadJSON(
     (teamScoped && require("fs").existsSync(teamScoped)) ? teamScoped : path.join(dataDir, "finalStats.json"),
     {}
@@ -184,24 +185,6 @@ function loadGitHubMetrics(dataDir, teamId) {
     };
   });
   return authors;
-}
-
-function loadParsedArtifacts(rootDir) {
-  const registry = safeReadJSON(path.join(rootDir, "fileRegistry.json"), []);
-  const results = { attendance: [], worklog: [], sprint: [], project: [] };
-  registry.forEach(r => {
-    const type = r.userType || r.detectedType || "unknown";
-    const relJson = r?.parseInfo?.jsonPath;
-    if (!relJson) return;
-    const abs = path.join(rootDir, relJson);
-    const data = safeReadJSON(abs, null);
-    if (!data) return;
-    if (type === "attendance") results.attendance.push(data);
-    else if (type === "worklog") results.worklog.push(data);
-    else if (type === "sprint_report") results.sprint.push(data);
-    else if (type === "project_plan") results.project.push(data);
-  });
-  return results;
 }
 
 function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendanceOverride = null, sprintStats = null, teamId = null) {
@@ -254,8 +237,7 @@ function aggregateForTeam(team, rootDir, combinedDocsOverride = null, attendance
   });
 
   // ---------- Attendance
-  // Prefer the DB-backed override; fall back to legacy fileRegistry.json
-  const attendanceFiles = attendanceOverride !== null ? attendanceOverride : loadParsedArtifacts(rootDir).attendance;
+  const attendanceFiles = attendanceOverride || [];
   attendanceFiles.forEach(js => {
     const byStudent = extractAttendanceMetrics(js);
     Object.entries(byStudent).forEach(([key, a]) => {
@@ -400,71 +382,71 @@ function scoreStudents(students, rules = null) {
     readability: 11,
   };
 
-  const w = mapRulesIfArray(rules) || rules || defaultWeights;
-  const dims = Object.keys(w);
+  const weights = mapRulesIfArray(rules) || rules || defaultWeights;
+  const metricNames = Object.keys(weights);
 
-  const raw = students.map(s => {
-    const r = {};
-    dims.forEach(d => {
-      switch (d) {
-        case "loc":               r[d] = pickNumber(s.code.pctLOC); break;
-        case "editedCode":        r[d] = pickNumber(s.code.editPct); break;
-        case "commits":           r[d] = pickNumber(s.code.commitPct); break;
-        case "functions":         r[d] = pickNumber(s.code.pctFunctions); break;
-        case "hotspots":          r[d] = pickNumber(s.code.pctHotspots); break;
-        case "codeComplexity":    r[d] = pickNumber(s.code.avgComplexity); break;
-        case "avgSentenceLength": r[d] = pickNumber(s.docs.avgSentenceLength); break;
-        case "sentenceComplexity":r[d] = pickNumber(s.docs.sentenceComplexity); break;
-        case "wordCount":         r[d] = pickNumber(s.docs.words); break;
-        case "readability":       r[d] = pickNumber(s.docs.readability); break;
-        default: r[d] = 0;
+  const rawValues = students.map(student => {
+    const studentValues = {};
+    metricNames.forEach(metric => {
+      switch (metric) {
+        case "loc":               studentValues[metric] = pickNumber(student.code.pctLOC); break;
+        case "editedCode":        studentValues[metric] = pickNumber(student.code.editPct); break;
+        case "commits":           studentValues[metric] = pickNumber(student.code.commitPct); break;
+        case "functions":         studentValues[metric] = pickNumber(student.code.pctFunctions); break;
+        case "hotspots":          studentValues[metric] = pickNumber(student.code.pctHotspots); break;
+        case "codeComplexity":    studentValues[metric] = pickNumber(student.code.avgComplexity); break;
+        case "avgSentenceLength": studentValues[metric] = pickNumber(student.docs.avgSentenceLength); break;
+        case "sentenceComplexity":studentValues[metric] = pickNumber(student.docs.sentenceComplexity); break;
+        case "wordCount":         studentValues[metric] = pickNumber(student.docs.words); break;
+        case "readability":       studentValues[metric] = pickNumber(student.docs.readability); break;
+        default: studentValues[metric] = 0;
       }
     });
 
     // Display-only fields — not used in weighted score
-    r.attendance  = pickNumber(s.attendance.percentage);
-    r.meetings    = pickNumber(s.attendance.meetings);
-    r.hours       = pickNumber(s.attendance.hours);
-    r.codeCommits = pickNumber(s.code.commits);
-    r.documents   = pickNumber(s.docs.docCount);
-    return r;
+    studentValues.attendance  = pickNumber(student.attendance.percentage);
+    studentValues.meetings    = pickNumber(student.attendance.meetings);
+    studentValues.hours       = pickNumber(student.attendance.hours);
+    studentValues.codeCommits = pickNumber(student.code.commits);
+    studentValues.documents   = pickNumber(student.docs.docCount);
+    return studentValues;
   });
 
-  // Max-normalize: top student in each metric scores 1.0, others relative to them.
+  // Max-normalise: top student in each metric scores 1.0, others relative to them.
   // This produces absolute marks rather than share-of-total, so the best contributor
   // can score near 100 regardless of how many students are in the team.
-  const normVectors = {};
-  dims.forEach(d => {
-    const values = raw.map(r => r[d]);
-    const maxVal = Math.max(...values);
-    normVectors[d] = maxVal === 0
-      ? values.map(() => 0)
-      : values.map(v => v / maxVal);
+  const normalisedScores = {};
+  metricNames.forEach(metric => {
+    const teamValues = rawValues.map(student => student[metric]);
+    const teamMax = Math.max(...teamValues);
+    normalisedScores[metric] = teamMax === 0
+      ? teamValues.map(() => 0)
+      : teamValues.map(value => value / teamMax);
   });
 
-  const totals = students.map((_, i) =>
-    dims.reduce((sum, d) => sum + (normVectors[d][i] || 0) * (w[d] || 0), 0)
+  const weightedTotals = students.map((_, i) =>
+    metricNames.reduce((sum, metric) => sum + (normalisedScores[metric][i] || 0) * (weights[metric] || 0), 0)
   );
 
   // Score as a percentage of the maximum possible weighted total.
-  const maxPossible = dims.reduce((sum, d) => sum + (w[d] || 0), 0);
-  const percent = maxPossible === 0
-    ? totals.map(() => 0)
-    : totals.map(t => Math.min(100, +(100 * (t / maxPossible)).toFixed(2)));
+  const maxPossible = metricNames.reduce((sum, metric) => sum + (weights[metric] || 0), 0);
+  const percentScores = maxPossible === 0
+    ? weightedTotals.map(() => 0)
+    : weightedTotals.map(total => Math.min(100, +(100 * (total / maxPossible)).toFixed(2)));
 
   const ranked = students
-    .map((s, i) => ({
-      name: s.name,
-      email: s.email,
-      github: s.github,
-      breakdown: Object.fromEntries(dims.map(d => [d, +(normVectors[d][i] || 0).toFixed(4)])),
-      score: percent[i],
-      raw: raw[i],
+    .map((student, i) => ({
+      name: student.name,
+      email: student.email,
+      github: student.github,
+      breakdown: Object.fromEntries(metricNames.map(metric => [metric, +(normalisedScores[metric][i] || 0).toFixed(4)])),
+      score: percentScores[i],
+      raw: rawValues[i],
     }))
     .sort((a, b) => b.score - a.score)
     .map((r, idx) => ({ rank: idx + 1, ...r }));
 
-  return { ranking: ranked, weights: w, dims, studentsCount: students.length };
+  return { ranking: ranked, weights, dims: metricNames, studentsCount: students.length };
 }
 
 async function aggregateTeamScores({ teamId, rootDir, usePeerReview = false, sprintStats = null, sprintId = null }) {

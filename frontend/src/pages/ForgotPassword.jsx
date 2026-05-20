@@ -73,11 +73,12 @@ export default function ForgotPassword() {
         newPassword
       );
 
-      setMessage("Password reset successfully. You can now log in with your new password.");
+      setMessage("");
+      setError("");
       setCode("");
       setNewPassword("");
       setConfirmPassword("");
-      setStep(1);
+      setStep(3);
     } catch (err) {
       console.error(err);
       const msg = err?.message || err?.code || "Unable to reset password.";
@@ -99,14 +100,25 @@ export default function ForgotPassword() {
   return (
     <div style={pageStyle}>
       <div style={cardStyle}>
-        <h1 style={{ marginTop: 0 }}>Forgot Password</h1>
+        <h1 style={{ marginTop: 0 }}>
+          {step === 3 ? "Password Reset Complete" : "Forgot Password"}
+        </h1>
         <p style={{ color: "#6b7280", marginBottom: 20 }}>
           {step === 1
             ? "Enter your email to receive a password reset code."
-            : "Enter the verification code and set your new password."}
+            : step === 2
+              ? "Enter the verification code and set your new password."
+              : "Your password has been updated. You can now sign in with your new password."}
         </p>
 
-        {step === 1 ? (
+        {step === 3 ? (
+          <div style={{ display: "grid", gap: 14 }}>
+            <div style={successStyle}>Password reset successfully.</div>
+            <Link to="/login" style={{ ...buttonStyle, textAlign: "center", textDecoration: "none" }}>
+              Back to Login
+            </Link>
+          </div>
+        ) : step === 1 ? (
           <form onSubmit={handleSendCode} style={{ display: "grid", gap: 14 }}>
             <input
               type="email"
@@ -189,9 +201,11 @@ export default function ForgotPassword() {
           </form>
         )}
 
-        <div style={{ marginTop: 18 }}>
-          <Link to="/login" style={linkStyle}>Back to Login</Link>
-        </div>
+        {step !== 3 && (
+          <div style={{ marginTop: 18 }}>
+            <Link to="/login" style={linkStyle}>Back to Login</Link>
+          </div>
+        )}
       </div>
     </div>
   );

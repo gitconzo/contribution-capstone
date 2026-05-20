@@ -41,81 +41,61 @@ def get_text_metrics(text: str):
 def get_heading_level(text, para):
     """
     Determine heading level (0 = not a heading, 1 = top level, 2 = sub-heading, etc.)
+
+    Conservative: only classifies as a heading on strong signals (explicit
+    paragraph style, markdown prefix, PART pattern, or named top-level section).
+    Title-case / all-caps fallback was removed because it falsely promoted
+    subsection headings (e.g. "Objective", "Testing") to level 2, which
+    truncated the parent section's content during extraction.
     """
     text = text.strip()
     if not text:
         return 0
-    
-    # Check paragraph style
+
     style_name = para.style.name.lower() if para.style and para.style.name else ""
+
+    # List items are never headings, regardless of formatting
+    if "list" in style_name:
+        return 0
+
+    # Explicit paragraph styles win — trust the document's own structure
     if "heading 1" in style_name or style_name == "title":
         return 1
     if "heading 2" in style_name:
         return 2
     if "heading 3" in style_name:
         return 3
+    if "heading 4" in style_name or "heading 5" in style_name or "heading 6" in style_name:
+        return 4  # treat deeper headings as one bucket
     if "heading" in style_name:
-        return 2  # Default for other heading styles
-    
-    # Check for bold formatting (common for subsections)
-    is_bold = para.runs and all(run.bold for run in para.runs if run.text.strip())
-    
-    # Markdown-style headings
+        return 2  # Unspecified heading style — default to sub-heading
+
+    # Markdown-style heading prefixes (longest match first)
+    if text.startswith("####"):
+        return 4
     if text.startswith("###"):
         return 3
     if text.startswith("##"):
         return 2
     if text.startswith("#"):
         return 1
-    
-    # Major sections
+
+    # "PART N ..." is always a top-level section
     if re.match(r"^PART\s+\d+", text.upper()):
         return 1
-    
-    # Check for specific top-level sections
+
+    # Named top-level sections that may appear without explicit styling
     top_level_sections = [
-        "team and project plan", "acknowledgment of country", 
-        "part 1", "part 2", "team code of conduct", "project overview"
+        "team and project plan", "acknowledgment of country",
+        "team code of conduct", "project overview"
     ]
     text_lower = text.lower()
     for section in top_level_sections:
         if section in text_lower:
             return 1
-    
-    # Specific subsection keywords under "Solution approach"
-    solution_subsections = [
-        "problem at hand", "proposed solution", "research", 
-        "trialing", "implementation", "testing"
-    ]
-    
-    # Check if it looks like a heading (short + keywords OR bold)
-    if len(text.split()) <= 10:
-        # First check if it's a subsection under "Solution approach"
-        if any(sub in text_lower for sub in solution_subsections):
-            return 3  # These are level 3 subsections
-        
-        heading_keywords = [
-            "team profile", "team role", "teamwork", "roadmap", "document", 
-            "management", "risk", "mitigation", "problem", "statement", 
-            "scope", "stakeholder", "requirement", "approach", "solution", 
-            "backlog", "quality", "plan", "overview", "purpose", "objectives"
-        ]
-        for keyword in heading_keywords:
-            if keyword in text_lower:
-                # If it's bold and short, it's likely a level 3 subsection
-                if is_bold and len(text.split()) <= 5:
-                    return 3
-                return 2  # Sub-heading
-        
-        # Bold, short text is likely a subsection heading
-        if is_bold and len(text.split()) <= 5:
-            return 3
-        
-        # Title case or all caps suggests heading
-        if text.isupper() or text.istitle():
-            return 2
-    
-    return 0  # Not a heading
+
+    # No fallback. If we got here without strong evidence, it's not a heading.
+    return 0
 
 def extract_hierarchical_sections(doc):
     """
@@ -246,21 +226,28 @@ def parse_project_plan_docx(docx_path, output_json_path=None):
         "students": {}
     }
 
-    # Identify tables
+    # Identify tables. For categories that can appear multiple times in a
+    # document (e.g. four separate "Story | Description" High-Level Requirement
+    # tables) we merge the rows together so all of them count toward metrics.
+    def _append_table(key, include_in_metrics, table_obj):
+        if key not in result["tables"]:
+            result["tables"][key] = {"include_in_metrics": include_in_metrics, "rows": []}
+        result["tables"][key]["rows"].extend(parse_table(table_obj))
+
     for table in doc.tables:
         header = " ".join(c.text.strip().lower() for c in table.rows[0].cells)
         if "student" in header and "contribution" in header:
-            result["tables"]["TeamContributions"] = {"include_in_metrics": True, "rows": parse_table(table)}
+            _append_table("TeamContributions", True, table)
         elif "technical skills" in header:
-            result["tables"]["TeamProfile"] = {"include_in_metrics": False, "rows": parse_table(table)}
+            _append_table("TeamProfile", False, table)
         elif "team role" in header:
-            result["tables"]["TeamRole"] = {"include_in_metrics": False, "rows": parse_table(table)}
+            _append_table("TeamRole", False, table)
         elif "impact on project" in header or "mitigation" in header:
-            result["tables"]["RiskMitigation"] = {"include_in_metrics": True, "rows": parse_table(table)}
+            _append_table("RiskMitigation", True, table)
         elif "user story" in header and "priority" in header:
-            result["tables"]["ProductBacklog"] = {"include_in_metrics": True, "rows": parse_table(table)}
+            _append_table("ProductBacklog", True, table)
         elif "functional requirements" in header or "story" in header:
-            result["tables"]["HighLevelRequirements"] = {"include_in_metrics": True, "rows": parse_table(table)}
+            _append_table("HighLevelRequirements", True, table)
 
     # Extract text sections with hierarchy awareness
     sections_data = extract_hierarchical_sections(doc)

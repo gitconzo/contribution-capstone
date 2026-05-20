@@ -204,15 +204,15 @@ router.post("/:id/sprints/:sprintId/analyze", async (req, res) => {
     const baseUrl = team.repo_url.replace(/\/tree\/[^/]+$/, "");
     const repoUrl = sprint.branch ? `${baseUrl}/tree/${sprint.branch}` : team.repo_url;
 
-    const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
+    const { ROOT_DIR, ANALYSES_DIR } = require("../../utils/config");
     const { pyBin, runFile } = require("../../utils/processUtils");
     const { writeJson } = require("../../utils/fileUtils");
     const path = require("path");
 
     const startDate = fmtDate(sprint.start_date);
     const endDate   = fmtDate(sprint.end_date);
-    const outputPath = path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_stats.json`);
-    const statusPath = path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_status.json`);
+    const outputPath = path.join(ANALYSES_DIR, `sprint_${sprintId}_${teamId}_stats.json`);
+    const statusPath = path.join(ANALYSES_DIR, `sprint_${sprintId}_${teamId}_status.json`);
 
     writeJson(statusPath, { status: "running", startedAt: new Date().toISOString() });
     res.json({ success: true, status: "running", message: "Sprint analysis started." });
@@ -242,11 +242,11 @@ router.post("/:id/sprints/:sprintId/analyze", async (req, res) => {
 // GET /api/teams/:id/sprints/:sprintId/status
 router.get("/:id/sprints/:sprintId/status", (req, res) => {
   const { id: teamId, sprintId } = req.params;
-  const { DATA_DIR } = require("../../utils/config");
+  const { ANALYSES_DIR } = require("../../utils/config");
   const { safeReadJson } = require("../../utils/fileUtils");
   const path = require("path");
   const status = safeReadJson(
-    path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_status.json`),
+    path.join(ANALYSES_DIR, `sprint_${sprintId}_${teamId}_status.json`),
     { status: "idle" }
   );
   res.json(status);
@@ -256,13 +256,13 @@ router.get("/:id/sprints/:sprintId/status", (req, res) => {
 router.get("/:id/sprints/:sprintId/scores", async (req, res) => {
   const { id: teamId, sprintId } = req.params;
   try {
-    const { ROOT_DIR, DATA_DIR } = require("../../utils/config");
+    const { ROOT_DIR, ANALYSES_DIR } = require("../../utils/config");
     const { safeReadJson } = require("../../utils/fileUtils");
     const { aggregateTeamScores } = require("../../services/aggregator");
     const path = require("path");
     const fs   = require("fs");
 
-    const statsPath = path.join(DATA_DIR, `sprint_${sprintId}_${teamId}_stats.json`);
+    const statsPath = path.join(ANALYSES_DIR, `sprint_${sprintId}_${teamId}_stats.json`);
     if (!fs.existsSync(statsPath)) {
       return res.status(404).json({ error: "Sprint not yet analysed for this team" });
     }

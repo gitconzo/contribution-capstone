@@ -146,7 +146,7 @@ export default function UploadFile({ darkMode }) {
 
   const teamNameMap = useMemo(() => {
     const map = {};
-    teams.forEach(team => { map[team.id] = team.name || team.code || team.id; });
+    (Array.isArray(teams) ? teams : []).forEach(team => { map[team.id] = team.name || team.code || team.id; });
     return map;
   }, [teams]);
 

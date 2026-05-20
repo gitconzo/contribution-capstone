@@ -60,8 +60,9 @@ function Shell() {
     setStudentLoading(true);
     try {
       const all     = await apiFetch("/api/teams").then(r => r.json()).catch(() => []);
+      const allList = Array.isArray(all) ? all : [];
       const email   = (u.email || "").trim().toLowerCase();
-      const matched = (all || []).filter(t => (t.students || []).some(s => (s.email || "").trim().toLowerCase() === email));
+      const matched = allList.filter(t => (t.students || []).some(s => (s.email || "").trim().toLowerCase() === email));
       setStudentTeams(matched);
       sessionStorage.setItem("studentTeamsCache", JSON.stringify(matched));
       const savedId = localStorage.getItem("studentSelectedTeamId");
@@ -88,7 +89,10 @@ function Shell() {
   }, [refreshStudentUploads, user?.email]);
 
   useEffect(() => {
-    apiFetch("/api/teams").then(r => r.json()).catch(() => []).then(data => setTeams(data || []));
+    apiFetch("/api/teams")
+      .then(r => r.json())
+      .catch(() => [])
+      .then(data => setTeams(Array.isArray(data) ? data : []));
   }, []);
 
   useEffect(() => {

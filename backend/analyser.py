@@ -49,8 +49,8 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
     analyseRepo = list(lizard.analyze([tempFolder], exclude_pattern=exclude_pattern))
     repo = Repo(tempFolder)
 
-    Authors = defaultdict(list)
-    authorsFunctions = defaultdict(float)
+    complexityByAuthor = defaultdict(list)
+    functionsOwnedByAuthor = defaultdict(float)
     totalFunctions = 0
 
     # filter out ignored dirs/files
@@ -103,8 +103,8 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
 
     # First pass — collect all function data for percentage_of_functions_written
     # and hotspot analysis
-    functionData = []      # only complex functions (hotspot candidates)
-    allFunctionData = []   # all functions (for ownership percentages)
+    hotspotCandidates = []   # only complex functions (hotspot candidates)
+    allFunctions = []        # all functions (for ownership percentages)
 
     for file in analyseRepo:
         relPath = os.path.relpath(file.filename, tempFolder)
@@ -120,92 +120,92 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
             except Exception:
                 continue
 
-            linesInFunction = defaultdict(int)
+            linesByAuthor = defaultdict(int)
             currentAuthor = None
             for line in blameOutput.splitlines():
                 if line.startswith("author "):
                     currentAuthor = line.replace("author ", "").strip()
                 elif line.startswith("\t") and currentAuthor:
-                    linesInFunction[currentAuthor] += 1
+                    linesByAuthor[currentAuthor] += 1
 
-            totalLines = sum(linesInFunction.values())
-            if totalLines == 0:
+            totalFunctionLines = sum(linesByAuthor.values())
+            if totalFunctionLines == 0:
                 continue
 
             complexity = (func.cyclomatic_complexity / 10) + (func.token_count / 100)
             callFrequency = callCounts.get(func.name, 0)
 
-            entry = {
+            functionRecord = {
                 "complexity": complexity,
                 "callFrequency": callFrequency,
                 "funcName": func.name,
-                "linesInFunction": dict(linesInFunction),
-                "totalLines": totalLines,
+                "linesByAuthor": dict(linesByAuthor),
+                "totalLines": totalFunctionLines,
             }
 
-            allFunctionData.append(entry)
+            allFunctions.append(functionRecord)
 
             # Only non-trivial functions are hotspot candidates
             if complexity >= 0.5:
-                functionData.append(entry)
+                hotspotCandidates.append(functionRecord)
 
-    if not allFunctionData:
+    if not allFunctions:
         print("No function data collected.")
         return {}
 
     # Compute ownership for all functions
-    for d in allFunctionData:
-        linesInFunction = d["linesInFunction"]
-        complexity = d["complexity"]
-        totalLines = d["totalLines"]
+    for funcInfo in allFunctions:
+        linesByAuthor = funcInfo["linesByAuthor"]
+        complexity = funcInfo["complexity"]
+        totalFunctionLines = funcInfo["totalLines"]
 
         totalFunctions += 1
-        for author, numOfLines in linesInFunction.items():
-            authorComplexity = complexity * (numOfLines / totalLines)
-            Authors[author].append(authorComplexity)
+        for author, lineCount in linesByAuthor.items():
+            authorComplexity = complexity * (lineCount / totalFunctionLines)
+            complexityByAuthor[author].append(authorComplexity)
 
-        maxLines = max(linesInFunction.values())
-        owners = [a for a, n in linesInFunction.items() if n == maxLines]
+        topAuthorLineCount = max(linesByAuthor.values())
+        owners = [author for author, n in linesByAuthor.items() if n == topAuthorLineCount]
         share = 1.0 / len(owners)
-        for a in owners:
-            authorsFunctions[a] += share
+        for author in owners:
+            functionsOwnedByAuthor[author] += share
 
     # Compute hotspots using call frequency
-    authorHotspots = defaultdict(float)
+    hotspotsByAuthor = defaultdict(float)
     totalHotspots = 0
 
-    if functionData:
-        maxComplexity = max(d["complexity"] for d in functionData) or 1
-        maxFrequency = max(d["callFrequency"] for d in functionData) or 1
+    if hotspotCandidates:
+        maxComplexity = max(f["complexity"] for f in hotspotCandidates) or 1
+        maxFrequency = max(f["callFrequency"] for f in hotspotCandidates) or 1
 
         hotspotScores = [
-            calculate_hotspots(d["complexity"], d["callFrequency"], maxComplexity, maxFrequency)
-            for d in functionData
+            calculate_hotspots(f["complexity"], f["callFrequency"], maxComplexity, maxFrequency)
+            for f in hotspotCandidates
         ]
         sortedScores = sorted(hotspotScores)
         hotspotThreshold = sortedScores[int(len(sortedScores) * 0.75)]
 
-        for d, score in zip(functionData, hotspotScores):
+        for funcInfo, score in zip(hotspotCandidates, hotspotScores):
             if score >= hotspotThreshold:
-                linesInFunction = d["linesInFunction"]
-                maxLines = max(linesInFunction.values())
-                owners = [a for a, n in linesInFunction.items() if n == maxLines]
+                linesByAuthor = funcInfo["linesByAuthor"]
+                topAuthorLineCount = max(linesByAuthor.values())
+                owners = [author for author, n in linesByAuthor.items() if n == topAuthorLineCount]
                 share = 1.0 / len(owners)
                 totalHotspots += 1
-                for a in owners:
-                    authorHotspots[a] += share
+                for author in owners:
+                    hotspotsByAuthor[author] += share
 
     scores = {}
-    for author, complexityList in Authors.items():
+    for author, complexityList in complexityByAuthor.items():
         total = sum(complexityList)
         count = len(complexityList)
-        owned = authorsFunctions.get(author, 0.0)
-        funcPercentage = round((owned / totalFunctions) * 100, 2) if totalFunctions else 0.0
-        average = total / count if count else 0.0
-        ownedHotspots = authorHotspots.get(author, 0.0)
+        ownedFunctions = functionsOwnedByAuthor.get(author, 0.0)
+        funcPercentage = round((ownedFunctions / totalFunctions) * 100, 2) if totalFunctions else 0.0
+        averageComplexity = total / count if count else 0.0
+        ownedHotspots = hotspotsByAuthor.get(author, 0.0)
         hotspotPercentage = round((ownedHotspots / totalHotspots) * 100, 2) if totalHotspots else 0.0
         scores[author] = {
-            "average_complexity": round(average, 3),
+            "average_complexity": round(averageComplexity, 3),
             "percentage_of_functions_written": funcPercentage,
             "percentage_of_hotspots": hotspotPercentage
         }

@@ -76,10 +76,23 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
       const resolvedTeams = Array.isArray(allTeams) ? allTeams : [];
       setTeams(resolvedTeams);
       sessionStorage.setItem("dashboardTeamsCache", JSON.stringify(resolvedTeams));
-      // If context has no team, or the stored team no longer belongs to this tutor, fall back to first
-      if (resolvedTeams.length && !resolvedTeams.find(t => t.id === teamId)) {
+
+      // No teams available — clear any cached state pointing at a team the user
+      // no longer has access to (e.g. ownership was reassigned).
+      if (!resolvedTeams.length) {
+        setTeamId("");
+        setScores(null);
+        setTeamStudents([]);
+        sessionStorage.removeItem("dashboardScoresCache");
+        sessionStorage.removeItem("dashboardStudentsCache");
+        return;
+      }
+
+      // Stored team no longer belongs to this tutor — fall back to first available
+      if (!resolvedTeams.find(t => t.id === teamId)) {
         setTeamId(resolvedTeams[0].id);
-        setScores(null); setTeamStudents([]);
+        setScores(null);
+        setTeamStudents([]);
         sessionStorage.removeItem("dashboardScoresCache");
         sessionStorage.removeItem("dashboardStudentsCache");
       }

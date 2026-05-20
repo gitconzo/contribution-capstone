@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
-const { PORT, DATA_DIR, UPLOAD_DIR, PARSED_DIR } = require("./utils/config");
+const { PORT, DATA_DIR, UPLOAD_DIR, PARSED_DIR, ANALYSES_DIR } = require("./utils/config");
 const { ensureFile, ensureDir } = require("./utils/fileUtils");
 
 const authRoutes = require("./routes/authentication");
@@ -14,6 +14,7 @@ app.use(express.json());
 ensureDir(DATA_DIR);
 ensureDir(UPLOAD_DIR);
 ensureDir(PARSED_DIR);
+ensureDir(ANALYSES_DIR);
 
 // Serve uploaded files as static assets
 app.use("/uploads", express.static(UPLOAD_DIR));

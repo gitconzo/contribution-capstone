@@ -7,9 +7,12 @@ export function TeamProvider({ children, userId }) {
   const [activeTeamId, setTeamId] = useState(localStorage.getItem(storageKey) || "");
 
   function setActiveTeamId(id) {
-    if (!id) return;
-    localStorage.setItem(storageKey, id);
-    setTeamId(id);
+    if (id) {
+      localStorage.setItem(storageKey, id);
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+    setTeamId(id || "");
   }
 
   return (

@@ -11,6 +11,7 @@ const PORT = parseInt(process.env.PORT || "5002", 10);
 const DATA_DIR = path.join(ROOT_DIR, process.env.DATA_DIR || "data");
 const UPLOAD_DIR = path.join(ROOT_DIR, process.env.UPLOADS_DIR || "uploads");
 const PARSED_DIR = path.join(DATA_DIR, process.env.PARSED_DIR || "parsed");
+const ANALYSES_DIR = path.join(DATA_DIR, process.env.ANALYSES_DIR || "analyses");
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
 
 module.exports = {
@@ -19,5 +20,6 @@ module.exports = {
   DATA_DIR,
   UPLOAD_DIR,
   PARSED_DIR,
+  ANALYSES_DIR,
   GITHUB_TOKEN,
 };

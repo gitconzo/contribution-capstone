@@ -6,4 +6,7 @@ __pycache__/
 *.pyo
 backend/data/activeTeam.json
 backend/data/teams.json
+backend/data/commits.json
+backend/data/output.json
 backend/data/groups/groups.json
+METRICS.md
