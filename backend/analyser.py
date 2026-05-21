@@ -163,12 +163,7 @@ def analyse_functions(tempFolder, start_date=None, end_date=None):
         for author, lineCount in linesByAuthor.items():
             authorComplexity = complexity * (lineCount / totalFunctionLines)
             complexityByAuthor[author].append(authorComplexity)
-
-        topAuthorLineCount = max(linesByAuthor.values())
-        owners = [author for author, n in linesByAuthor.items() if n == topAuthorLineCount]
-        share = 1.0 / len(owners)
-        for author in owners:
-            functionsOwnedByAuthor[author] += share
+            functionsOwnedByAuthor[author] += lineCount / totalFunctionLines
 
     # Compute hotspots using call frequency
     hotspotsByAuthor = defaultdict(float)
