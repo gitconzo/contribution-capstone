@@ -1,0 +1,19 @@
+# Python dependencies for the contribution-capstone backend.
+# Install with: pip install -r requirements.txt
+# After installing, run: python setup_nlp_models.py
+
+# Git analysis
+gitpython>=3.1.40
+
+# Code complexity analysis
+lizard>=1.17.10
+
+# Document parsing
+python-docx>=1.1.0
+openpyxl>=3.1.2
+pdfminer.six>=20221105
+
+# NLP / text metrics
+spacy>=3.7.0,<3.8.0
+nltk>=3.8.1
+textstat>=0.7.3

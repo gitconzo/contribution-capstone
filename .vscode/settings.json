@@ -1,4 +1,28 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "editor.formatOnSave": false,
+    "javascript.format.enable": false,
+    "typescript.format.enable": false,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "never",
+        "source.fixAll.eslint": "never",
+        "source.organizeImports": "never"
+    },
+    "[javascriptreact]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+    "[javascript]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+    "[typescript]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+    "[typescriptreact]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    }
 }

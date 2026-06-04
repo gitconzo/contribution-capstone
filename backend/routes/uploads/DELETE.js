@@ -4,6 +4,7 @@ const path = require("path");
 const router = require("express").Router();
 const db = require("../../utils/db");
 const { PARSED_DIR } = require("../../utils/config");
+const { deleteFile } = require("../../utils/s3");
 
 // DELETE /api/uploads/:id
 // Deletes one uploaded file record and removes its local parsed JSON if present
@@ -16,7 +17,7 @@ router.delete("/:id", async (req, res) => {
 
   try {
     const result = await db.query(
-      `SELECT id, json_path
+      `SELECT id, s3_key, s3_parsed_key, json_path
        FROM file_registry
        WHERE id = $1`,
       [id]
@@ -28,12 +29,17 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ error: "File not found" });
     }
 
+    // Remove local parsed JSON
     if (entry.json_path) {
       const fullPath = path.join(PARSED_DIR, path.basename(entry.json_path));
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
       }
     }
+
+    // Remove S3 objects (fire-and-forget — don't fail the delete if S3 cleanup errors)
+    if (entry.s3_key) deleteFile(entry.s3_key).catch(e => console.warn("S3 delete s3_key failed:", e.message));
+    if (entry.s3_parsed_key) deleteFile(entry.s3_parsed_key).catch(e => console.warn("S3 delete s3_parsed_key failed:", e.message));
 
     await db.query("DELETE FROM file_registry WHERE id = $1", [id]);
 

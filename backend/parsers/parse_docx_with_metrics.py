@@ -11,6 +11,7 @@ from nltk import download as nltk_download
 
 # Ensure NLTK + spaCy models are ready
 nltk_download("punkt", quiet=True)
+nltk_download("punkt_tab", quiet=True)
 nlp = spacy.load("en_core_web_sm")
 
 # ---------------- Low-level helpers ----------------

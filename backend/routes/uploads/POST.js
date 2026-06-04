@@ -16,7 +16,7 @@ function detectTypeFromName(filename, userGuess) {
   if (lower.includes("worklog")) return "worklog";
   if (lower.includes("sprint")) return "sprint_report";
   if (lower.includes("peer") || lower.includes("self-peer") || lower.includes("self_peer") || lower.includes("peer assessment") || lower.includes("peer_assessment")) return "peer_review";
-  if (lower.includes("project") && lower.includes("plan")) return "project_plan";
+  if ((lower.includes("project") && lower.includes("plan")) || lower.includes("team plan")) return "project_plan";
   return "unknown";
 }
 

@@ -231,7 +231,7 @@ export default function SetupTeam({ darkMode, teams = [], onTeamsChange }) {
   // ── Create team ──
   const onCreate = async () => {
     setError("");
-    if (!name.trim() || !code.trim() || !repoUrl.trim()) { setError("Team Name, Project Code, and Repository URL are required."); return; }
+    if (!name.trim() || !code.trim()) { setError("Team Name and Project Code are required."); return; }
     const validStudents = newStudents.filter(s => s.name.trim() && s.email.trim());
     if (!validStudents.length) { setError("At least one student is required."); return; }
     setCreating(true);

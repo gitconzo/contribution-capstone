@@ -201,7 +201,7 @@ export default function UploadFile({ darkMode }) {
       else if (lower.includes("worklog"))                                                   setOverrideType("worklog");
       else if (lower.match(/sprint[-_\s]?report/) || lower.includes("sprintreport"))       setOverrideType("sprint_report");
       else if (lower.includes("peer") || lower.includes("peer_assessment"))                setOverrideType("peer_review");
-      else if (lower.includes("project") && lower.includes("plan"))                        setOverrideType("project_plan");
+      else if ((lower.includes("project") && lower.includes("plan")) || lower.includes("team plan")) setOverrideType("project_plan");
       else                                                                                  setOverrideType("unknown");
     }
   };

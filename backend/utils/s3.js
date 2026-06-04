@@ -8,6 +8,7 @@ const s3 = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
+  requestChecksumCalculation: "when_required",
 });
 
 const BUCKET = process.env.S3_BUCKET;
@@ -19,7 +20,7 @@ async function getPresignedUploadUrl(key, contentType) {
     Key: key,
     ContentType: contentType || "application/octet-stream",
   });
-  return getSignedUrl(s3, command, { expiresIn: 60 });
+  return getSignedUrl(s3, command, { expiresIn: 300 });
 }
 
 // Generate a presigned URL for downloading/viewing a file
