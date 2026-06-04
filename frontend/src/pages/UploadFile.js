@@ -199,7 +199,7 @@ export default function UploadFile({ darkMode }) {
       const lower = selected.name.toLowerCase();
       if (lower.includes("attendance"))                                                     setOverrideType("attendance");
       else if (lower.includes("worklog"))                                                   setOverrideType("worklog");
-      else if (lower.match(/sprint[-_\s]?report/) || lower.includes("sprintreport"))       setOverrideType("sprint_report");
+      else if (lower.includes("sprint"))                                                    setOverrideType("sprint_report");
       else if (lower.includes("peer") || lower.includes("peer_assessment"))                setOverrideType("peer_review");
       else if ((lower.includes("project") && lower.includes("plan")) || lower.includes("team plan")) setOverrideType("project_plan");
       else                                                                                  setOverrideType("unknown");

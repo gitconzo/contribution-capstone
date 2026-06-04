@@ -1,5 +1,9 @@
 from pathlib import Path
 from docx import Document
+from docx.table import Table
+from docx.text.paragraph import Paragraph
+from docx.oxml.text.paragraph import CT_P
+from docx.oxml.table import CT_Tbl
 import json
 import re
 import textstat
@@ -13,24 +17,50 @@ nltk_download("punkt",     quiet=True)
 nltk_download("punkt_tab", quiet=True)
 nlp = spacy.load("en_core_web_sm")
 
+def _count_words(sentence):
+    # Count only tokens containing a letter/digit so punctuation isn't counted.
+    return len([token for token in word_tokenize(sentence) if any(char.isalnum() for char in token)])
+
+def _ends_like_sentence(sentence):
+    # Punkt already detected the boundary; we just check the unit terminates
+    # like a real sentence (after stripping trailing quotes/brackets/spaces).
+    stripped = sentence.rstrip(" \t\n\r\"')]}>”’")
+    return stripped.endswith((".", "!", "?"))
+
 def get_text_metrics(text: str):
     cleaned = text.strip()
     if not cleaned:
         return dict(word_count=0, avg_sentence_length=0,
                     sentence_complexity=0, readability_score=0)
 
-    sentences   = sent_tokenize(cleaned)
-    words       = word_tokenize(cleaned)
-    readability = textstat.flesch_reading_ease(cleaned)
+    sentences = sent_tokenize(cleaned)
 
-    doc_obj          = nlp(cleaned)
-    subordinate_deps = {"advcl", "ccomp", "xcomp", "acl", "relcl"}
-    sub_count        = sum(1 for t in doc_obj if t.dep_ in subordinate_deps)
+    # Volume — prose words only (drops <3-word fragments and >60-word merged
+    # table run-ons) so word_count reflects written contribution, not scaffolding.
+    prose_sentences = [sentence for sentence in sentences if 3 <= _count_words(sentence) <= 60]
+    word_count = sum(_count_words(sentence) for sentence in prose_sentences)
+
+    # Quality — stricter: also require a real sentence terminator.
+    quality_sentences = [sentence for sentence in prose_sentences if _ends_like_sentence(sentence)]
+    quality_text = " ".join(quality_sentences)
+
+    if quality_sentences:
+        quality_word_count  = sum(_count_words(sentence) for sentence in quality_sentences)
+        avg_sentence_length = quality_word_count / len(quality_sentences)
+        readability         = textstat.flesch_reading_ease(quality_text)
+        parsed              = nlp(quality_text)
+        subordinate_deps    = {"advcl", "ccomp", "xcomp", "acl", "relcl"}
+        subordinate_count   = sum(1 for token in parsed if token.dep_ in subordinate_deps)
+        sentence_complexity = subordinate_count / len(quality_sentences)
+    else:
+        avg_sentence_length = 0.0
+        readability         = 0.0
+        sentence_complexity = 0.0
 
     return {
-        "word_count":          len(words),
-        "avg_sentence_length": round(len(words) / len(sentences), 2) if sentences else 0.0,
-        "sentence_complexity": round(sub_count  / len(sentences), 3) if sentences else 0.0,
+        "word_count":          word_count,
+        "avg_sentence_length": round(avg_sentence_length, 2),
+        "sentence_complexity": round(sentence_complexity, 3),
         "readability_score":   round(readability, 2),
     }
 
@@ -38,15 +68,6 @@ def get_text_metrics(text: str):
 def get_heading_level(text, para):
     """
     Returns heading level 1-4, or 0 if the paragraph is not a heading.
-
-    Precedence:
-      1. Explicit Word paragraph styles (Heading 1-6, Title)
-      2. Markdown-style prefixes (#, ##, …)
-      3. PART N pattern
-      4. Named top-level section keywords
-      5. Numbered section pattern ("1. Team Profile") - checked BEFORE the
-         list-style guard so list-numbered headings are not silently dropped
-      6. List style → not a heading
     """
     text = text.strip()
     if not text:
@@ -92,48 +113,68 @@ def get_heading_level(text, para):
     return 0
 
 
+def _table_to_text(table):
+    """Flatten a table to text: cells joined by spaces, rows by newlines."""
+    row_texts = []
+    for row in table.rows:
+        cell_texts = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+        if cell_texts:
+            row_texts.append(" ".join(cell_texts))
+    return "\n".join(row_texts)
+
+
+def iter_blocks(doc):
+    """Yield the body's paragraphs and tables in document order."""
+    body = doc.element.body
+    for child in body.iterchildren():
+        if isinstance(child, CT_P):
+            yield Paragraph(child, doc)
+        elif isinstance(child, CT_Tbl):
+            yield Table(child, doc)
+
+
 def extract_hierarchical_sections(doc):
     """
-    Walk doc.paragraphs, identify headings, and collect the paragraph text
-    between each heading as its section content.
+    Walk paragraphs AND tables in document order, identify headings, and collect
+    the text between each heading (including deeper sub-sections and tables) as
+    that section's content.
     Returns {title: {content, level, word_count}}.
     """
-    headings = []
-    for i, para in enumerate(doc.paragraphs):
-        text  = para.text.strip()
-        level = get_heading_level(text, para) if text else 0
-        if level > 0:
-            headings.append({
-                "title":       re.sub(r"^#+\s*", "", text).strip(),
-                "level":       level,
-                "start_index": i,
-                "end_index":   None,
-            })
+    # Ordered blocks with text + heading level (tables are never headings).
+    blocks = []
+    for block in iter_blocks(doc):
+        if isinstance(block, Paragraph):
+            text = block.text.strip()
+            if not text:
+                continue
+            level = get_heading_level(text, block)
+            blocks.append({"text": text, "level": level, "is_heading": level > 0})
+        else:  # Table
+            text = _table_to_text(block)
+            if text:
+                blocks.append({"text": text, "level": 0, "is_heading": False})
 
-    for i, h in enumerate(headings):
-        if i + 1 < len(headings):
-            nxt = headings[i + 1]
-            if nxt["level"] <= h["level"]:
-                h["end_index"] = nxt["start_index"]
-            else:
-                for j in range(i + 2, len(headings)):
-                    if headings[j]["level"] <= h["level"]:
-                        h["end_index"] = headings[j]["start_index"]
-                        break
-                if h["end_index"] is None:
-                    h["end_index"] = len(doc.paragraphs)
-        else:
-            h["end_index"] = len(doc.paragraphs)
+    heading_indexes = [index for index, block in enumerate(blocks) if block["is_heading"]]
 
     sections = {}
-    for h in headings:
-        lines   = [doc.paragraphs[i].text.strip()
-                   for i in range(h["start_index"] + 1, h["end_index"])
-                   if doc.paragraphs[i].text.strip()]
+    for position, heading_index in enumerate(heading_indexes):
+        heading = blocks[heading_index]
+        # Section ends at the next heading of equal-or-higher level; everything
+        # before that (sub-headings, their bodies, and tables) belongs to it.
+        section_end = len(blocks)
+        for next_heading_index in heading_indexes[position + 1:]:
+            if blocks[next_heading_index]["level"] <= heading["level"]:
+                section_end = next_heading_index
+                break
+
+        lines   = [blocks[index]["text"]
+                   for index in range(heading_index + 1, section_end)
+                   if blocks[index]["text"]]
         content = "\n".join(lines).strip()
-        sections[h["title"]] = {
+        title   = re.sub(r"^#+\s*", "", heading["text"]).strip()
+        sections[title] = {
             "content":    content,
-            "level":      h["level"],
+            "level":      heading["level"],
             "word_count": len(content.split()) if content else 0,
         }
     return sections

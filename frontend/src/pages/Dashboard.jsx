@@ -181,6 +181,25 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
     return map;
   }, [activeScores]);
 
+  // Work Share — each student's weighted contribution as a percentage of the
+  // team total across ALL metrics (code + docs). Sums to ~100% across the team
+  const workShareByKey = useMemo(() => {
+    const ranking = activeScores?.ranking || [];
+    if (!ranking.length) return new Map();
+    const configuredWeights = activeScores?.weights || {};
+    const defaultWeights = { loc:12, editedCode:10, commits:7, functions:12, hotspots:10, codeComplexity:9,
+                             avgSentenceLength:5, sentenceComplexity:5, wordCount:7, readability:11 };
+    const metricNames = Object.keys(defaultWeights);
+    const weightFor = metric => (configuredWeights[metric] ?? defaultWeights[metric]) || 0;
+    const weightedTotals = ranking.map(student =>
+      metricNames.reduce((total, metric) => total + Math.max(0, student.breakdown?.[metric] || 0) * weightFor(metric), 0)
+    );
+    const teamTotal = weightedTotals.reduce((sum, value) => sum + value, 0) || 1;
+    const shareByKey = new Map();
+    ranking.forEach((student, index) => shareByKey.set(student.email || student.name, Math.round((weightedTotals[index] / teamTotal) * 100)));
+    return shareByKey;
+  }, [activeScores]);
+
   const kpis = useMemo(() => {
     const list = activeScores?.ranking || [];
     if (!list.length) return { avg: 0, high: "0/0", commits: 0 };
@@ -480,6 +499,7 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
           const weightedDocScore = totalDocWeight>0 ? Object.entries(docMetrics).reduce((s,[k,v])=>s+(v*docWeights[k]),0)/totalDocWeight : 0;
           const docScore   = Math.round(weightedDocScore*100);
           const codeScore  = codeScoreByKey.get(s.email||s.name)??0;
+          const workShare  = workShareByKey.get(s.email||s.name)??0;
           const wordCount  = raw.wordCount||0;
           const attendance = Math.round((raw.attendance||0)*100);
 
@@ -501,11 +521,12 @@ export default function Dashboard({ onViewStudent, onViewTasks, darkMode }) {
                   )}
                 </div>
                 <div style={{ color:theme.subtext, fontSize:13, marginTop:2 }}>{s.email}</div>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:14, marginTop:12, fontSize:13 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:14, marginTop:12, fontSize:13 }}>
                   <Metric theme={theme} label="Code Score" value={`${codeScore}%`}/>
                   <Metric theme={theme} label="Doc Score"  value={docScore>0?`${docScore}%`:"—"}/>
                   <Metric theme={theme} label="Word Count" value={wordCount>0?wordCount:"—"}/>
                   <Metric theme={theme} label="Attendance" value={attendance>0?`${attendance}%`:"—"}/>
+                  <Metric theme={theme} label="Work Share" value={workShare>0?`${workShare}%`:"—"}/>
                 </div>
               </div>
               <div style={{ display:"grid", alignContent:"center", justifyItems:"end", gap:6 }}>

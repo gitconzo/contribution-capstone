@@ -4,6 +4,10 @@ import difflib
 import argparse
 from pathlib import Path
 from docx import Document
+from docx.table import Table
+from docx.text.paragraph import Paragraph
+from docx.oxml.text.paragraph import CT_P
+from docx.oxml.table import CT_Tbl
 import textstat
 import spacy
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -16,21 +20,22 @@ nlp = spacy.load("en_core_web_sm")
 
 # ---------------- Low-level helpers ----------------
 
-def extract_all_lines(doc: Document):
-    # Return all non-empty paragraphs as a list of strings, in order
-    return [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+def _count_words(sentence):
+    # Count only tokens containing a letter/digit so punctuation isn't counted.
+    return len([token for token in word_tokenize(sentence) if any(char.isalnum() for char in token)])
 
-def join_lines(lines):
-    # Utility to join an array of lines back into one block of text
-    return "\n".join(lines)
+def _ends_like_sentence(sentence):
+    # sent_tokenize (Punkt) already detected the boundary using abbreviation and
+    # capitalisation cues; we only check whether the detected unit terminates
+    # like a real sentence. Strip trailing quotes/brackets/spaces first.
+    stripped = sentence.rstrip(" \t\n\r\"')]}>”’")
+    return stripped.endswith((".", "!", "?"))
 
 def get_text_metrics(text: str):
     """
-    Compute:
-    - word_count
-    - avg_sentence_length (words per sentence)
-    - sentence_complexity (subordinate clauses per sentence)
-    - readability_score (Flesch Reading Ease; higher = easier)
+    Compute word_count, avg_sentence_length, sentence_complexity and readability
+    on prose only: word_count uses 3..60-word sentences (excluding table run-ons);
+    quality metrics also require a sentence terminator.
     """
     cleaned = text.strip()
     if not cleaned:
@@ -41,22 +46,32 @@ def get_text_metrics(text: str):
             "readability_score": 0
         }
 
-    # sentences / words
     sentences = sent_tokenize(cleaned)
-    words = word_tokenize(cleaned)
-    avg_sentence_length = (len(words) / len(sentences)) if sentences else 0.0
 
-    # readability
-    readability = textstat.flesch_reading_ease(cleaned)
+    # Volume - prose words only (excludes <3-word fragments and >60-word
+    # merged-table run-ons; punctuation already excluded by _count_words).
+    prose_sentences = [sentence for sentence in sentences if 3 <= _count_words(sentence) <= 60]
+    word_count = sum(_count_words(sentence) for sentence in prose_sentences)
 
-    # rough complexity: subordinate/embedded clause-ish deps per sentence
-    doc_obj = nlp(cleaned)
-    subordinate_deps = {"advcl", "ccomp", "xcomp", "acl", "relcl"}
-    subordinate_count = sum(1 for token in doc_obj if token.dep_ in subordinate_deps)
-    sentence_complexity = (subordinate_count / len(sentences)) if sentences else 0.0
+    # Quality - stricter: also require a real sentence terminator.
+    quality_sentences = [sentence for sentence in prose_sentences if _ends_like_sentence(sentence)]
+    quality_text = " ".join(quality_sentences)
+
+    if quality_sentences:
+        quality_word_count = sum(_count_words(sentence) for sentence in quality_sentences)
+        avg_sentence_length = quality_word_count / len(quality_sentences)
+        readability = textstat.flesch_reading_ease(quality_text)
+        parsed = nlp(quality_text)
+        subordinate_deps = {"advcl", "ccomp", "xcomp", "acl", "relcl"}
+        subordinate_count = sum(1 for token in parsed if token.dep_ in subordinate_deps)
+        sentence_complexity = subordinate_count / len(quality_sentences)
+    else:
+        avg_sentence_length = 0.0
+        readability = 0.0
+        sentence_complexity = 0.0
 
     return {
-        "word_count": len(words),
+        "word_count": word_count,
         "avg_sentence_length": round(avg_sentence_length, 2),
         "sentence_complexity": round(sentence_complexity, 3),
         "readability_score": round(readability, 2)
@@ -102,31 +117,117 @@ def normalize_section_title(title):
     title = re.sub(r"\s+", " ", title).strip() # normalize whitespace
     return title.lower()
 
-def extract_numbered_sections(lines):
+def _heading_level(text, para):
     """
-    Find sections like:
-        "1. Sprint plan"
-        "2. Sprint progress"
-        ...
-        "6. Lessons learned"
-    and capture all text until the next heading.
-    """
-    full_text = join_lines(lines)
-    heading_regex = re.compile(r"(?P<num>\d+)\.\s*(?P<title>[A-Za-z][^\n]+)", flags=re.IGNORECASE)
-    sections = {}
-    matches = list(heading_regex.finditer(full_text))
+    Return the heading level (1 = top-level section, 2+ = sub-section), or
+    0 if the paragraph is not a heading.
 
-    for i, m in enumerate(matches):
-        title_raw = m.group("title").strip()
-        start_idx = m.end()
-        end_idx = len(full_text)
-        if i + 1 < len(matches):
-            end_idx = matches[i + 1].start()
-        body = full_text[start_idx:end_idx].strip()
-        norm_key = normalize_section_title(title_raw)
-        sections[norm_key] = body
+    Levels matter because a top-level section (e.g. "QUALITY PLAN") must absorb
+    all of its sub-sections (2.1, 2.2 …) rather than ending at the first one.
+    """
+    style = para.style.name.lower() if para.style and para.style.name else ""
+
+    # Figure/table captions are never section headings, even when styled as one.
+    # e.g. "Figure 3 – Architecture Diagram of System Overview", "Table 2: ...".
+    if re.match(r"^(figure|fig\.?|table|diagram)\s*\d+", text, flags=re.IGNORECASE):
+        return 0
+
+    # Explicit Word heading styles
+    if "heading 1" in style or style == "title":
+        return 1
+    if "heading 2" in style:
+        return 2
+    if "heading 3" in style:
+        return 3
+    if "heading 4" in style or "heading 5" in style or "heading 6" in style:
+        return 4
+    # Auto-numbered main sections ("1. PRODUCT BACKLOG" via List Number style)
+    if "list number" in style:
+        return 1
+
+    # Manually typed decimal sub-heading: "2.1 Target Quality Expectations"
+    if re.match(r"^\d+\.\d+", text):
+        return 2
+    # Manually typed top-level: "1. Product Backlog" (single int, short, no comma)
+    if re.match(r"^\d+[\.\)]\s+[A-Za-z]", text) and len(text.split()) <= 8 and "," not in text:
+        return 1
+    # "Epic N:" style sub-headings inside the product backlog
+    if re.match(r"^epic\s+\d+", text, flags=re.IGNORECASE):
+        return 2
+
+    # Unspecified heading style --> treat as a sub-heading so it is absorbed
+    if "heading" in style:
+        return 2
+
+    return 0
+
+
+def _table_to_text(table):
+    """Flatten a table to text: cells joined by spaces, rows by newlines."""
+    row_texts = []
+    for row in table.rows:
+        cell_texts = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+        if cell_texts:
+            row_texts.append(" ".join(cell_texts))
+    return "\n".join(row_texts)
+
+
+def iter_blocks(doc):
+    """
+    Yield the document body's paragraphs and tables in document order.
+    """
+    body = doc.element.body
+    for child in body.iterchildren():
+        if isinstance(child, CT_P):
+            yield Paragraph(child, doc)
+        elif isinstance(child, CT_Tbl):
+            yield Table(child, doc)
+
+
+def extract_sections(doc: Document):
+    """
+    Extract sections hierarchically.  Each heading's content runs until the next heading of equal-or-higher level
+    Returns {normalized_title: body_text}.
+    """
+    # Build an ordered list of blocks with their text and heading level.
+    blocks = []
+    for block in iter_blocks(doc):
+        if isinstance(block, Paragraph):
+            text = block.text.strip()
+            if not text:
+                continue
+            level = _heading_level(text, block)
+            blocks.append({"text": text, "level": level, "is_heading": level > 0})
+        else:  # Table
+            text = _table_to_text(block)
+            if text:
+                blocks.append({"text": text, "level": 0, "is_heading": False})
+
+    heading_indexes = [index for index, block in enumerate(blocks) if block["is_heading"]]
+
+    sections = {}
+    for position, heading_index in enumerate(heading_indexes):
+        heading = blocks[heading_index]
+        # Section ends at the next heading of equal-or-higher level (lower/equal
+        # level number). Everything before that - deeper sub-headings, their
+        # bodies, and any tables - belongs to this section.
+        section_end = len(blocks)
+        for next_heading_index in heading_indexes[position + 1:]:
+            if blocks[next_heading_index]["level"] <= heading["level"]:
+                section_end = next_heading_index
+                break
+
+        body_lines = [blocks[index]["text"]
+                      for index in range(heading_index + 1, section_end)
+                      if blocks[index]["text"]]
+        content = "\n".join(body_lines).strip()
+        title = re.sub(r"^\d+[\.\)]\s*", "", heading["text"]).strip()  # strip typed number prefix
+        key = normalize_section_title(title)
+        if key and content:
+            sections[key] = (sections[key] + "\n" + content) if key in sections else content
 
     return sections
+
 
 def fuzzy_find_section(sec, extracted_sections):
     # Find the closest section title match for a student's claimed section
@@ -167,11 +268,10 @@ def build_student_metrics(authorship_map, extracted_sections):
 def parse_docx_with_metrics(docx_path, output_json_path=None):
     """Main parser entry point (importable)"""
     doc = Document(docx_path)
-    lines = extract_all_lines(doc)
 
-    authorship_map = parse_contribution_table(doc)
-    extracted_sections = extract_numbered_sections(lines)
-    students = build_student_metrics(authorship_map, extracted_sections)
+    authorship_map    = parse_contribution_table(doc)
+    extracted_sections = extract_sections(doc)
+    students          = build_student_metrics(authorship_map, extracted_sections)
 
     result = {
         "source_file": Path(docx_path).name,
