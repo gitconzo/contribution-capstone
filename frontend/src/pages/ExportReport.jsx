@@ -3,7 +3,7 @@ import { useActiveTeam } from "../context/TeamContext";
 import { apiFetch } from "../utils/api";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Document, Packer, Paragraph, Table, TableRow, TableCell, HeadingLevel, TextRun, WidthType } from "docx";
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, HeadingLevel, TextRun, WidthType, ImageRun } from "docx";
 
 const WEIGHT_KEY_LABELS = {
   loc:                "Lines of Code",
@@ -32,10 +32,92 @@ function fmtDate(value) {
 // Which sections each format supports
 const FORMAT_SUPPORTS = {
   pdf:   { charts: true,  timeline: true,  rules: true,  sprintTasks: true  },
-  word:  { charts: false, timeline: true,  rules: true,  sprintTasks: true  },
+  word:  { charts: true,  timeline: true,  rules: true,  sprintTasks: true  },
   csv:   { charts: false, timeline: false, rules: false, sprintTasks: true  },
   excel: { charts: true,  timeline: false, rules: false, sprintTasks: false },
 };
+
+// Work Share — each student's weighted contribution as a percentage of the team total across all metrics (matches the dashboard's Work Share tile).
+function computeWorkShares(rankingList, weights) {
+  const defaultWeights = {
+    loc: 12, editedCode: 10, commits: 7, functions: 12, hotspots: 10, codeComplexity: 9,
+    avgSentenceLength: 5, sentenceComplexity: 5, wordCount: 7, readability: 11,
+  };
+  const metricNames = Object.keys(defaultWeights);
+  const weightFor = metric => ((weights || {})[metric] ?? defaultWeights[metric]) || 0;
+  const weightedTotals = rankingList.map(student =>
+    metricNames.reduce((total, metric) => total + Math.max(0, student.breakdown?.[metric] || 0) * weightFor(metric), 0)
+  );
+  const teamTotal = weightedTotals.reduce((sum, value) => sum + value, 0) || 1;
+  return rankingList.map((student, index) => ({
+    name: student.name || student.email || "Unknown",
+    share: (weightedTotals[index] / teamTotal) * 100,
+  }));
+}
+
+const PIE_COLORS = ["#6f93c9", "#7fb487", "#e0c178", "#d68f8f", "#a892c4", "#7fb0bd", "#cf9bb6", "#9fb37e", "#d6a585", "#9aa3b0"];
+
+// Render a work-share pie chart (with legend) to a PNG data URL via canvas.
+function renderWorkSharePie(shares, pieSize = 420) {
+  const legendWidth = 260;
+  const canvas = document.createElement("canvas");
+  canvas.width = pieSize + legendWidth;
+  canvas.height = pieSize;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const centerX = pieSize / 2;
+  const centerY = pieSize / 2;
+  const radius = pieSize / 2 - 12;
+  const total = shares.reduce((sum, entry) => sum + entry.share, 0) || 1;
+
+  let startAngle = -Math.PI / 2;
+  shares.forEach((entry, index) => {
+    const sweep = (entry.share / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle, startAngle + sweep);
+    ctx.closePath();
+    ctx.fillStyle = PIE_COLORS[index % PIE_COLORS.length];
+    ctx.fill();
+
+    if (entry.share >= 4) {
+      const midAngle = startAngle + sweep / 2;
+      const labelX = centerX + Math.cos(midAngle) * radius * 0.6;
+      const labelY = centerY + Math.sin(midAngle) * radius * 0.6;
+      ctx.fillStyle = "#1f2937";
+      ctx.font = "bold 16px Helvetica, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${Math.round(entry.share)}%`, labelX, labelY);
+    }
+    startAngle += sweep;
+  });
+
+  // Legend
+  let legendY = 24;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.font = "15px Helvetica, Arial, sans-serif";
+  shares.forEach((entry, index) => {
+    ctx.fillStyle = PIE_COLORS[index % PIE_COLORS.length];
+    ctx.fillRect(pieSize + 24, legendY - 8, 16, 16);
+    ctx.fillStyle = "#111827";
+    ctx.fillText(`${entry.name} — ${Math.round(entry.share)}%`, pieSize + 48, legendY);
+    legendY += 28;
+  });
+
+  return { dataUrl: canvas.toDataURL("image/png"), width: canvas.width, height: canvas.height };
+}
+
+function dataUrlToUint8Array(dataUrl) {
+  const base64 = dataUrl.split(",")[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
 
 export default function ExportReport({ darkMode }) {
   const [selectedFormat, setSelectedFormat] = useState("pdf");
@@ -241,6 +323,21 @@ export default function ExportReport({ darkMode }) {
       });
       doc.setTextColor(0, 0, 0);
       y += 10;
+
+      // Work Share pie chart
+      const shares = computeWorkShares(filteredRanking, scores?.weights);
+      if (shares.length) {
+        const pie = renderWorkSharePie(shares);
+        const imgWidth = 150;
+        const imgHeight = imgWidth * (pie.height / pie.width);
+        if (y + imgHeight > 280) { doc.addPage(); y = 20; }
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.text("Work Share Percentage", 14, y);
+        y += 6;
+        doc.addImage(pie.dataUrl, "PNG", 14, y, imgWidth, imgHeight);
+        y += imgHeight + 12;
+      }
     }
 
     // Rule weights table
@@ -279,12 +376,15 @@ export default function ExportReport({ darkMode }) {
           startY: y,
           head: [["Metric", "Value"]],
           body: [
-            ["Commits",          raw.commits   || 0],
-            ["Lines of Code",    (raw.loc       || 0).toFixed(2)],
-            ["Word Count",       raw.wordCount  || 0],
-            ["Attendance",       `${((raw.attendance || 0) * 100).toFixed(1)}%`],
-            ["Meetings",         raw.meetings   || 0],
-            ["Edited Code",      (raw.editedCode|| 0).toFixed(2)],
+            ["Commits",              raw.commits   || 0],
+            ["Lines of Code",        (raw.loc       || 0).toFixed(2)],
+            ["Word Count",           raw.wordCount  || 0],
+            ["Avg Sentence Length",  (raw.avgSentenceLength  || 0).toFixed(2)],
+            ["Sentence Complexity",  (raw.sentenceComplexity || 0).toFixed(3)],
+            ["Readability",          (raw.readability        || 0).toFixed(2)],
+            ["Attendance",           `${((raw.attendance || 0) * 100).toFixed(1)}%`],
+            ["Meetings",             raw.meetings   || 0],
+            ["Edited Code",          (raw.editedCode|| 0).toFixed(2)],
           ],
           styles: { fontSize: 8 },
           headStyles: { fillColor: [55, 65, 81] },
@@ -414,6 +514,29 @@ export default function ExportReport({ darkMode }) {
       new Paragraph({ text: "" }),
     ];
 
+    // Work Share pie chart
+    if (sections.charts) {
+      const shares = computeWorkShares(filteredRanking, scores?.weights);
+      if (shares.length) {
+        const pie = renderWorkSharePie(shares);
+        const displayWidth = 600;
+        const displayHeight = Math.round(displayWidth * (pie.height / pie.width));
+        children.push(
+          new Paragraph({ text: "Work Share Percentage", heading: HeadingLevel.HEADING_2 }),
+          new Paragraph({
+            children: [
+              new ImageRun({
+                type: "png",
+                data: dataUrlToUint8Array(pie.dataUrl),
+                transformation: { width: displayWidth, height: displayHeight },
+              }),
+            ],
+          }),
+          new Paragraph({ text: "" }),
+        );
+      }
+    }
+
     // Rule weights
     if (sections.rules && scores?.weights) {
       children.push(
@@ -449,12 +572,15 @@ export default function ExportReport({ darkMode }) {
             rows: [
               headerRow(["Metric", "Value"]),
               ...([
-                ["Commits",      raw.commits    || 0],
-                ["Lines of Code",(raw.loc       || 0).toFixed(2)],
-                ["Word Count",   raw.wordCount  || 0],
-                ["Attendance",   `${((raw.attendance || 0) * 100).toFixed(1)}%`],
-                ["Meetings",     raw.meetings   || 0],
-                ["Edited Code",  (raw.editedCode|| 0).toFixed(2)],
+                ["Commits",             raw.commits    || 0],
+                ["Lines of Code",       (raw.loc       || 0).toFixed(2)],
+                ["Word Count",          raw.wordCount  || 0],
+                ["Avg Sentence Length", (raw.avgSentenceLength  || 0).toFixed(2)],
+                ["Sentence Complexity", (raw.sentenceComplexity || 0).toFixed(3)],
+                ["Readability",         (raw.readability        || 0).toFixed(2)],
+                ["Attendance",          `${((raw.attendance || 0) * 100).toFixed(1)}%`],
+                ["Meetings",            raw.meetings   || 0],
+                ["Edited Code",         (raw.editedCode|| 0).toFixed(2)],
               ].map(([metric, value]) => dataRow([metric, value]))),
             ],
           }),
