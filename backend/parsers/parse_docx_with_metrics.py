@@ -103,7 +103,10 @@ def parse_contribution_table(doc: Document):
                 contribution_field = cells[2]
                 if not student_name or not contribution_field:
                     continue
-                sections = [s.strip() for s in re.split(r"[\n\r]+", contribution_field) if s.strip()]
+                # Split on newlines, commas and semicolons — contribution cells
+                # list multiple topics separated by any of these (e.g.
+                # "Problem Statement, Core Features, KOST Analysis").
+                sections = [s.strip() for s in re.split(r"[\n\r,;]+", contribution_field) if s.strip()]
                 if sections:
                     authorship[student_name] = sections
             break
@@ -112,10 +115,10 @@ def parse_contribution_table(doc: Document):
 
 def normalize_section_title(title):
     # Normalize section headings for consistent key matching
-    title = re.sub(r"\(.*?\)", "", title)      # remove parentheses
-    title = re.sub(r"[:\-]+", " ", title)      # replace punctuation with space
-    title = re.sub(r"\s+", " ", title).strip() # normalize whitespace
-    return title.lower()
+    title = re.sub(r"\(.*?\)", "", title)            # remove parenthetical content
+    title = re.sub(r"[^a-z0-9\s]+", " ", title.lower())  # drop remaining punctuation (e.g. trailing ".")
+    title = re.sub(r"\s+", " ", title).strip()       # normalize whitespace
+    return title
 
 def _heading_level(text, para):
     """
