@@ -6,6 +6,7 @@ const os = require("os");
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { pyBin } = require("../../utils/processUtils");
 
 // GET /api/export?teamId=...
 router.post("/", async (req, res) => {
@@ -147,8 +148,7 @@ wb.save(r"${outPath.replace(/\\/g, "\\\\")}")
 `;
 
     fs.writeFileSync(scriptPath, script);
-    const py = process.platform === "win32" ? "python" : "python3";
-    execFileSync(py, [scriptPath]);
+    execFileSync(pyBin(), [scriptPath]);
     fs.unlinkSync(scriptPath);
     fs.unlinkSync(jsonPath);
 

@@ -2,9 +2,11 @@
 // Helpers for spawning child processes — centralises pyBin() and promise-wrapped execFile.
 const { execFile } = require("child_process");
 
-// Windows uses "python", everything else uses "python3".
+// Interpreter to run parser scripts with. Override via PYTHON_BIN (e.g. on hosts
+// where the deps live under a specific interpreter like "python3.11").
+// Default: Windows uses "python", everything else uses "python3".
 function pyBin() {
-  return process.platform === "win32" ? "python" : "python3";
+  return process.env.PYTHON_BIN || (process.platform === "win32" ? "python" : "python3");
 }
 
 // Runs an executable and returns a Promise resolving to { stdout, stderr }.
