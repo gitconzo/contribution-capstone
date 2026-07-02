@@ -12,6 +12,9 @@ spacy==3.7.2
 nltk==3.9.3
 lizard==1.18.0
 
+# Git analysis (used by main.py for repo cloning + commit stats)
+GitPython>=3.1.40
+
 # Data Handling
 numpy<2
 pandas==2.3.3
